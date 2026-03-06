@@ -1,0 +1,347 @@
+import { api } from './api';
+import type {
+    LoginDto,
+    AuthUser,
+    Branch,
+    Department,
+    DepartmentUser,
+    Order,
+    AddOrderDto,
+    OrderHistoryEntry,
+    Evidence,
+    VerifyQrDto,
+    AssignTaskDto,
+    Task,
+    TaskStatusUpdateDto,
+    Role,
+    Permission,
+    Statistics,
+    HomeTaskStatus,
+    OrderStatus,
+    ApexInvoice,
+    ApexOffer,
+    ApexResponse,
+} from '@/types';
+
+// ==================== AUTH ====================
+
+export async function login(dto: LoginDto): Promise<AuthUser> {
+    return api<AuthUser>('/api/Auth/login', { method: 'POST', body: dto });
+}
+
+export async function logout(): Promise<void> {
+    return api<void>('/api/Auth', { method: 'DELETE' });
+}
+
+// ==================== APEX (via local Next.js secure proxy) ====================
+
+export async function getApexInvoices(params?: {
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    pageSize?: number;
+}): Promise<ApexInvoice[]> {
+    const qs = new URLSearchParams();
+    if (params?.dateFrom) qs.set('DateFrom', params.dateFrom);
+    if (params?.dateTo) qs.set('DateTo', params.dateTo);
+    if (params?.page) qs.set('PageNumber', String(params.page));
+    if (params?.pageSize) qs.set('PageSize', String(params.pageSize));
+    const url = `/api/apex/invoices${qs.toString() ? '?' + qs : ''}`;
+    const res: ApexResponse<ApexInvoice> = await fetch(url).then(r => r.json());
+    if (!res.isSuccess) throw new Error(res.message || 'APEX invoices failed');
+    return res.data ?? [];
+}
+
+export async function getApexOffers(params?: {
+    from?: string;
+    to?: string;
+    page?: number;
+    size?: number;
+}): Promise<ApexOffer[]> {
+    const qs = new URLSearchParams();
+    if (params?.from) qs.set('DateFrom', params.from);
+    if (params?.to) qs.set('DateTo', params.to);
+    if (params?.page) qs.set('PageNumber', String(params.page));
+    if (params?.size) qs.set('PageSize', String(params.size));
+    const url = `/api/apex/offers${qs.toString() ? '?' + qs : ''}`;
+    const res: ApexResponse<ApexOffer> = await fetch(url).then(r => r.json());
+    if (!res.isSuccess) throw new Error(res.message || 'APEX offers failed');
+    return res.data ?? [];
+}
+
+/**
+ * Convenience helper to find a specific document by code and return its items.
+ * Since APEX endpoints don't support direct fetch by code, we loop through pages.
+ */
+export async function getApexDocumentItems(type: 'invoice' | 'offer', code: string): Promise<import('@/types').ApexItem[]> {
+    if (!code) return [];
+    try {
+        console.log(`[APEX Fetch] Looking for ${type} with code: "${code}"`);
+        const MAX_PAGES = 25;
+        const PAGE_SIZE = 20; // APEX API rejects page sizes > 20
+
+        for (let page = 1; page <= MAX_PAGES; page++) {
+            if (type === 'invoice') {
+                const invoices = await getApexInvoices({ page, pageSize: PAGE_SIZE });
+                if (!invoices || invoices.length === 0) break;
+
+                const doc = invoices.find(i => i.code === code);
+                if (doc) {
+                    console.log(`[APEX Fetch] Found doc "${code}" on page ${page}`);
+                    return doc.items || [];
+                }
+                if (invoices.length < PAGE_SIZE) break; // no more pages
+            } else {
+                const offers = await getApexOffers({ page, size: PAGE_SIZE });
+                if (!offers || offers.length === 0) break;
+
+                const doc = offers.find(o => o.code === code);
+                if (doc) {
+                    console.log(`[APEX Fetch] Found doc "${code}" on page ${page}`);
+                    return doc.items || [];
+                }
+                if (offers.length < PAGE_SIZE) break; // no more pages
+            }
+        }
+
+        console.log(`[APEX Fetch] Document "${code}" not found after scanning ${MAX_PAGES} pages.`);
+        return [];
+    } catch (err) {
+        console.error(`Failed to fetch APEX ${type} items:`, err);
+        return [];
+    }
+}
+
+// ==================== BRANCHES ====================
+
+export async function getBranches(): Promise<Branch[]> {
+    return api<Branch[]>('/api/Branches');
+}
+
+export async function createBranch(dto: { name: string; email?: string; phone?: string }): Promise<Branch> {
+    return api<Branch>('/api/Branches', { method: 'POST', body: dto });
+}
+
+export async function deleteBranch(id: number): Promise<void> {
+    return api<void>(`/api/Branches/${id}`, { method: 'DELETE' });
+}
+
+// ==================== DEPARTMENTS ====================
+
+export async function getDepartments(branchId?: number): Promise<Department[]> {
+    const raw = await api<unknown>('/api/Departments', { params: { branchId } });
+    // Handle possible wrapper shapes
+    if (Array.isArray(raw)) return raw as Department[];
+    const obj = raw as Record<string, unknown>;
+    if (obj && Array.isArray(obj.data)) return obj.data as Department[];
+    if (obj && Array.isArray(obj.items)) return obj.items as Department[];
+    return [];
+}
+
+export async function createDepartment(dto: { branchId: number; name: string }): Promise<Department> {
+    return api<Department>('/api/Departments', { method: 'POST', body: dto });
+}
+
+export async function getDepartmentUsers(branchId?: number, departmentId?: number): Promise<DepartmentUser[]> {
+    const raw = await api<unknown>('/api/Departments/users', {
+        params: { branchId, departmentId },
+    });
+    if (Array.isArray(raw)) return raw as DepartmentUser[];
+    const obj = raw as Record<string, unknown>;
+    if (obj && Array.isArray(obj.data)) return obj.data as DepartmentUser[];
+    return [];
+}
+
+export async function createDepartmentUser(formData: FormData): Promise<DepartmentUser> {
+    return api<DepartmentUser>('/api/Departments/user', {
+        method: 'POST',
+        body: formData,
+        isFormData: true,
+    });
+}
+
+export async function deleteDepartment(id: number): Promise<void> {
+    return api<void>(`/api/Departments/${id}`, { method: 'DELETE' });
+}
+
+export async function deleteDepartmentUser(id: number): Promise<void> {
+    return api<void>(`/api/Departments/user/${id}`, { method: 'DELETE' });
+}
+
+// ==================== ORDERS ====================
+
+export async function getOrders(params?: {
+    branchId?: number;
+    departmentId?: number;
+    status?: OrderStatus;
+}): Promise<Order[]> {
+    const raw = await api<unknown>('/api/Orders', { params: params as Record<string, string | number> });
+    if (Array.isArray(raw)) return raw as Order[];
+    const obj = raw as Record<string, unknown>;
+    if (obj && Array.isArray(obj.data)) return obj.data as Order[];
+    return [];
+}
+
+export async function getOrderById(id: number): Promise<Order> {
+    const raw = await api<unknown>(`/api/Orders/${id}`);
+    const obj = raw as Record<string, unknown>;
+    if (obj && typeof obj === 'object') {
+        if ('data' in obj && obj.data) return obj.data as Order;
+        if ('item' in obj && obj.item) return obj.item as Order;
+    }
+    return raw as Order;
+}
+
+export async function createOrder(dto: AddOrderDto): Promise<Order> {
+    return api<Order>('/api/Orders', { method: 'POST', body: dto });
+}
+
+export async function deleteOrders(): Promise<void> {
+    return api<void>('/api/Orders', { method: 'DELETE' });
+}
+
+export async function deleteOrder(id: number): Promise<void> {
+    return api<void>(`/api/Orders/${id}`, { method: 'DELETE' });
+}
+
+export async function getOrderHistory(id: number): Promise<OrderHistoryEntry[]> {
+    try {
+        const raw = await api<unknown>(`/api/Orders/${id}/history`);
+        if (Array.isArray(raw)) return raw as OrderHistoryEntry[];
+        const obj = raw as Record<string, unknown>;
+        if (obj && Array.isArray(obj.data)) return obj.data as OrderHistoryEntry[];
+        return [];
+    } catch {
+        return [];
+    }
+}
+
+export async function approveSalesManager(id: number): Promise<void> {
+    return api<void>(`/api/Orders/${id}/approve-sales`, { method: 'POST' });
+}
+
+export async function approveSupervisor(id: number, taskIds: number[] = []): Promise<void> {
+    return api<void>(`/api/Orders/${id}/approve-supervisor`, {
+        method: 'POST',
+        body: taskIds,
+    });
+}
+
+export async function rejectOrder(id: number, reason: string): Promise<void> {
+    return api<void>(`/api/Orders/${id}/reject`, {
+        method: 'POST',
+        body: reason,
+    });
+}
+
+export async function verifyQr(dto: VerifyQrDto): Promise<unknown> {
+    return api('/api/Orders/verify-qr', { method: 'POST', body: dto });
+}
+
+export async function uploadEvidence(orderId: number, images: File[], note?: string): Promise<Evidence> {
+    const formData = new FormData();
+    formData.append('OrderId', String(orderId));
+    images.forEach(img => formData.append('Images', img));
+    if (note) formData.append('Note', note);
+    return api<Evidence>('/api/Orders/evidence', {
+        method: 'POST',
+        body: formData,
+        isFormData: true,
+    });
+}
+
+export async function getOrderEvidence(id: number): Promise<Evidence[]> {
+    try {
+        const raw = await api<unknown>(`/api/Orders/${id}/evidence`);
+        if (Array.isArray(raw)) return raw as Evidence[];
+        const obj = raw as Record<string, unknown>;
+        if (obj && Array.isArray(obj.data)) return obj.data as Evidence[];
+        return [];
+    } catch {
+        return [];
+    }
+}
+
+// ==================== TASKS ====================
+
+export async function assignTask(dto: AssignTaskDto): Promise<Task> {
+    return api<Task>('/api/Tasks', { method: 'POST', body: dto });
+}
+
+export async function updateTaskStatus(id: number, dto: TaskStatusUpdateDto): Promise<void> {
+    return api<void>(`/api/Tasks/${id}/status`, { method: 'POST', body: dto });
+}
+
+export async function getMyTasks(): Promise<Task[]> {
+    const raw = await api<unknown>('/api/Tasks/tasks');
+    if (Array.isArray(raw)) return raw as Task[];
+    const obj = raw as Record<string, unknown>;
+    if (obj && Array.isArray(obj.data)) return obj.data as Task[];
+    return [];
+}
+
+export async function deleteTask(id: number): Promise<void> {
+    return api<void>(`/api/Tasks/${id}`, { method: 'DELETE' });
+}
+
+// ==================== STATISTICS ====================
+
+export async function getStatistics(branchId?: number): Promise<Statistics> {
+    const raw = await api<Record<string, unknown>>('/api/Statistics', { params: { branchId } });
+    const payload = (raw && typeof raw === 'object' && raw.data) ? (raw.data as Record<string, unknown>) : raw;
+    // Normalize field names — API may use camelCase or PascalCase
+    const normalize = (obj: Record<string, unknown>) =>
+        Object.fromEntries(Object.entries(obj || {}).map(([k, v]) => [k.charAt(0).toLowerCase() + k.slice(1), v]));
+    return normalize(payload ?? {}) as Statistics;
+}
+
+export async function getHomeTaskStatus(): Promise<HomeTaskStatus> {
+    const raw = await api<any>('/api/Home/taskStatus');
+    return raw?.data ? raw.data : raw;
+}
+
+// ==================== ROLES ====================
+
+export async function getRoles(): Promise<Role[]> {
+    const raw = await api<unknown[]>('/api/Roles');
+    return (Array.isArray(raw) ? raw : []).map(r => ({
+        id: (r as any).id ?? (r as any).Id ?? 0,
+        name: (r as any).name ?? (r as any).Name ?? '',
+    }));
+}
+
+export async function createRole(name: string): Promise<Role> {
+    return api<Role>('/api/Roles', { method: 'POST', body: name });
+}
+
+export async function deleteRole(id: number): Promise<void> {
+    return api<void>(`/api/Roles/${id}`, { method: 'DELETE' });
+}
+
+export async function getRolePermissions(id: number): Promise<Permission[]> {
+    const raw = await api<unknown[]>(`/api/Roles/${id}/permissions`);
+    return (Array.isArray(raw) ? raw : []).map(p => ({
+        id: (p as any).id ?? (p as any).Id ?? 0,
+        name: (p as any).title ?? (p as any).Title ?? (p as any).name ?? (p as any).Name ?? '',
+        description: (p as any).description ?? (p as any).Description,
+    }));
+}
+
+export async function setRolePermissions(id: number, permissionIds: number[]): Promise<void> {
+    return api<void>(`/api/Roles/${id}/permissions`, { method: 'POST', body: permissionIds });
+}
+
+export async function updateRolePermissions(id: number, permissionIds: number[]): Promise<void> {
+    return api<void>(`/api/Roles/${id}/permissions`, { method: 'PUT', body: permissionIds });
+}
+
+// ==================== PERMISSIONS ====================
+
+export async function getPermissions(): Promise<Permission[]> {
+    const raw = await api<unknown[]>('/api/Permissions');
+    return (Array.isArray(raw) ? raw : []).map(p => ({
+        id: (p as any).id ?? (p as any).Id ?? 0,
+        name: (p as any).title ?? (p as any).Title ?? (p as any).name ?? (p as any).Name ?? '',
+        description: (p as any).description ?? (p as any).Description,
+    }));
+}

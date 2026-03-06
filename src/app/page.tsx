@@ -1,66 +1,144 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { getStatistics, getOrders } from '@/lib/endpoints';
+import { Statistics, Order } from '@/types';
+import StatusBadge from '@/components/StatusBadge';
+import { useLang } from '@/context/LanguageContext';
+
+export default function DashboardPage() {
+  const { lang, t } = useLang();
+  const [stats, setStats] = useState<Statistics | null>(null);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [statsData, ordersData] = await Promise.all([
+          getStatistics(),
+          getOrders(),
+        ]);
+        setStats(statsData);
+        const sorted = Array.isArray(ordersData)
+          ? ordersData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
+          : [];
+        setRecentOrders(sorted);
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="animate-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 40, animation: 'pulse 1.5s ease-in-out infinite' }}>⚡</div>
+          <p style={{ color: 'var(--text-muted)', marginTop: 12 }}>{t('Loading dashboard...', 'جارٍ تحميل لوحة التحكم...')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Normalize stats — handle both old and new API field naming
+  const totalOrders = stats?.totalOrders ?? 0;
+  const pendingSales = stats?.pendingSalesApproval ?? stats?.pendingSalesManager ?? 0;
+  const pendingSupervisor = stats?.pendingSupervisorApproval ?? stats?.pendingSupervisor ?? 0;
+  const readyForInst = stats?.readyForInstallation ?? stats?.inProgress ?? 0;
+  const complete = stats?.complete ?? stats?.completed ?? 0;
+  const returned = stats?.returnedToDraft ?? stats?.returnedToSales ?? stats?.returned ?? 0;
+
+  const statCards = [
+    { label: t('Total Orders', 'إجمالي الأوامر'), value: totalOrders, icon: '📋', color: '#3b82f6' },
+    { label: t('Pending Sales', 'بانتظار المبيعات'), value: pendingSales, icon: '⏳', color: '#f59e0b' },
+    { label: t('Pending Supervisor', 'بانتظار المشرف'), value: pendingSupervisor, icon: '👷', color: '#8b5cf6' },
+    { label: t('Ready / In Progress', 'جاهز / قيد التنفيذ'), value: readyForInst, icon: '🔧', color: '#06b6d4' },
+    { label: t('Complete', 'مكتمل'), value: complete, icon: '✅', color: '#10b981' },
+    { label: t('Returned', 'مُرتجع'), value: returned, icon: '↩️', color: '#ef4444' },
+  ];
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="animate-in">
+      <div className="page-header">
+        <h1>{t('Dashboard', 'لوحة التحكم')}</h1>
+        <p>{t('Overview of installation orders', 'نظرة عامة على أوامر التركيب')}</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 32 }}>
+        {statCards.map(card => (
+          <div key={card.label} className="stat-card">
+            <div className="stat-icon" style={{ background: `${card.color}20`, color: card.color }}>
+              {card.icon}
+            </div>
+            <div>
+              <div className="stat-value">{card.value}</div>
+              <div className="stat-label">{card.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Recent Orders */}
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <div className="card-title">{t('Recent Orders', 'أحدث الأوامر')}</div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('Latest activity across all departments', 'أحدث النشاطات عبر جميع الأقسام')}</p>
+          </div>
+          <Link href="/sales/orders" className="btn btn-secondary btn-sm">{t('View All →', 'عرض الكل →')}</Link>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="table-container" style={{ border: 'none' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>{t('Order', 'الطلب')}</th>
+                <th>{t('Customer', 'العميل')}</th>
+                <th>{t('Department', 'القسم')}</th>
+                <th>{t('Status', 'الحالة')}</th>
+                <th>{t('Date', 'التاريخ')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                    {t('No orders found', 'لا توجد أوامر')}
+                  </td>
+                </tr>
+              ) : (
+                recentOrders.map(order => (
+                  <tr key={order.id}>
+                    <td>
+                      <Link href={`/orders/${order.id}`} className="table-cell-main" style={{ color: 'var(--accent-primary-hover)' }}>
+                        {order.orderNumber || `#${order.id}`}
+                      </Link>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        {order.invoiceId || order.quotationId || '—'}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{order.customerName || '—'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city || ''}</div>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: 12 }}>{order.departmentName || `Dept #${order.departmentId}`}</span>
+                    </td>
+                    <td><StatusBadge status={order.status} lang={lang} /></td>
+                    <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
