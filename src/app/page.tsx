@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getStatistics, getOrders } from '@/lib/endpoints';
+import { getStatistics } from '@/lib/endpoints';
 import { Statistics, Order } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import { useLang } from '@/context/LanguageContext';
@@ -16,14 +16,13 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [statsData, ordersData] = await Promise.all([
-          getStatistics(),
-          getOrders(),
-        ]);
+        const statsData = await getStatistics();
         setStats(statsData);
-        const sorted = Array.isArray(ordersData)
-          ? ordersData.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
-          : [];
+        // Use orders embedded in the statistics response
+        const orders = Array.isArray(statsData?.orders) ? statsData.orders : [];
+        const sorted = orders
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 5);
         setRecentOrders(sorted);
       } catch (err) {
         console.error('Failed to load dashboard:', err);
@@ -45,21 +44,23 @@ export default function DashboardPage() {
     );
   }
 
-  // Normalize stats — handle both old and new API field naming
-  const totalOrders = stats?.totalOrders ?? 0;
+  // Normalize stats — handle the actual API field naming
+  const totalOrders = stats?.total ?? stats?.totalOrders ?? 0;
   const pendingSales = stats?.pendingSalesApproval ?? stats?.pendingSalesManager ?? 0;
-  const pendingSupervisor = stats?.pendingSupervisorApproval ?? stats?.pendingSupervisor ?? 0;
+  const pendingSupervisor = stats?.pendingSupervisiorApproval ?? stats?.pendingSupervisorApproval ?? stats?.pendingSupervisor ?? 0;
   const readyForInst = stats?.readyForInstallation ?? stats?.inProgress ?? 0;
-  const complete = stats?.complete ?? stats?.completed ?? 0;
+  const complete = stats?.completed ?? stats?.complete ?? 0;
+  const urgent = stats?.urgent ?? 0;
+  const draft = stats?.draft ?? 0;
   const returned = stats?.returnedToDraft ?? stats?.returnedToSales ?? stats?.returned ?? 0;
 
   const statCards = [
     { label: t('Total Orders', 'إجمالي الأوامر'), value: totalOrders, icon: '📋', color: '#3b82f6' },
     { label: t('Pending Sales', 'بانتظار المبيعات'), value: pendingSales, icon: '⏳', color: '#f59e0b' },
     { label: t('Pending Supervisor', 'بانتظار المشرف'), value: pendingSupervisor, icon: '👷', color: '#8b5cf6' },
-    { label: t('Ready / In Progress', 'جاهز / قيد التنفيذ'), value: readyForInst, icon: '🔧', color: '#06b6d4' },
+    { label: t('In Progress', 'قيد التنفيذ'), value: readyForInst, icon: '🔧', color: '#06b6d4' },
     { label: t('Complete', 'مكتمل'), value: complete, icon: '✅', color: '#10b981' },
-    { label: t('Returned', 'مُرتجع'), value: returned, icon: '↩️', color: '#ef4444' },
+    { label: t('Urgent', 'عاجل'), value: urgent, icon: '🚨', color: '#ef4444' },
   ];
 
   return (

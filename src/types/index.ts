@@ -256,10 +256,14 @@ export interface Permission {
 // ==================== STATISTICS ====================
 
 export interface Statistics {
+    // The API returns "total" not "totalOrders"
+    total?: number;
     totalOrders?: number;
     // API response field names (flexible - handle both old and new naming)
     pendingSalesApproval?: number;
     pendingSalesManager?: number;
+    // Note: backend has a typo — "supervisior" with extra 'i'
+    pendingSupervisiorApproval?: number;
     pendingSupervisorApproval?: number;
     pendingSupervisor?: number;
     readyForInstallation?: number;
@@ -272,6 +276,9 @@ export interface Statistics {
     canceled?: number;
     cancelled?: number;
     draft?: number;
+    urgent?: number;
+    // Recent orders embedded in stats response
+    orders?: Order[];
 }
 
 export interface HomeTaskStatus {

@@ -288,11 +288,22 @@ export async function deleteTask(id: number): Promise<void> {
 
 export async function getStatistics(branchId?: number): Promise<Statistics> {
     const raw = await api<Record<string, unknown>>('/api/Statistics', { params: { branchId } });
-    const payload = (raw && typeof raw === 'object' && raw.data) ? (raw.data as Record<string, unknown>) : raw;
-    // Normalize field names — API may use camelCase or PascalCase
-    const normalize = (obj: Record<string, unknown>) =>
-        Object.fromEntries(Object.entries(obj || {}).map(([k, v]) => [k.charAt(0).toLowerCase() + k.slice(1), v]));
-    return normalize(payload ?? {}) as Statistics;
+
+    // api<T> already unwraps `data` from `{ succeeded: true, data: { ... } }`,
+    // so `raw` is `{ total: 2, pendingSalesApproval: 1, orders: [...] }`.
+    const payload = raw && typeof raw === 'object' ? raw : {};
+
+    // Pass through orders array directly
+    const orders = Array.isArray(payload.orders) ? payload.orders : [];
+
+    // Normalize other field names
+    const normalized = Object.fromEntries(
+        Object.entries(payload).map(([k, v]) => [k.charAt(0).toLowerCase() + k.slice(1), v])
+    );
+
+    normalized.orders = orders;
+
+    return normalized as Statistics;
 }
 
 export async function getHomeTaskStatus(): Promise<HomeTaskStatus> {

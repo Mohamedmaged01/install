@@ -53,7 +53,13 @@ const AuthContext = createContext<AuthContextType>({
 function decodeJwt(token: string): Record<string, any> | null {
     try {
         const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-        return JSON.parse(atob(b64));
+        const jsonPayload = decodeURIComponent(
+            atob(b64)
+                .split('')
+                .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
+        return JSON.parse(jsonPayload);
     } catch {
         return null;
     }
@@ -70,9 +76,16 @@ function buildUserFromJwt(token: string): AuthUser {
     const p = decodeJwt(token) ?? {};
 
     const isSuperAdminRaw = p.IsSuperAdmin ?? p.isSuperAdmin ?? p.SuperAdmin ?? false;
+    const roleString = p.Role ?? p.role ?? p.RoleName ?? p.roleName ?? p['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ?? '';
+    const typeString = String(p.Type ?? p.type ?? '');
+
     const isSuperAdmin =
         isSuperAdminRaw === true ||
-        String(isSuperAdminRaw).toLowerCase() === 'true';
+        String(isSuperAdminRaw).toLowerCase() === 'true' ||
+        roleString === 'سوبر أدمن' ||
+        roleString?.toLowerCase() === 'super admin' ||
+        typeString === 'SuperAdmin' ||
+        typeString === '0'; // 0 is sometimes the enum value for SuperAdmin
 
     return {
         id: Number(p.Id ?? p.id ?? p.sub ?? 0),
@@ -80,7 +93,7 @@ function buildUserFromJwt(token: string): AuthUser {
         email: p.Email ?? p.email ?? p['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ?? '',
         phone: p.Phone ?? p.phone ?? '',
         roleId: Number(p.RoleId ?? p.roleId ?? 0),
-        roleName: p.Role ?? p.role ?? p.RoleName ?? p.roleName ?? p['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ?? '',
+        roleName: roleString,
         departmentId: p.DepartmentId ? Number(p.DepartmentId) : undefined,
         departmentName: p.DepartmentName ?? p.departmentName,
         branchId: p.BranchId ? Number(p.BranchId) : undefined,
@@ -105,7 +118,16 @@ function normaliseUser(raw: any): AuthUser {
         departmentName: raw.departmentName ?? raw.DepartmentName,
         branchId: raw.branchId ?? raw.BranchId,
         branchName: raw.branchName ?? raw.BranchName,
-        isSuperAdmin: !!(raw.isSuperAdmin ?? raw.IsSuperAdmin ?? false),
+        isSuperAdmin: !!(
+            raw.isSuperAdmin ||
+            raw.IsSuperAdmin ||
+            raw.roleName === 'سوبر أدمن' ||
+            raw.RoleName === 'سوبر أدمن' ||
+            String(raw.type) === 'SuperAdmin' ||
+            String(raw.Type) === 'SuperAdmin' ||
+            String(raw.type) === '0' ||
+            String(raw.Type) === '0'
+        ),
         token: raw.token ?? raw.Token ?? '',
         image: raw.image ?? raw.Image ?? raw.ImagePath,
         permissions: parsePermissions(raw),

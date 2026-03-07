@@ -57,6 +57,7 @@ export async function api<T = unknown>(
     const fetchOptions: RequestInit = {
         method,
         headers,
+        cache: 'no-store',
     };
 
     if (body) {
