@@ -66,11 +66,11 @@ export default function OrderDetailPage() {
             setEvidence(Array.isArray(evidenceData) ? evidenceData : []);
 
             // Fetch APEX items if the order is linked to an APEX document
-            if (orderData.invoiceId || orderData.quotationId) {
+            const apexCode = orderData.invoiceId || orderData.quotationId;
+            if (apexCode && apexCode.toLowerCase() !== 'string') {
                 setApexLoading(true);
-                const type = orderData.invoiceId ? 'invoice' : 'offer';
-                const code = orderData.invoiceId || orderData.quotationId || '';
-                getApexDocumentItems(type, code)
+                const type = orderData.invoiceId && orderData.invoiceId.toLowerCase() !== 'string' ? 'invoice' : 'offer';
+                getApexDocumentItems(type, apexCode)
                     .then(items => setApexItems(items))
                     .catch(() => setApexItems([]))
                     .finally(() => setApexLoading(false));

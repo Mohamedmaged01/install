@@ -123,71 +123,79 @@ export default function TechnicianPage() {
                     <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>{t("You're all caught up!", 'لقد أنجزت كل شيء!')}</p>
                 </div>
             ) : (
-                activeTasks.map(task => (
-                    <div key={task.id} className="card" style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                            <div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                    <span style={{ fontWeight: 700, color: 'var(--accent-primary-hover)' }}>
-                                        {task.orderNumber || `Order #${task.orderId}`}
-                                    </span>
-                                    {task.priority && (
-                                        <span style={{ fontSize: 12, color: task.priority === 'Urgent' ? '#ef4444' : '#10b981' }}>
-                                            {task.priority === 'Urgent' ? `🔴 ${t('Urgent', 'عاجل')}` : `🟢 ${t('Normal', 'عادي')}`}
+                activeTasks.map(task => {
+                    const t_orderId = task.orderId || (task as any).order?.id || 0;
+                    const t_orderNumber = task.orderNumber || (task as any).order?.orderNumber || (task as any).orderCode;
+                    const t_customer = task.customerName || (task as any).order?.customerName || (task as any).customer?.name || (task as any).clientName || (task as any).order?.clientName || '—';
+                    const t_dept = task.departmentName || (task as any).order?.departmentName || (task as any).department?.name || '—';
+                    const t_date = task.scheduledDate || (task as any).order?.scheduledDate;
+
+                    return (
+                        <div key={task.id} className="card" style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                        <span style={{ fontWeight: 700, color: 'var(--accent-primary-hover)' }}>
+                                            {t_orderNumber || (t_orderId ? `Order #${t_orderId}` : `Task #${task.id}`)}
                                         </span>
+                                        {task.priority && (
+                                            <span style={{ fontSize: 12, color: task.priority === 'Urgent' ? '#ef4444' : '#10b981' }}>
+                                                {task.priority === 'Urgent' ? `🔴 ${t('Urgent', 'عاجل')}` : `🟢 ${t('Normal', 'عادي')}`}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
+                                        {t_customer}
+                                    </div>
+                                    {task.address && (
+                                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                                            📍 {task.address}{task.city ? `, ${task.city}` : ''}
+                                        </div>
                                     )}
                                 </div>
-                                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                                    {task.customerName || '—'}
-                                </div>
-                                {task.address && (
-                                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                                        📍 {task.address}{task.city ? `, ${task.city}` : ''}
-                                    </div>
-                                )}
+                                <span style={{
+                                    padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600,
+                                    color: getStatusColor(task.status),
+                                    background: `${getStatusColor(task.status)}15`,
+                                    border: `1px solid ${getStatusColor(task.status)}30`,
+                                }}>
+                                    {taskLabel(task.status)}
+                                </span>
                             </div>
-                            <span style={{
-                                padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600,
-                                color: getStatusColor(task.status),
-                                background: `${getStatusColor(task.status)}15`,
-                                border: `1px solid ${getStatusColor(task.status)}30`,
-                            }}>
-                                {taskLabel(task.status)}
-                            </span>
-                        </div>
 
-                        {expandedTask === task.id && (
-                            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                                    <div>
-                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('Department', 'القسم')}</div>
-                                        <div style={{ fontSize: 14, fontWeight: 500 }}>{task.departmentName || '—'}</div>
+                            {expandedTask === task.id && (
+                                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('Department', 'القسم')}</div>
+                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{t_dept}</div>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('Scheduled', 'الموعد')}</div>
+                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{t_date ? new Date(t_date).toLocaleDateString() : '—'}</div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('Scheduled', 'الموعد')}</div>
-                                        <div style={{ fontSize: 14, fontWeight: 500 }}>{task.scheduledDate ? new Date(task.scheduledDate).toLocaleDateString() : '—'}</div>
+                                    {task.notes && (
+                                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, padding: '10px 14px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
+                                            💬 {task.notes}
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); setStatusModal(task); }}>
+                                            {t('Update Status', 'تحديث الحالة')}
+                                        </button>
+                                        <Link href={`/orders/${task.orderId}`} className="btn btn-secondary btn-sm" onClick={e => e.stopPropagation()}>
+                                            {t('Full Details', 'التفاصيل الكاملة')}
+                                        </Link>
+                                        <Link href="/qr/verify" className="btn btn-success btn-sm" onClick={e => e.stopPropagation()}>
+                                            📱 {t('Scan QR', 'مسح QR')}
+                                        </Link>
                                     </div>
                                 </div>
-                                {task.notes && (
-                                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, padding: '10px 14px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-                                        💬 {task.notes}
-                                    </div>
-                                )}
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                    <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); setStatusModal(task); }}>
-                                        {t('Update Status', 'تحديث الحالة')}
-                                    </button>
-                                    <Link href={`/orders/${task.orderId}`} className="btn btn-secondary btn-sm" onClick={e => e.stopPropagation()}>
-                                        {t('Full Details', 'التفاصيل الكاملة')}
-                                    </Link>
-                                    <Link href="/qr/verify" className="btn btn-success btn-sm" onClick={e => e.stopPropagation()}>
-                                        📱 {t('Scan QR', 'مسح QR')}
-                                    </Link>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ))
+                            )}
+                        </div>
+                    )
+                })
             )}
 
             {/* Completed */}
@@ -196,19 +204,25 @@ export default function TechnicianPage() {
                     <h2 style={{ fontSize: 16, fontWeight: 600, marginTop: 32, marginBottom: 16, color: 'var(--text-primary)' }}>
                         ✅ {t('Completed', 'المنتهية')} ({completedTasks.length})
                     </h2>
-                    {completedTasks.map(task => (
-                        <div key={task.id} className="card" style={{ marginBottom: 12, opacity: 0.7 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div>
-                                    <div style={{ fontWeight: 600, marginBottom: 2 }}>{task.orderNumber || `Order #${task.orderId}`}</div>
-                                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{task.customerName}{task.city ? ` • ${task.city}` : ''}</div>
+                    {completedTasks.map(task => {
+                        const t_orderId = task.orderId || (task as any).order?.id || 0;
+                        const t_orderNumber = task.orderNumber || (task as any).order?.orderNumber || (task as any).orderCode;
+                        const t_customer = task.customerName || (task as any).order?.customerName || (task as any).customer?.name || (task as any).clientName || (task as any).order?.clientName || '—';
+
+                        return (
+                            <div key={task.id} className="card" style={{ marginBottom: 12, opacity: 0.7 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{t_orderNumber || (t_orderId ? `Order #${t_orderId}` : `Task #${task.id}`)}</div>
+                                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t_customer}{task.city ? ` • ${task.city}` : ''}</div>
+                                    </div>
+                                    <span style={{ padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, color: getStatusColor(task.status), background: `${getStatusColor(task.status)}15` }}>
+                                        {taskLabel(task.status)}
+                                    </span>
                                 </div>
-                                <span style={{ padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, color: getStatusColor(task.status), background: `${getStatusColor(task.status)}15` }}>
-                                    {taskLabel(task.status)}
-                                </span>
                             </div>
-                        </div>
-                    ))}
+                        )
+                    })}
                 </>
             )}
 

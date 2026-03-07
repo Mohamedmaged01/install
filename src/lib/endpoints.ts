@@ -74,7 +74,7 @@ export async function getApexOffers(params?: {
  * Since APEX endpoints don't support direct fetch by code, we loop through pages.
  */
 export async function getApexDocumentItems(type: 'invoice' | 'offer', code: string): Promise<import('@/types').ApexItem[]> {
-    if (!code) return [];
+    if (!code || code.toLowerCase() === 'string') return [];
     try {
         console.log(`[APEX Fetch] Looking for ${type} with code: "${code}"`);
         const MAX_PAGES = 25;

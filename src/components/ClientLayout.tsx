@@ -2,6 +2,7 @@
 
 import { AuthProvider, useAuth } from '@/context/RoleContext';
 import { LanguageProvider, useLang } from '@/context/LanguageContext';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import Sidebar from '@/components/Sidebar';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react';
 function ProtectedLayout({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, isLoading } = useAuth();
     const { lang, toggleLang } = useLang();
+    const { theme, toggleTheme } = useTheme();
     const pathname = usePathname();
     const router = useRouter();
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -70,6 +72,22 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
                 >
                     {lang === 'en' ? '🌐 AR' : '🌐 EN'}
                 </button>
+                <button
+                    onClick={toggleTheme}
+                    title={lang === 'en' ? 'Toggle Theme' : 'تغيير المظهر'}
+                    style={{
+                        marginInlineStart: '8px',
+                        background: 'var(--bg-tertiary)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        color: 'var(--text-primary)',
+                        padding: '4px 10px',
+                        fontSize: 13,
+                        cursor: 'pointer',
+                    }}
+                >
+                    {theme === 'dark' ? '☀️' : '🌙'}
+                </button>
             </div>
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             <main className="main-content">
@@ -83,7 +101,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return (
         <AuthProvider>
             <LanguageProvider>
-                <ProtectedLayout>{children}</ProtectedLayout>
+                <ThemeProvider>
+                    <ProtectedLayout>{children}</ProtectedLayout>
+                </ThemeProvider>
             </LanguageProvider>
         </AuthProvider>
     );
