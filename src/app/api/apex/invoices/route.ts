@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const APEX_BASE = process.env.APEX_BASE_URL ?? 'https://gate.erp-apex.com';
 const PASS_KEY = process.env.APEX_PASS_KEY ?? '';
 
@@ -18,7 +20,7 @@ export async function GET(req: NextRequest) {
         const res = await fetch(`${APEX_BASE}/InvoiceServices/GetInvoices?${params}`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
-            next: { revalidate: 60 }, // cache 1 minute per APEX spec
+            cache: 'no-store'
         });
 
         const data = await res.json();
