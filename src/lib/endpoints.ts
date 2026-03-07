@@ -35,6 +35,12 @@ export async function logout(): Promise<void> {
 
 // ==================== APEX (via local Next.js secure proxy) ====================
 
+// ==================== HOME / SHARED ====================
+
+export async function getUserTypes(): Promise<{ value: number; text: string }[]> {
+    return api<{ value: number; text: string }[]>('/api/Home/user-types');
+}
+
 export async function getApexInvoices(params?: {
     dateFrom?: string;
     dateTo?: string;
@@ -248,6 +254,18 @@ export async function uploadEvidence(orderId: number, images: File[], note?: str
         body: formData,
         isFormData: true,
     });
+}
+
+export async function getOrderTechnicians(id: number): Promise<DepartmentUser[]> {
+    try {
+        const raw = await api<unknown>(`/api/Orders/${id}/technicians`);
+        if (Array.isArray(raw)) return raw as DepartmentUser[];
+        const obj = raw as { data?: unknown };
+        if (obj && Array.isArray(obj.data)) return obj.data as DepartmentUser[];
+        return [];
+    } catch {
+        return [];
+    }
 }
 
 export async function getOrderEvidence(id: number): Promise<Evidence[]> {

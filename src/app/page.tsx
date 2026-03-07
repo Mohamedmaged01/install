@@ -56,6 +56,7 @@ export default function DashboardPage() {
 
   const statCards = [
     { label: t('Total Orders', 'إجمالي الأوامر'), value: totalOrders, icon: '📋', color: '#3b82f6' },
+    { label: t('Drafts', 'المسودات'), value: draft, icon: '📝', color: '#94a3b8' },
     { label: t('Pending Sales', 'بانتظار المبيعات'), value: pendingSales, icon: '⏳', color: '#f59e0b' },
     { label: t('Pending Supervisor', 'بانتظار المشرف'), value: pendingSupervisor, icon: '👷', color: '#8b5cf6' },
     { label: t('In Progress', 'قيد التنفيذ'), value: readyForInst, icon: '🔧', color: '#06b6d4' },

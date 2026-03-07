@@ -1,0 +1,14 @@
+﻿
+> install@0.1.0 dev
+> next dev
+
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.17:3000
+- Environments: .env.local
+
+Ô£ô Starting...
+Ô£ô Ready in 564ms
+ GET /orders/33 200 in 511ms (compile: 411ms, render: 100ms)
+ GET /api/apex/invoices?PageNumber=1&PageSize=10&Code=4-S-1 200 in 413ms (compile: 43ms, render: 369ms)
+ GET /api/apex/invoices?PageNumber=1&PageSize=10&Code=4-S-1 200 in 99ms (compile: 3ms, render: 96ms)

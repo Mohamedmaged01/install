@@ -6,8 +6,8 @@ import { getMyTasks, updateTaskStatus } from '@/lib/endpoints';
 import { Task, TaskStatus } from '@/types';
 import { useLang } from '@/context/LanguageContext';
 
-const activeStatuses: TaskStatus[] = ['Assigned', 'Accepted', 'Enroute', 'Onsite', 'InProgress'];
-const doneStatuses: TaskStatus[] = ['Completed', 'Returned', 'OnHold'];
+const activeStatuses: TaskStatus[] = ['Assigned', 'Accepted', 'Enroute', 'Onsite', 'InProgress', 'OnHold'];
+const doneStatuses: TaskStatus[] = ['Completed', 'Returned'];
 const allStatuses: TaskStatus[] = ['Assigned', 'Accepted', 'Enroute', 'Onsite', 'InProgress', 'Completed', 'Returned', 'OnHold'];
 
 const TASK_LABELS: Record<TaskStatus, { en: string; ar: string }> = {
@@ -184,7 +184,7 @@ export default function TechnicianPage() {
                                         <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); setStatusModal(task); }}>
                                             {t('Update Status', 'تحديث الحالة')}
                                         </button>
-                                        <Link href={`/orders/${task.orderId}`} className="btn btn-secondary btn-sm" onClick={e => e.stopPropagation()}>
+                                        <Link href={t_orderId ? `/orders/${t_orderId}` : '#'} className={`btn btn-secondary btn-sm ${t_orderId === 0 ? 'disabled' : ''}`} onClick={e => { if (t_orderId === 0) e.preventDefault(); e.stopPropagation(); }}>
                                             {t('Full Details', 'التفاصيل الكاملة')}
                                         </Link>
                                         <Link href="/qr/verify" className="btn btn-success btn-sm" onClick={e => e.stopPropagation()}>

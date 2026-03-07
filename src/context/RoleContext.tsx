@@ -59,17 +59,38 @@ function decodeJwt(token: string): Record<string, any> | null {
                 .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
                 .join('')
         );
-        return JSON.parse(jsonPayload);
+        const obj = JSON.parse(jsonPayload);
+
+        // (.NET JWTs sometimes serialize multiple roles/permissions as duplicate keys which JSON.parse drops. Extract manually:)
+        const permRegex = /"Permission[s]?"\s*:\s*"([^"]+)"/gi;
+        const permMatches = [...jsonPayload.matchAll(permRegex)].map(m => m[1]);
+
+        const roleRegex = /"(?:http:\/\/schemas\.microsoft\.com\/ws\/2008\/06\/identity\/claims\/role|role|Role)"\s*:\s*"([^"]+)"/gi;
+        const roleMatches = [...jsonPayload.matchAll(roleRegex)].map(m => m[1]);
+
+        if (permMatches.length > 0) {
+            obj._extractedPermissions = permMatches;
+        }
+        if (roleMatches.length > 0) {
+            obj._extractedRoles = roleMatches;
+        }
+
+        return obj;
     } catch {
         return null;
     }
 }
 
 function parsePermissions(raw: any): string[] {
-    const p = raw?.Permission ?? raw?.Permissions ?? raw?.permission ?? raw?.permissions ?? [];
-    if (Array.isArray(p)) return p;
-    if (typeof p === 'string') return [p];
-    return [];
+    const list = [
+        ...(raw?._extractedPermissions || []),
+        ...(Array.isArray(raw?.Permission) ? raw.Permission : [raw?.Permission]),
+        ...(Array.isArray(raw?.Permissions) ? raw.Permissions : [raw?.Permissions]),
+        ...(Array.isArray(raw?.permission) ? raw.permission : [raw?.permission]),
+        ...(Array.isArray(raw?.permissions) ? raw.permissions : [raw?.permissions])
+    ].filter(Boolean);
+
+    return Array.from(new Set(list));
 }
 
 function buildUserFromJwt(token: string): AuthUser {
@@ -79,12 +100,24 @@ function buildUserFromJwt(token: string): AuthUser {
     const roleString = p.Role ?? p.role ?? p.RoleName ?? p.roleName ?? p['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ?? '';
     const typeString = String(p.Type ?? p.type ?? '');
 
+    const allRoles = [roleString, ...(p._extractedRoles || [])].map(r => String(r).toLowerCase());
+
     const isSuperAdmin =
         isSuperAdminRaw === true ||
         String(isSuperAdminRaw).toLowerCase() === 'true' ||
-        roleString === 'سوبر أدمن' ||
-        roleString?.toLowerCase() === 'super admin' ||
+        allRoles.includes('سوبر أدمن') ||
+        allRoles.includes('super admin') ||
         typeString === 'SuperAdmin';
+
+    const isTechnician = allRoles.includes('فني') || allRoles.includes('technician') || typeString === 'Technician' || typeString === '6';
+
+    const permissions = parsePermissions(p);
+
+    // Baseline fallback permissions if they are a known role but missing explicit claims
+    if (isTechnician) {
+        if (!permissions.includes(PERMS.TASKS_VIEW)) permissions.push(PERMS.TASKS_VIEW);
+        if (!permissions.includes(PERMS.TASKS_MANAGE)) permissions.push(PERMS.TASKS_MANAGE);
+    }
 
     return {
         id: Number(p.Id ?? p.id ?? p.sub ?? 0),
@@ -100,7 +133,7 @@ function buildUserFromJwt(token: string): AuthUser {
         isSuperAdmin,
         token,
         image: p.ImagePath ?? p.Image ?? p.image,
-        permissions: parsePermissions(p),
+        permissions,
     };
 }
 
@@ -140,17 +173,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = getToken();
         if (token && token !== 'undefined' && token !== 'null') {
             try {
-                const stored = localStorage.getItem('auth_user');
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    // If stored data has no permissions, re-decode from token
-                    if (!parsed.permissions?.length && token.split('.').length === 3) {
-                        setUser(buildUserFromJwt(token));
-                    } else {
-                        setUser(normaliseUser(parsed));
+                // Always try to re-decode from token to get fresh permissions
+                if (token.split('.').length === 3) {
+                    const freshUser = buildUserFromJwt(token);
+                    setUser(freshUser);
+                    // Update localStorage with fresh data
+                    localStorage.setItem('auth_user', JSON.stringify(freshUser));
+                } else {
+                    // Fallback to localStorage if token is not a standard JWT
+                    const stored = localStorage.getItem('auth_user');
+                    if (stored) {
+                        setUser(normaliseUser(JSON.parse(stored)));
                     }
                 }
-            } catch {
+            } catch (err) {
+                console.error('Auth restore failed:', err);
                 removeToken();
                 localStorage.removeItem('auth_user');
             }

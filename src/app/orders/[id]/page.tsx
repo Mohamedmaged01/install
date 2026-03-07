@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
     getOrderById, getOrderHistory, getOrderEvidence, uploadEvidence, deleteOrder, deleteTask,
-    getDepartmentUsers, assignTask, getApexDocumentItems, getRoles, getMyTasks
+    getDepartmentUsers, assignTask, getApexDocumentItems, getRoles, getOrderTechnicians
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
 import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role } from '@/types';
@@ -50,15 +50,15 @@ export default function OrderDetailPage() {
 
     const loadOrder = async () => {
         try {
-            const [orderData, historyData, evidenceData, allTasks] = await Promise.all([
+            const [orderData, historyData, evidenceData, orderTechnicians] = await Promise.all([
                 getOrderById(id),
                 getOrderHistory(id).catch(() => []),
                 getOrderEvidence(id).catch(() => []),
-                getMyTasks().catch(() => []),
+                getOrderTechnicians(id).catch(() => []),
             ]);
 
-            if (orderData && Array.isArray(allTasks)) {
-                orderData.tasks = allTasks.filter(t => t.orderId === id);
+            if (orderData && Array.isArray(orderTechnicians)) {
+                (orderData as Record<string, any>).technicians = orderTechnicians;
             }
 
             setOrder(orderData);

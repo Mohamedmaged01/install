@@ -7,6 +7,7 @@ import {
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
+    getUserTypes,
 } from '@/lib/endpoints';
 import { Branch, Department, DepartmentUser, Role, Permission } from '@/types';
 import { useLang } from '@/context/LanguageContext';
@@ -21,6 +22,7 @@ export default function AdminPage() {
     const [users, setUsers] = useState<DepartmentUser[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);
+    const [userTypes, setUserTypes] = useState<{ value: number; text: string }[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Forms
@@ -34,7 +36,7 @@ export default function AdminPage() {
 
     const [userForm, setUserForm] = useState({
         DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '',
-        RoleId: 0, IsSuperAdmin: false,
+        RoleId: 0, IsSuperAdmin: false, Type: '',
     });
 
     useEffect(() => { loadAll(); }, []);
@@ -42,16 +44,18 @@ export default function AdminPage() {
     const loadAll = async () => {
         setLoading(true);
         try {
-            const [b, d, r, p] = await Promise.all([
+            const [b, d, r, p, ut] = await Promise.all([
                 getBranches().catch(() => []),
                 getDepartments().catch(() => []),
                 getRoles().catch(() => []),
                 getPermissions().catch(() => []),
+                getUserTypes().catch(() => []),
             ]);
             setBranches(Array.isArray(b) ? b : []);
             setDepartments(Array.isArray(d) ? d : []);
             setRoles(Array.isArray(r) ? r : []);
             setPermissions(Array.isArray(p) ? p : []);
+            setUserTypes(Array.isArray(ut) ? ut : []);
         } catch (err) { console.error(err); }
         finally { setLoading(false); }
     };
@@ -143,22 +147,23 @@ export default function AdminPage() {
     };
 
     const handleCreateUser = async () => {
-        if (!userForm.Name || !userForm.Email || !userForm.Password) {
-            alert(t('Name, email, and password are required.', 'الاسم والبريد الإلكتروني وكلمة المرور مطلوبة.'));
+        if (!userForm.Name || !userForm.Email || !userForm.Password || !userForm.Type) {
+            alert(t('Name, email, password, and type are required.', 'الاسم والبريد الإلكتروني وكلمة المرور والنوع مطلوبة.'));
             return;
         }
         setActionLoading(true);
         try {
             const fd = new FormData();
-            fd.append('DepartmentId', String(userForm.DepartmentId));
+            if (userForm.DepartmentId) fd.append('DepartmentId', String(userForm.DepartmentId));
+            if (userForm.RoleId) fd.append('RoleId', String(userForm.RoleId));
             fd.append('Name', userForm.Name);
             fd.append('Email', userForm.Email);
             fd.append('Phone', userForm.Phone);
             fd.append('Password', userForm.Password);
-            fd.append('RoleId', String(userForm.RoleId));
             fd.append('IsSuperAdmin', String(userForm.IsSuperAdmin));
+            fd.append('Type', userForm.Type);
             await createDepartmentUser(fd);
-            setUserForm({ DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '', RoleId: 0, IsSuperAdmin: false });
+            setUserForm({ DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '', RoleId: 0, IsSuperAdmin: false, Type: '' });
             alert(t('User created!', 'تم إنشاء المستخدم!'));
             loadUsers();
         } catch (err) {
@@ -285,6 +290,13 @@ export default function AdminPage() {
                                 </div>
                                 <div className="form-row">
                                     <div className="form-group">
+                                        <label className="form-label">{t('Type', 'النوع')} *</label>
+                                        <select className="form-select" value={userForm.Type} onChange={e => setUserForm({ ...userForm, Type: e.target.value })}>
+                                            <option value="">— {t('Select Type', 'اختر النوع')} —</option>
+                                            {userTypes.map(ut => <option key={ut.value} value={ut.text}>{ut.text}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
                                         <label className="form-label">{t('Department', 'القسم')}</label>
                                         <select className="form-select" value={userForm.DepartmentId} onChange={e => setUserForm({ ...userForm, DepartmentId: Number(e.target.value) })}>
                                             <option value={0}>— {t('Select', 'اختر')} —</option>
@@ -310,7 +322,7 @@ export default function AdminPage() {
                                 </label>
 
                                 <div style={{ marginTop: 16 }}>
-                                    <button className="btn btn-primary" disabled={actionLoading || !userForm.Name || !userForm.Email || !userForm.Password} onClick={handleCreateUser}>
+                                    <button className="btn btn-primary" disabled={actionLoading || !userForm.Name || !userForm.Email || !userForm.Password || !userForm.Type} onClick={handleCreateUser}>
                                         {actionLoading ? `⏳ ${t('Creating...', 'إنشاء...')}` : `✅ ${t('Create User', 'إنشاء مستخدم')}`}
                                     </button>
                                 </div>
