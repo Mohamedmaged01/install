@@ -318,6 +318,7 @@ export async function getRoles(): Promise<Role[]> {
     return (Array.isArray(raw) ? raw : []).map(r => ({
         id: (r as any).id ?? (r as any).Id ?? 0,
         name: (r as any).name ?? (r as any).Name ?? (r as any).title ?? (r as any).Title ?? '',
+        usersCount: (r as any).usersCount ?? (r as any).UsersCount ?? 0,
     }));
 }
 

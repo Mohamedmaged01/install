@@ -245,6 +245,7 @@ export interface Evidence {
 export interface Role {
     id: number;
     name: string;
+    usersCount?: number;
 }
 
 export interface Permission {

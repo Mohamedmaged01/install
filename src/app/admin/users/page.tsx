@@ -188,7 +188,7 @@ export default function AdminUsersPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: 12, marginBottom: 24 }}>
                 <StatPill icon="🔑" label="Total Roles" value={roles.length} color="#6366f1" />
                 <StatPill icon="🛡️" label="Permissions" value={permissions.length} color="#8b5cf6" />
-                <StatPill icon="👥" label="Total Users" value={Object.values(roleUserCounts).reduce((a, b) => a + b, 0)} color="#10b981" />
+                <StatPill icon="👥" label="Total Users" value={roles.reduce((acc, r) => acc + (r.usersCount || 0), 0)} color="#10b981" />
             </div>
 
             {/* ── Search ── */}
@@ -249,7 +249,7 @@ export default function AdminUsersPage() {
                                             onClick={() => openRoleUsers(role)}
                                             style={{ cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}
                                         >
-                                            👥 {roleUserCounts[role.id] ?? 0} Users
+                                            👥 {role.usersCount ?? 0} Users
                                         </button>
                                     </td>
                                     <td>
