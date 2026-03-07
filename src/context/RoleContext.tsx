@@ -84,8 +84,7 @@ function buildUserFromJwt(token: string): AuthUser {
         String(isSuperAdminRaw).toLowerCase() === 'true' ||
         roleString === 'سوبر أدمن' ||
         roleString?.toLowerCase() === 'super admin' ||
-        typeString === 'SuperAdmin' ||
-        typeString === '0'; // 0 is sometimes the enum value for SuperAdmin
+        typeString === 'SuperAdmin';
 
     return {
         id: Number(p.Id ?? p.id ?? p.sub ?? 0),
@@ -124,9 +123,7 @@ function normaliseUser(raw: any): AuthUser {
             raw.roleName === 'سوبر أدمن' ||
             raw.RoleName === 'سوبر أدمن' ||
             String(raw.type) === 'SuperAdmin' ||
-            String(raw.Type) === 'SuperAdmin' ||
-            String(raw.type) === '0' ||
-            String(raw.Type) === '0'
+            String(raw.Type) === 'SuperAdmin'
         ),
         token: raw.token ?? raw.Token ?? '',
         image: raw.image ?? raw.Image ?? raw.ImagePath,
