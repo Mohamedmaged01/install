@@ -317,7 +317,7 @@ export async function getRoles(): Promise<Role[]> {
     const raw = await api<unknown[]>('/api/Roles');
     return (Array.isArray(raw) ? raw : []).map(r => ({
         id: (r as any).id ?? (r as any).Id ?? 0,
-        name: (r as any).name ?? (r as any).Name ?? '',
+        name: (r as any).name ?? (r as any).Name ?? (r as any).title ?? (r as any).Title ?? '',
     }));
 }
 
