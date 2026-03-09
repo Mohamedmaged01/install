@@ -90,6 +90,7 @@ export interface AuthUser {
     isSuperAdmin: boolean;
     token: string;
     image?: string;
+    type?: string;
     /** Permission strings from JWT, e.g. "Permissions.Orders.Create" */
     permissions: string[];
 }

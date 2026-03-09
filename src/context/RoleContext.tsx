@@ -133,6 +133,7 @@ function buildUserFromJwt(token: string): AuthUser {
         isSuperAdmin,
         token,
         image: p.ImagePath ?? p.Image ?? p.image,
+        type: typeString,
         permissions,
     };
 }
@@ -160,6 +161,7 @@ function normaliseUser(raw: any): AuthUser {
         ),
         token: raw.token ?? raw.Token ?? '',
         image: raw.image ?? raw.Image ?? raw.ImagePath,
+        type: String(raw.type || raw.Type || ''),
         permissions: parsePermissions(raw),
     };
 }

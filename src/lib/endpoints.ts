@@ -132,6 +132,14 @@ export async function deleteBranch(id: number): Promise<void> {
     return api<void>(`/api/Branches/${id}`, { method: 'DELETE' });
 }
 
+export async function getBranchTechnicians(branchId: number): Promise<DepartmentUser[]> {
+    const raw = await api<unknown>(`/api/Branches/${branchId}/technicians`);
+    if (Array.isArray(raw)) return raw as DepartmentUser[];
+    const obj = raw as Record<string, unknown>;
+    if (obj && Array.isArray(obj.data)) return obj.data as DepartmentUser[];
+    return [];
+}
+
 // ==================== DEPARTMENTS ====================
 
 export async function getDepartments(branchId?: number): Promise<Department[]> {
@@ -199,7 +207,10 @@ export async function getOrderById(id: number): Promise<Order> {
 }
 
 export async function createOrder(dto: AddOrderDto): Promise<Order> {
-    return api<Order>('/api/Orders', { method: 'POST', body: dto });
+    const res = await api<any>('/api/Orders', { method: 'POST', body: dto });
+    // The backend returns the new order ID as `data` (e.g., { data: 36 })
+    // If it returns a full object with an id, use that. Otherwise use the data integer.
+    return (res?.id ? res : { id: res }) as Order;
 }
 
 export async function deleteOrders(): Promise<void> {
@@ -213,10 +224,26 @@ export async function deleteOrder(id: number): Promise<void> {
 export async function getOrderHistory(id: number): Promise<OrderHistoryEntry[]> {
     try {
         const raw = await api<unknown>(`/api/Orders/${id}/history`);
-        if (Array.isArray(raw)) return raw as OrderHistoryEntry[];
-        const obj = raw as Record<string, unknown>;
-        if (obj && Array.isArray(obj.data)) return obj.data as OrderHistoryEntry[];
-        return [];
+        let list: any[] = [];
+        if (Array.isArray(raw)) list = raw;
+        else {
+            const obj = raw as Record<string, unknown>;
+            if (obj && Array.isArray(obj.data)) list = obj.data;
+        }
+
+        return list.map((item, idx) => {
+            const isStatusChange = item.fromStatus || item.toStatus;
+            return {
+                id: item.id || idx,
+                orderId: item.orderId || id,
+                action: item.action || (isStatusChange ? `Status updated to ${item.toStatus}` : 'Updated'),
+                description: item.description || item.note,
+                userName: item.userName || item.actionByUserName,
+                userId: item.userId,
+                timestamp: item.timestamp || item.actionDate || new Date().toISOString(),
+                metadata: item.metadata,
+            };
+        });
     } catch {
         return [];
     }

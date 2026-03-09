@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getOrders, approveSupervisor, rejectOrder, getDepartmentUsers, assignTask, getRoles, getDepartments, getBranches } from '@/lib/endpoints';
+import { getOrders, approveSupervisor, rejectOrder, getDepartmentUsers, assignTask, getRoles, getDepartments, getBranches, getBranchTechnicians, getOrderById } from '@/lib/endpoints';
 import { Order, DepartmentUser, Department, Branch, AssignTaskDto, Role } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
@@ -17,6 +17,7 @@ export default function SupervisorPage() {
     const [loading, setLoading] = useState(true);
     const [assignModal, setAssignModal] = useState<Order | null>(null);
     const [selectedTechs, setSelectedTechs] = useState<Set<number>>(new Set());
+    const [isApproveWorkflow, setIsApproveWorkflow] = useState(false);
     const [assignNotes, setAssignNotes] = useState('');
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [rolesMap, setRolesMap] = useState<Record<number, string>>({});
@@ -63,19 +64,7 @@ export default function SupervisorPage() {
     }, [statusFilter, deptFilter]);
 
     const handleApprove = async (order: Order) => {
-        setActionLoading(order.id);
-        try {
-            // Send task IDs if the order has assigned tasks
-            const taskIds = (order.tasks ?? []).map(t => t.id);
-            await approveSupervisor(order.id, taskIds);
-            setOrders(prev => prev.filter(o => o.id !== order.id));
-            showToast('success', t('Order approved & queued for installation', 'تم الموافقة وإدراجه للتركيب'));
-        } catch (err) {
-            console.error('Approve error:', err);
-            showToast('error', err instanceof Error ? err.message : t('Failed', 'فشل'));
-        } finally {
-            setActionLoading(null);
-        }
+        openAssignModal(order, true);
     };
 
     const handleReject = async () => {
@@ -95,13 +84,41 @@ export default function SupervisorPage() {
         }
     };
 
-    const openAssignModal = async (order: Order) => {
+    const openAssignModal = async (order: Order, isApprove: boolean = false) => {
         setAssignModal(order);
+        setIsApproveWorkflow(isApprove);
         setAssignNotes('');
         setSelectedTechs(new Set());
         try {
+            // Failsafe: if the list view payload doesn't include the branchId,
+            // fetch the full order details or resolve by name.
+            let bId = order.branchId;
+            let dId = order.departmentId;
+
+            if (isApprove && !bId) {
+                // First try matching branch name against loaded branches
+                if (order.branchName) {
+                    const matchedBranch = branches.find(b => b.name === order.branchName);
+                    if (matchedBranch) bId = matchedBranch.id;
+                }
+
+                // If still missing, fetch full order
+                if (!bId) {
+                    const fullOrder = await getOrderById(order.id);
+                    bId = fullOrder.branchId;
+                    if (!bId && fullOrder.branchName) {
+                        const matchedBranch = branches.find(b => b.name === fullOrder.branchName);
+                        if (matchedBranch) bId = matchedBranch.id;
+                    }
+                    dId = fullOrder.departmentId;
+                }
+            }
+
+            const branchTechsPromise = bId ? getBranchTechnicians(bId) : Promise.resolve([]);
+            const deptTechsPromise = getDepartmentUsers(undefined, dId);
+
             const [users, allRoles] = await Promise.all([
-                getDepartmentUsers(undefined, order.departmentId),
+                isApprove ? branchTechsPromise : deptTechsPromise,
                 getRoles().catch(() => [])
             ]);
             setTechnicians(Array.isArray(users) ? users : []);
@@ -121,6 +138,11 @@ export default function SupervisorPage() {
         if (!assignModal || selectedTechs.size === 0) return;
         setActionLoading(assignModal.id);
         try {
+            if (isApproveWorkflow) {
+                const taskIds = (assignModal.tasks ?? []).map(t => t.id);
+                await approveSupervisor(assignModal.id, taskIds);
+            }
+
             // Assign a task for each selected technician in parallel
             await Promise.all(
                 Array.from(selectedTechs).map(techId => {
@@ -133,6 +155,10 @@ export default function SupervisorPage() {
                 })
             );
             setAssignModal(null);
+            showToast('success', isApproveWorkflow
+                ? t('Order approved and technicians assigned', 'تم الموافقة على الطلب وتعيين الفنيين')
+                : t('Technicians assigned', 'تم تعيين الفنيين'));
+
             const data = await getOrders();
             setOrders(Array.isArray(data) ? data : []);
         } catch (err) {

@@ -151,9 +151,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <div className="sidebar-user-info">
                     <div className="name">{user?.name || 'User'}</div>
                     <div className="role">
-                        {user?.isSuperAdmin
-                            ? (lang === 'ar' ? '⭐ سوبر أدمن' : '⭐ Super Admin')
-                            : (user?.roleName || (lang === 'ar' ? 'بدون دور' : 'No Role'))}
+                        {user?.type || user?.roleName || (lang === 'ar' ? 'بدون دور' : 'No Role')}
                     </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>

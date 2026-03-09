@@ -265,7 +265,7 @@ export default function AdminPage() {
                                 <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
                                         <div style={{ fontWeight: 600 }}>{d.name}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—'}</div>
                                     </div>
                                     <button className="btn btn-danger btn-sm" onClick={() => handleDeleteDept(d.id)}>🗑️</button>
                                 </div>

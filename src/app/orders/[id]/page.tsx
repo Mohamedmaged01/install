@@ -5,15 +5,16 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
     getOrderById, getOrderHistory, getOrderEvidence, uploadEvidence, deleteOrder, deleteTask,
-    getDepartmentUsers, assignTask, getApexDocumentItems, getRoles, getOrderTechnicians
+    getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
+    getApexInvoices, getApexOffers
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
-import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role } from '@/types';
+import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 
-type TabType = 'timeline' | 'items' | 'evidence' | 'audit';
+type TabType = 'timeline' | 'items' | 'evidence';
 
 export default function OrderDetailPage() {
     const { lang, t } = useLang();
@@ -23,6 +24,7 @@ export default function OrderDetailPage() {
     const [history, setHistory] = useState<OrderHistoryEntry[]>([]);
     const [evidence, setEvidence] = useState<Evidence[]>([]);
     const [apexItems, setApexItems] = useState<ApexItem[]>([]);
+    const [apexCustomer, setApexCustomer] = useState<any>(null);
     const [apexLoading, setApexLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>('items');
     const [loading, setLoading] = useState(true);
@@ -50,15 +52,20 @@ export default function OrderDetailPage() {
 
     const loadOrder = async () => {
         try {
-            const [orderData, historyData, evidenceData, orderTechnicians] = await Promise.all([
+            const [orderData, historyData, evidenceData] = await Promise.all([
                 getOrderById(id),
                 getOrderHistory(id).catch(() => []),
                 getOrderEvidence(id).catch(() => []),
-                getOrderTechnicians(id).catch(() => []),
             ]);
 
-            if (orderData && Array.isArray(orderTechnicians)) {
-                (orderData as Record<string, any>).technicians = orderTechnicians;
+            if (orderData) {
+                // The backend uses 'tech' for technicians and 'item' for items
+                if (Array.isArray((orderData as any).tech)) {
+                    (orderData as Record<string, any>).technicians = (orderData as any).tech;
+                }
+                if (Array.isArray((orderData as any).item) && !orderData.items) {
+                    orderData.items = (orderData as any).item;
+                }
             }
 
             setOrder(orderData);
@@ -72,7 +79,16 @@ export default function OrderDetailPage() {
                 const type = orderData.invoiceId && orderData.invoiceId.toLowerCase() !== 'string' ? 'invoice' : 'offer';
                 getApexDocumentItems(type, apexCode)
                     .then(items => setApexItems(items))
-                    .catch(() => setApexItems([]))
+                    .catch(() => setApexItems([]));
+
+                // Also try to grab the customer data directly from the document
+                const apexFetcher = type === 'invoice' ? getApexInvoices : getApexOffers;
+                apexFetcher({ page: 1, pageSize: 20 })
+                    .then((docs: any[]) => {
+                        const doc = docs.find((d: any) => d.code === apexCode);
+                        if (doc && doc.customer) setApexCustomer(doc.customer);
+                    })
+                    .catch(console.error)
                     .finally(() => setApexLoading(false));
             }
 
@@ -203,7 +219,6 @@ export default function OrderDetailPage() {
         { key: 'timeline', label: t('Timeline', 'الجدول الزمني'), icon: '📅' },
         { key: 'items', label: t('Items', 'العناصر'), icon: '📦' },
         { key: 'evidence', label: t('Evidence', 'الأدلة'), icon: '📸' },
-        { key: 'audit', label: t('Audit Log', 'سجل المراجعة'), icon: '📜' },
     ];
 
     // Statuses where technicians can be assigned
@@ -250,9 +265,6 @@ export default function OrderDetailPage() {
                         <button className="btn btn-danger btn-sm" onClick={handleDeleteOrder}>
                             🗑️ {t('Delete Order', 'حذف الطلب')}
                         </button>
-                        <button className="btn btn-primary btn-sm" onClick={openAssignModal}>
-                            👤 {t('Assign Technician', 'تعيين فني')}
-                        </button>
                         {order.status === 'Complete' && (
                             <Link href="/qr/verify" className="btn btn-success">📱 {t('Verify QR', 'تحقق QR')}</Link>
                         )}
@@ -282,15 +294,15 @@ export default function OrderDetailPage() {
                                 </div>
                             ) : (
                                 <div className="timeline">
-                                    {history.map(event => (
-                                        <div key={event.id} className="timeline-item">
+                                    {history.map((event, index) => (
+                                        <div key={`${event.id}-${index}`} className="timeline-item">
                                             <div className="timeline-dot info" />
                                             <div className="timeline-content">
                                                 <h4>{event.action}</h4>
                                                 <p>{event.description || '—'}</p>
                                                 <div className="timeline-meta">
-                                                    <span>👤 {event.userName || `User #${event.userId}`}</span>
-                                                    <span>{new Date(event.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span>👤 {event.userName || (event.userId ? `User #${event.userId}` : '—')}</span>
+                                                    <span>{event.timestamp && !isNaN(new Date(event.timestamp).getTime()) ? new Date(event.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -324,6 +336,23 @@ export default function OrderDetailPage() {
                                         </tbody>
                                     </table>
                                 </div>
+                            ) : order.items && order.items.length > 0 ? (
+                                <div className="table-container" style={{ border: 'none' }}>
+                                    <table>
+                                        <thead><tr><th>{t('Item Code', 'رمز العنصر')}</th><th>{t('Name', 'الاسم')}</th><th>{t('Qty', 'الكمية')}</th><th>{t('Price', 'السعر')}</th><th>{t('Total', 'المجموع')}</th></tr></thead>
+                                        <tbody>
+                                            {order.items.map((item, idx) => (
+                                                <tr key={`${item.id || idx}`}>
+                                                    <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>#{item.id || idx + 1}</td>
+                                                    <td className="table-cell-main">{item.name} {item.unit ? `(${item.unit})` : ''}</td>
+                                                    <td>{item.quantity}</td>
+                                                    <td>SAR {item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    <td style={{ fontWeight: 600 }}>SAR {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             ) : apexLoading ? (
                                 <div style={{ textAlign: 'center', padding: '32px 0' }}>
                                     <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('Loading items...', 'جارٍ تحميل العناصر...')}</p>
@@ -331,7 +360,7 @@ export default function OrderDetailPage() {
                             ) : (
                                 <div style={{ textAlign: 'center', padding: '32px 0' }}>
                                     <div style={{ fontSize: 36, marginBottom: 8 }}>📦</div>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No items found in APEX document.', 'لم يتم العثور على عناصر في مستند أبكس.')}</p>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No items found for this order.', 'لم يتم العثور على عناصر لهذا الطلب.')}</p>
                                 </div>
                             )}
                         </div>
@@ -399,7 +428,7 @@ export default function OrderDetailPage() {
                                                 <div style={{ padding: '10px 12px' }}>
                                                     <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 4 }}>{ev.note || t('Evidence', 'دليل')}</div>
                                                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                                                        {ev.uploadedBy || '—'} • {new Date(ev.createdAt).toLocaleDateString()}
+                                                        {ev.uploadedBy || '—'}
                                                     </div>
                                                     {imgUrl && (
                                                         <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ marginTop: 8 }}>
@@ -417,52 +446,21 @@ export default function OrderDetailPage() {
                         </div>
                     )}
 
-                    {/* Audit */}
-                    {activeTab === 'audit' && (
-                        <div className="card">
-                            <div className="card-title" style={{ marginBottom: 20 }}>{t('Audit Log', 'سجل المراجعة')}</div>
-                            <div className="table-container" style={{ border: 'none' }}>
-                                <table>
-                                    <thead><tr><th>{t('Action', 'الإجراء')}</th><th>{t('User', 'المستخدم')}</th><th>{t('Timestamp', 'الوقت')}</th><th>{t('Details', 'التفاصيل')}</th></tr></thead>
-                                    <tbody>
-                                        {history.length === 0 ? (
-                                            <tr><td colSpan={4} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>{t('No audit entries', 'لا توجد سجلات')}</td></tr>
-                                        ) : history.map(event => (
-                                            <tr key={event.id}>
-                                                <td className="table-cell-main">{event.action}</td>
-                                                <td>{event.userName || `#${event.userId}`}</td>
-                                                <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(event.timestamp).toLocaleString()}</td>
-                                                <td style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{event.description || '—'}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
+
                 </div>
 
                 {/* Right Sidebar */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                    {/* Assign Technician Card */}
-                    <div className="card" style={{ border: '1px solid rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.04)' }}>
-                        <div className="card-title" style={{ marginBottom: 12 }}>👤 {t('Assign Technicians', 'تعيين فنيين')}</div>
-                        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
-                            {t('Assign one or more technicians from the department to this order.', 'عيّن فنياً أو أكثر من القسم لهذا الطلب.')}
-                        </p>
-                        <button className="btn btn-primary btn-sm" style={{ width: '100%' }} onClick={openAssignModal}>
-                            + {t('Assign Technician(s)', 'تعيين فني/فنيين')}
-                        </button>
-                    </div>
+
 
                     {/* Customer */}
                     <div className="card">
                         <div className="card-title" style={{ marginBottom: 16 }}>👤 {t('Customer', 'العميل')}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14 }}>
-                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Name', 'الاسم')}:</span> <span style={{ fontWeight: 500 }}>{order.customerName || '—'}</span></div>
-                            {order.customerEmail && <div><span style={{ color: 'var(--text-muted)' }}>{t('Email', 'البريد')}:</span> {order.customerEmail}</div>}
-                            {order.customerPhone && <div><span style={{ color: 'var(--text-muted)' }}>{t('Phone', 'الهاتف')}:</span> {order.customerPhone}</div>}
+                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Name', 'الاسم')}:</span> <span style={{ fontWeight: 500 }}>{apexCustomer ? (lang === 'ar' ? apexCustomer.arabicName : apexCustomer.latinName || apexCustomer.arabicName) : (order.customerName || '—')}</span></div>
+                            {(apexCustomer?.email || order.customerEmail) && <div><span style={{ color: 'var(--text-muted)' }}>{t('Email', 'البريد')}:</span> {apexCustomer?.email || order.customerEmail}</div>}
+                            {(apexCustomer?.phone || order.customerPhone) && <div><span style={{ color: 'var(--text-muted)' }}>{t('Phone', 'الهاتف')}:</span> {apexCustomer?.phone || order.customerPhone}</div>}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Address', 'العنوان')}:</span> {order.address || '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('City', 'المدينة')}:</span> {order.city || '—'}</div>
                         </div>
