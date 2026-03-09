@@ -121,6 +121,8 @@ export interface DepartmentUser {
     departmentId: number;
     departmentName?: string;
     isSuperAdmin: boolean;
+    type?: string;
+    role?: string;
 }
 
 // ==================== ORDER ====================
@@ -134,6 +136,21 @@ export interface AddOrderDto {
     invoiceId: string | null;
     customerId: string | null;
     createdAt: string;
+    priority: Priority;
+    branchId: number;
+    departmentId: number;
+}
+
+export interface UpdateOrderDto {
+    status: OrderStatus;
+    city: string | null;
+    address: string | null;
+    scheduledDate: string | null;
+    quotationId: string | null;
+    invoiceId: string | null;
+    customerId: string | null;
+    createdAt: string;
+    salesApprovalDate: string | null;
     priority: Priority;
     branchId: number;
     departmentId: number;

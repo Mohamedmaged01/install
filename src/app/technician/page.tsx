@@ -34,7 +34,8 @@ export default function TechnicianPage() {
         setLoading(true);
         try {
             const data = await getMyTasks();
-            setTasks(Array.isArray(data) ? data : []);
+            const arr = Array.isArray(data) ? data : [];
+            setTasks(arr);
         } catch (err) {
             console.error(err);
         } finally {
@@ -124,70 +125,78 @@ export default function TechnicianPage() {
                 </div>
             ) : (
                 activeTasks.map(task => {
-                    const t_orderId = task.orderId || (task as any).order?.id || 0;
-                    const t_orderNumber = task.orderNumber || (task as any).order?.orderNumber || (task as any).orderCode;
-                    const t_customer = task.customerName || (task as any).order?.customerName || (task as any).customer?.name || (task as any).clientName || (task as any).order?.clientName || '—';
-                    const t_dept = task.departmentName || (task as any).order?.departmentName || (task as any).department?.name || '—';
-                    const t_date = task.scheduledDate || (task as any).order?.scheduledDate;
+                    const t_orderId = (task as any).installationOrderId || task.orderId || (task as any).OrderId || (task as any).order?.id || (task as any).order?.Id || 0;
+                    const t_orderNumber = task.orderNumber || (task as any).OrderNumber || (task as any).order?.orderNumber || (task as any).order?.OrderNumber || (task as any).orderCode || (task as any).OrderCode;
+                    const t_customer = task.customerName || (task as any).CustomerName || (task as any).order?.customerName || (task as any).order?.CustomerName || (task as any).customer?.name || (task as any).customer?.Name || (task as any).clientName || (task as any).order?.clientName || '—';
+                    const t_dept = task.departmentName || (task as any).DepartmentName || (task as any).order?.departmentName || (task as any).order?.DepartmentName || (task as any).department?.name || '—';
+                    const t_date = task.scheduledDate || (task as any).ScheduledDate || (task as any).order?.scheduledDate || (task as any).order?.ScheduledDate;
 
                     return (
-                        <div key={task.id} className="card" style={{ marginBottom: 12, cursor: 'pointer' }} onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}>
+                        <div key={task.id} className="card" style={{ marginBottom: 16, cursor: 'pointer', padding: 20, transition: 'all 0.2s ease', border: expandedTask === task.id ? '2px solid var(--accent-primary)' : '1px solid var(--border)' }} onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                        <span style={{ fontWeight: 700, color: 'var(--accent-primary-hover)' }}>
-                                            {t_orderNumber || (t_orderId ? `Order #${t_orderId}` : `Task #${task.id}`)}
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                                        <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
+                                            {t_orderNumber || (t_orderId ? `${t('Order', 'طلب')} #${t_orderId}` : `${t('Task', 'مهمة')} #${task.id}`)}
                                         </span>
                                         {task.priority && (
-                                            <span style={{ fontSize: 12, color: task.priority === 'Urgent' ? '#ef4444' : '#10b981' }}>
+                                            <span style={{
+                                                fontSize: 12, padding: '2px 8px', borderRadius: 12, fontWeight: 600,
+                                                color: task.priority === 'Urgent' ? '#ef4444' : '#10b981',
+                                                background: task.priority === 'Urgent' ? '#ef444415' : '#10b98115'
+                                            }}>
                                                 {task.priority === 'Urgent' ? `🔴 ${t('Urgent', 'عاجل')}` : `🟢 ${t('Normal', 'عادي')}`}
                                             </span>
                                         )}
+                                        <span style={{
+                                            padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600,
+                                            color: getStatusColor(task.status),
+                                            background: `${getStatusColor(task.status)}15`,
+                                            border: `1px solid ${getStatusColor(task.status)}30`,
+                                        }}>
+                                            {taskLabel(task.status)}
+                                        </span>
                                     </div>
-                                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
-                                        {t_customer}
+                                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                                        👤 {t_customer}
                                     </div>
                                     {task.address && (
-                                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                                            📍 {task.address}{task.city ? `, ${task.city}` : ''}
+                                        <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                            📍 <span>{task.address}{task.city ? `, ${task.city}` : ''}</span>
                                         </div>
                                     )}
                                 </div>
-                                <span style={{
-                                    padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600,
-                                    color: getStatusColor(task.status),
-                                    background: `${getStatusColor(task.status)}15`,
-                                    border: `1px solid ${getStatusColor(task.status)}30`,
-                                }}>
-                                    {taskLabel(task.status)}
-                                </span>
+                                <div style={{ color: 'var(--text-muted)', transform: expandedTask === task.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                                    ▼
+                                </div>
                             </div>
 
                             {expandedTask === task.id && (
-                                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                                        <div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('Department', 'القسم')}</div>
-                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{t_dept}</div>
+                                <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)', animation: 'fadeIn 0.2s ease-out' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 20 }}>
+                                        <div style={{ background: 'var(--bg-tertiary)', padding: 12, borderRadius: 'var(--radius-md)' }}>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{t('Department', 'القسم')}</div>
+                                            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>🏷️ {t_dept}</div>
                                         </div>
-                                        <div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t('Scheduled', 'الموعد')}</div>
-                                            <div style={{ fontSize: 14, fontWeight: 500 }}>{t_date ? new Date(t_date).toLocaleDateString() : '—'}</div>
+                                        <div style={{ background: 'var(--bg-tertiary)', padding: 12, borderRadius: 'var(--radius-md)' }}>
+                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{t('Scheduled', 'الموعد')}</div>
+                                            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>📅 {t_date ? new Date(t_date).toLocaleDateString() : '—'}</div>
                                         </div>
                                     </div>
                                     {task.notes && (
-                                        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, padding: '10px 14px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)' }}>
-                                            💬 {task.notes}
+                                        <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, padding: 16, background: '#f8fafc', borderLeft: '4px solid var(--accent-primary)', borderRadius: '0 var(--radius-md) var(--radius-md) 0' }}>
+                                            <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}>{t('Notes', 'ملاحظات')}:</div>
+                                            {task.notes}
                                         </div>
                                     )}
-                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                        <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); setStatusModal(task); }}>
-                                            {t('Update Status', 'تحديث الحالة')}
+                                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
+                                        <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={e => { e.stopPropagation(); setStatusModal(task); }}>
+                                            🔄 {t('Update Status', 'تحديث الحالة')}
                                         </button>
-                                        <Link href={t_orderId ? `/orders/${t_orderId}` : '#'} className={`btn btn-secondary btn-sm ${t_orderId === 0 ? 'disabled' : ''}`} onClick={e => { if (t_orderId === 0) e.preventDefault(); e.stopPropagation(); }}>
-                                            {t('Full Details', 'التفاصيل الكاملة')}
+                                        <Link href={t_orderId ? `/orders/${t_orderId}` : '#'} className={`btn btn-secondary ${!t_orderId ? 'disabled' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={e => { if (!t_orderId) e.preventDefault(); e.stopPropagation(); }}>
+                                            📄 {t('Full Details', 'التفاصيل الكاملة')}
                                         </Link>
-                                        <Link href="/qr/verify" className="btn btn-success btn-sm" onClick={e => e.stopPropagation()}>
+                                        <Link href="/qr/verify" className="btn btn-success" style={{ flex: 1, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
                                             📱 {t('Scan QR', 'مسح QR')}
                                         </Link>
                                     </div>
@@ -205,18 +214,20 @@ export default function TechnicianPage() {
                         ✅ {t('Completed', 'المنتهية')} ({completedTasks.length})
                     </h2>
                     {completedTasks.map(task => {
-                        const t_orderId = task.orderId || (task as any).order?.id || 0;
-                        const t_orderNumber = task.orderNumber || (task as any).order?.orderNumber || (task as any).orderCode;
-                        const t_customer = task.customerName || (task as any).order?.customerName || (task as any).customer?.name || (task as any).clientName || (task as any).order?.clientName || '—';
+                        const t_orderId = (task as any).installationOrderId || task.orderId || (task as any).OrderId || (task as any).order?.id || (task as any).order?.Id || 0;
+                        const t_orderNumber = task.orderNumber || (task as any).OrderNumber || (task as any).order?.orderNumber || (task as any).order?.OrderNumber || (task as any).orderCode || (task as any).OrderCode;
+                        const t_customer = task.customerName || (task as any).CustomerName || (task as any).order?.customerName || (task as any).order?.CustomerName || (task as any).customer?.name || (task as any).customer?.Name || (task as any).clientName || (task as any).order?.clientName || '—';
 
                         return (
-                            <div key={task.id} className="card" style={{ marginBottom: 12, opacity: 0.7 }}>
+                            <div key={task.id} className="card" style={{ marginBottom: 12, opacity: 0.8, padding: 16, borderLeft: '4px solid #10b981' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <div>
-                                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{t_orderNumber || (t_orderId ? `Order #${t_orderId}` : `Task #${task.id}`)}</div>
-                                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t_customer}{task.city ? ` • ${task.city}` : ''}</div>
+                                        <div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--text-primary)' }}>
+                                            {t_orderNumber || (t_orderId ? `${t('Order', 'طلب')} #${t_orderId}` : `${t('Task', 'مهمة')} #${task.id}`)}
+                                        </div>
+                                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>👤 {t_customer}{task.city ? ` • 📍 ${task.city}` : ''}</div>
                                     </div>
-                                    <span style={{ padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, color: getStatusColor(task.status), background: `${getStatusColor(task.status)}15` }}>
+                                    <span style={{ padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, color: getStatusColor(task.status), background: `${getStatusColor(task.status)}15`, border: `1px solid ${getStatusColor(task.status)}30` }}>
                                         {taskLabel(task.status)}
                                     </span>
                                 </div>

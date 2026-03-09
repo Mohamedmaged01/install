@@ -6,10 +6,10 @@ import Link from 'next/link';
 import {
     getOrderById, getOrderHistory, getOrderEvidence, uploadEvidence, deleteOrder, deleteTask,
     getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
-    getApexInvoices, getApexOffers
+    getApexInvoices, getApexOffers, updateOrder
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
-import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer } from '@/types';
+import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
@@ -44,6 +44,11 @@ export default function OrderDetailPage() {
     const [assignLoading, setAssignLoading] = useState(false);
     const [techsLoading, setTechsLoading] = useState(false);
     const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+
+    // Edit Order state
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editLoading, setEditLoading] = useState(false);
+    const [editForm, setEditForm] = useState<Partial<UpdateOrderDto>>({});
 
     const showToast = (type: 'error' | 'success', msg: string) => {
         setToast({ type, msg });
@@ -170,6 +175,36 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleUpdateOrder = async () => {
+        if (!order || !editForm) return;
+        setEditLoading(true);
+        try {
+            const dto: UpdateOrderDto = {
+                status: editForm.status || order.status,
+                city: editForm.city || order.city || null,
+                address: editForm.address || order.address || null,
+                scheduledDate: editForm.scheduledDate || order.scheduledDate || null,
+                quotationId: editForm.quotationId || order.quotationId || null,
+                invoiceId: editForm.invoiceId || order.invoiceId || null,
+                customerId: editForm.customerId || order.customerId || null,
+                createdAt: order.createdAt,
+                salesApprovalDate: editForm.salesApprovalDate || null,
+                priority: editForm.priority || order.priority,
+                branchId: editForm.branchId || order.branchId,
+                departmentId: editForm.departmentId || order.departmentId,
+            };
+
+            await updateOrder(order.id, dto);
+            showToast('success', t('Order updated successfully', 'تم تحديث الطلب بنجاح'));
+            setShowEditModal(false);
+            await loadOrder(); // Refresh the order info
+        } catch (err) {
+            showToast('error', err instanceof Error ? err.message : t('Failed to update order', 'فشل تحديث الطلب'));
+        } finally {
+            setEditLoading(false);
+        }
+    };
+
     const handleDeleteOrder = async () => {
         if (!confirm(t('Are you sure you want to delete this order? This action cannot be undone.', 'هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.'))) return;
         try {
@@ -262,7 +297,30 @@ export default function OrderDetailPage() {
                         </p>
                     </div>
                     <div className="btn-group">
-                        <button className="btn btn-danger btn-sm" onClick={handleDeleteOrder}>
+                        {canAssignTech && (
+                            <button className="btn btn-primary" onClick={openAssignModal}>
+                                👥 {t('Assign Technician', 'تعيين فني')}
+                            </button>
+                        )}
+                        <button className="btn btn-secondary" onClick={() => {
+                            setEditForm({
+                                status: order.status,
+                                city: order.city || '',
+                                address: order.address || '',
+                                scheduledDate: order.scheduledDate || '',
+                                quotationId: order.quotationId || '',
+                                invoiceId: order.invoiceId || '',
+                                customerId: order.customerId || '',
+                                salesApprovalDate: (order as any).salesApprovalDate || '',
+                                priority: order.priority,
+                                branchId: order.branchId,
+                                departmentId: order.departmentId,
+                            });
+                            setShowEditModal(true);
+                        }}>
+                            ✏️ {t('Edit Order', 'تعديل الطلب')}
+                        </button>
+                        <button className="btn btn-danger" onClick={handleDeleteOrder} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             🗑️ {t('Delete Order', 'حذف الطلب')}
                         </button>
                         {order.status === 'Complete' && (
@@ -630,6 +688,60 @@ export default function OrderDetailPage() {
                     </div>
                 )
             }
-        </div >
+            {/* Edit Order Modal */}
+            {showEditModal && (
+                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+                    <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+                        <div className="modal-header">
+                            <h2>{t('Edit Order', 'تعديل الطلب')}</h2>
+                            <button className="modal-close" onClick={() => setShowEditModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div className="form-group">
+                                <label className="form-label">{t('Status', 'الحالة')}</label>
+                                <select className="form-input" value={editForm.status || 'Draft'} onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value as any }))}>
+                                    {['Draft', 'PendingSalesApproval', 'PendingSupervisorApproval', 'ReadyForInstallation', 'ReturnedToDraft', 'ReturnedToSales', 'Complete', 'Canceled'].map(s => (
+                                        <option key={s} value={s}>{s}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Branch ID', 'معرف الفرع')}</label>
+                                    <input type="number" className="form-input" value={editForm.branchId || ''} onChange={e => setEditForm(prev => ({ ...prev, branchId: Number(e.target.value) }))} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Department ID', 'معرف القسم')}</label>
+                                    <input type="number" className="form-input" value={editForm.departmentId || ''} onChange={e => setEditForm(prev => ({ ...prev, departmentId: Number(e.target.value) }))} />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Priority', 'الأولوية')}</label>
+                                <select className="form-input" value={editForm.priority || 'Normal'} onChange={e => setEditForm(prev => ({ ...prev, priority: e.target.value as any }))}>
+                                    <option value="Normal">Normal</option>
+                                    <option value="Urgent">Urgent</option>
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Scheduled Date', 'تاريخ الموعد')}</label>
+                                <input type="datetime-local" className="form-input" value={editForm.scheduledDate ? new Date(editForm.scheduledDate).toISOString().slice(0, 16) : ''} onChange={e => setEditForm(prev => ({ ...prev, scheduledDate: new Date(e.target.value).toISOString() }))} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('City', 'المدينة')}</label>
+                                <input type="text" className="form-input" value={editForm.city || ''} onChange={e => setEditForm(prev => ({ ...prev, city: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Address', 'العنوان')}</label>
+                                <textarea className="form-textarea" rows={2} value={editForm.address || ''} onChange={e => setEditForm(prev => ({ ...prev, address: e.target.value }))} />
+                            </div>
+                            <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={handleUpdateOrder} disabled={editLoading}>
+                                {editLoading ? '✍️...' : t('Save Changes', 'حفظ التغييرات')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+        </div>
     );
 }

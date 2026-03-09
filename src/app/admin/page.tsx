@@ -312,14 +312,7 @@ export default function AdminPage() {
                                     </div>
                                 </div>
 
-                                {/* Super Admin toggle */}
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', marginTop: 12, background: userForm.IsSuperAdmin ? 'rgba(239,68,68,0.08)' : 'var(--bg-tertiary)', border: `1px solid ${userForm.IsSuperAdmin ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
-                                    <input type="checkbox" style={{ accentColor: '#ef4444', width: 16, height: 16 }} checked={userForm.IsSuperAdmin} onChange={e => setUserForm({ ...userForm, IsSuperAdmin: e.target.checked })} />
-                                    <div>
-                                        <div style={{ fontWeight: 600, fontSize: 14 }}>⭐ {t('Super Admin', 'سوبر أدمن')}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Grants full access to all system features', 'يمنح وصولاً كاملاً لجميع ميزات النظام')}</div>
-                                    </div>
-                                </label>
+
 
                                 <div style={{ marginTop: 16 }}>
                                     <button className="btn btn-primary" disabled={actionLoading || !userForm.Name || !userForm.Email || !userForm.Password || !userForm.Type} onClick={handleCreateUser}>
@@ -339,7 +332,7 @@ export default function AdminPage() {
                                 </div>
                                 <div className="table-container" style={{ border: 'none' }}>
                                     <table>
-                                        <thead><tr><th>{t('Name', 'الاسم')}</th><th>{t('Email', 'البريد')}</th><th>{t('Phone', 'الهاتف')}</th><th>{t('Department', 'القسم')}</th><th>{t('Role', 'الدور')}</th><th>{t('Super Admin', 'سوبر أدمن')}</th><th style={{ width: 80 }}>{t('Actions', 'الإجراءات')}</th></tr></thead>
+                                        <thead><tr><th>{t('Name', 'الاسم')}</th><th>{t('Email', 'البريد')}</th><th>{t('Phone', 'الهاتف')}</th><th>{t('Department', 'القسم')}</th><th>{t('Role', 'الدور')}</th><th>{t('Type', 'النوع')}</th><th style={{ width: 80 }}>{t('Actions', 'الإجراءات')}</th></tr></thead>
                                         <tbody>
                                             {users.map(u => (
                                                 <tr key={u.id}>
@@ -348,12 +341,12 @@ export default function AdminPage() {
                                                     <td style={{ color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
                                                     <td>{u.departmentName || `#${u.departmentId}`}</td>
                                                     <td>
-                                                        {roles.find(r => r.id === u.roleId)?.name || u.roleName
-                                                            ? <span style={{ fontWeight: 600, color: 'var(--accent-primary-hover)' }}>{roles.find(r => r.id === u.roleId)?.name || u.roleName}</span>
+                                                        {roles.find(r => r.id === u.roleId)?.name || u.roleName || u.role
+                                                            ? <span style={{ fontWeight: 600, color: 'var(--accent-primary-hover)' }}>{roles.find(r => r.id === u.roleId)?.name || u.roleName || u.role}</span>
                                                             : <span style={{ color: 'var(--text-muted)' }}>—</span>
                                                         }
                                                     </td>
-                                                    <td>{u.isSuperAdmin ? '⭐' : '—'}</td>
+                                                    <td>{u.type || '—'}</td>
                                                     <td>
                                                         <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
                                                     </td>

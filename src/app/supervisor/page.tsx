@@ -139,8 +139,8 @@ export default function SupervisorPage() {
         setActionLoading(assignModal.id);
         try {
             if (isApproveWorkflow) {
-                const taskIds = (assignModal.tasks ?? []).map(t => t.id);
-                await approveSupervisor(assignModal.id, taskIds);
+                const techIds = Array.from(selectedTechs);
+                await approveSupervisor(assignModal.id, techIds);
             }
 
             // Assign a task for each selected technician in parallel
@@ -273,7 +273,6 @@ export default function SupervisorPage() {
                                                     <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)}>
                                                         {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
                                                     </button>
-                                                    <button className="btn btn-primary btn-sm" onClick={() => openAssignModal(order)}>👤 {t('Assign', 'تعيين')}</button>
                                                     <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => { setRejectModal(order); setRejectReason(''); }}>
                                                         ↩ {t('Return', 'إرجاع')}
                                                     </button>

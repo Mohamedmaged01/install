@@ -6,7 +6,7 @@ import type {
     Department,
     DepartmentUser,
     Order,
-    AddOrderDto,
+    AddOrderDto, UpdateOrderDto,
     OrderHistoryEntry,
     Evidence,
     VerifyQrDto,
@@ -211,6 +211,11 @@ export async function createOrder(dto: AddOrderDto): Promise<Order> {
     // The backend returns the new order ID as `data` (e.g., { data: 36 })
     // If it returns a full object with an id, use that. Otherwise use the data integer.
     return (res?.id ? res : { id: res }) as Order;
+}
+
+export async function updateOrder(id: number, dto: UpdateOrderDto): Promise<Order> {
+    const res = await api<any>(`/api/Orders/${id}`, { method: 'PUT', body: dto });
+    return res as Order;
 }
 
 export async function deleteOrders(): Promise<void> {

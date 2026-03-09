@@ -140,15 +140,16 @@
         }
       }
     },
-    "/api/Branches/technicians": {
+    "/api/Branches/{branchId}/technicians": {
       "get": {
         "tags": [
           "Branches"
         ],
         "parameters": [
           {
-            "name": "id",
-            "in": "query",
+            "name": "branchId",
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "integer",
               "format": "int32"
@@ -344,8 +345,8 @@
                     "type": "integer",
                     "format": "int32"
                   },
-                  "IsSuperAdmin": {
-                    "type": "boolean"
+                  "Type": {
+                    "$ref": "#/components/schemas/UserType"
                   }
                 }
               },
@@ -371,7 +372,7 @@
                 "RoleId": {
                   "style": "form"
                 },
-                "IsSuperAdmin": {
+                "Type": {
                   "style": "form"
                 }
               }
@@ -871,6 +872,29 @@
         }
       }
     },
+    "/api/Orders/{id}/technicians": {
+      "get": {
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Permissions": {
       "get": {
         "tags": [
@@ -1051,6 +1075,29 @@
         }
       }
     },
+    "/api/Roles/{id}/users": {
+      "get": {
+        "tags": [
+          "Roles"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Roles/{id}": {
       "delete": {
         "tags": [
@@ -1089,37 +1136,6 @@
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Tasks": {
-      "post": {
-        "tags": [
-          "Tasks"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignTaskDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignTaskDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/AssignTaskDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "OK"
@@ -1313,24 +1329,6 @@
         },
         "additionalProperties": false
       },
-      "AssignTaskDto": {
-        "type": "object",
-        "properties": {
-          "orderId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "technicianId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "EditOrder": {
         "type": "object",
         "properties": {
@@ -1451,6 +1449,17 @@
           }
         },
         "additionalProperties": false
+      },
+      "UserType": {
+        "enum": [
+          "SuperAdmin",
+          "Admin",
+          "SalesManager",
+          "SalesRepresentative",
+          "Supervisor",
+          "Technician"
+        ],
+        "type": "string"
       },
       "VerifyQrDto": {
         "type": "object",
