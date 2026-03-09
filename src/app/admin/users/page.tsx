@@ -126,11 +126,7 @@ export default function AdminUsersPage() {
     const openRoleUsers = async (role: Role) => {
         setActiveRole(role);
         setModal('viewUsers');
-        try {
-            const users = await getDepartmentUsers();
-            const filtered = (Array.isArray(users) ? users : []).filter((u: DepartmentUser) => u.roleId === role.id);
-            setRoleUsers(filtered);
-        } catch { setRoleUsers([]); }
+        setRoleUsers(role.users || []);
     };
 
     /* ── create user ── */
