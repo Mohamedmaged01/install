@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getMyTasks, updateTaskStatus } from '@/lib/endpoints';
 import { Task, TaskStatus } from '@/types';
 import { useLang } from '@/context/LanguageContext';
+import { useAuth } from '@/context/RoleContext';
 
 const activeStatuses: TaskStatus[] = ['Assigned', 'Accepted', 'Enroute', 'Onsite', 'InProgress', 'OnHold'];
 const doneStatuses: TaskStatus[] = ['Completed', 'Returned'];
@@ -23,6 +24,7 @@ const TASK_LABELS: Record<TaskStatus, { en: string; ar: string }> = {
 
 export default function TechnicianPage() {
     const { lang, t } = useLang();
+    const { user } = useAuth();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -158,13 +160,12 @@ export default function TechnicianPage() {
                                         </span>
                                     </div>
                                     <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                                        👤 {t_customer}
+                                        {t_customer !== '—' ? t_customer : ''}
                                     </div>
-                                    {task.address && (
-                                        <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                            📍 <span>{task.address}{task.city ? `, ${task.city}` : ''}</span>
-                                        </div>
-                                    )}
+                                    <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {task.address && <div>📍 <span style={{ fontWeight: 500 }}>{t('Address', 'العنوان')}:</span> {task.address}</div>}
+                                        {task.city && <div>🏙️ <span style={{ fontWeight: 500 }}>{t('City', 'المدينة')}:</span> {task.city}</div>}
+                                    </div>
                                 </div>
                                 <div style={{ color: 'var(--text-muted)', transform: expandedTask === task.id ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
                                     ▼
@@ -173,16 +174,7 @@ export default function TechnicianPage() {
 
                             {expandedTask === task.id && (
                                 <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)', animation: 'fadeIn 0.2s ease-out' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 20 }}>
-                                        <div style={{ background: 'var(--bg-tertiary)', padding: 12, borderRadius: 'var(--radius-md)' }}>
-                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{t('Department', 'القسم')}</div>
-                                            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>🏷️ {t_dept}</div>
-                                        </div>
-                                        <div style={{ background: 'var(--bg-tertiary)', padding: 12, borderRadius: 'var(--radius-md)' }}>
-                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{t('Scheduled', 'الموعد')}</div>
-                                            <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' }}>📅 {t_date ? new Date(t_date).toLocaleDateString() : '—'}</div>
-                                        </div>
-                                    </div>
+                                    {/* Removed Department and Scheduled grid */}
                                     {task.notes && (
                                         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, padding: 16, background: '#f8fafc', borderLeft: '4px solid var(--accent-primary)', borderRadius: '0 var(--radius-md) var(--radius-md) 0' }}>
                                             <div style={{ fontWeight: 600, marginBottom: 4, color: 'var(--text-primary)' }}>{t('Notes', 'ملاحظات')}:</div>
@@ -196,9 +188,11 @@ export default function TechnicianPage() {
                                         <Link href={t_orderId ? `/orders/${t_orderId}` : '#'} className={`btn btn-secondary ${!t_orderId ? 'disabled' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={e => { if (!t_orderId) e.preventDefault(); e.stopPropagation(); }}>
                                             📄 {t('Full Details', 'التفاصيل الكاملة')}
                                         </Link>
-                                        <Link href="/qr/verify" className="btn btn-success" style={{ flex: 1, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
-                                            📱 {t('Scan QR', 'مسح QR')}
-                                        </Link>
+                                        {user?.roleName?.toLowerCase() === 'technician' && (
+                                            <Link href="/qr/verify" className="btn btn-success" style={{ flex: 1, justifyContent: 'center' }} onClick={e => e.stopPropagation()}>
+                                                📱 {t('Scan QR', 'مسح QR')}
+                                            </Link>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -225,7 +219,11 @@ export default function TechnicianPage() {
                                         <div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--text-primary)' }}>
                                             {t_orderNumber || (t_orderId ? `${t('Order', 'طلب')} #${t_orderId}` : `${t('Task', 'مهمة')} #${task.id}`)}
                                         </div>
-                                        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>👤 {t_customer}{task.city ? ` • 📍 ${task.city}` : ''}</div>
+                                        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 2 }}>{t_customer !== '—' ? t_customer : ''}</div>
+                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                            {task.city && <span>🏙️ <span style={{ fontWeight: 500 }}>{t('City', 'المدينة')}:</span> {task.city} </span>}
+                                            {task.address && <span>📍 <span style={{ fontWeight: 500 }}>{t('Address', 'العنوان')}:</span> {task.address}</span>}
+                                        </div>
                                     </div>
                                     <span style={{ padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, color: getStatusColor(task.status), background: `${getStatusColor(task.status)}15`, border: `1px solid ${getStatusColor(task.status)}30` }}>
                                         {taskLabel(task.status)}

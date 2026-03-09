@@ -184,6 +184,7 @@ export interface Order {
     // Nested data from GET /api/Orders/{id}
     tasks?: Task[];
     items?: OrderItem[];
+    technicians?: { id: number; name: string }[];
 }
 
 export interface OrderItem {

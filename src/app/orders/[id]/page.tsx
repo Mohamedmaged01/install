@@ -256,9 +256,6 @@ export default function OrderDetailPage() {
         { key: 'evidence', label: t('Evidence', 'الأدلة'), icon: '📸' },
     ];
 
-    // Statuses where technicians can be assigned
-    const canAssignTech = ['PendingSupervisorApproval', 'ReadyForInstallation'].includes(order.status);
-
     return (
         <div className="animate-in">
 
@@ -297,11 +294,6 @@ export default function OrderDetailPage() {
                         </p>
                     </div>
                     <div className="btn-group">
-                        {canAssignTech && (
-                            <button className="btn btn-primary" onClick={openAssignModal}>
-                                👥 {t('Assign Technician', 'تعيين فني')}
-                            </button>
-                        )}
                         <button className="btn btn-secondary" onClick={() => {
                             setEditForm({
                                 status: order.status,
@@ -554,6 +546,17 @@ export default function OrderDetailPage() {
                                         </div>
                                     </div>
                                     {task.notes && <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>{task.notes}</div>}
+                                </div>
+                            ))
+                        ) : order.technicians && order.technicians.length > 0 ? (
+                            order.technicians.map((tech: any) => (
+                                <div key={tech.id} style={{ padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8, fontSize: 13 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontWeight: 600 }}>👷 {tech.name || `Tech #${tech.id}`}</span>
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                            <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', background: 'rgba(99,102,241,0.12)', borderRadius: 12, color: '#818cf8' }}>{t('Assigned', 'مُعيَّن')}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             ))
                         ) : (

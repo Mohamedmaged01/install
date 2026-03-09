@@ -320,10 +320,10 @@ export default function SupervisorPage() {
                                     </p>
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
-                                        {technicians.map(tech => {
+                                        {technicians.map((tech, idx) => {
                                             const checked = selectedTechs.has(tech.id);
                                             return (
-                                                <label key={tech.id} style={{
+                                                <label key={`${tech.id}-${idx}`} style={{
                                                     display: 'flex', alignItems: 'center', gap: 10,
                                                     padding: '10px 14px',
                                                     background: checked ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)',
