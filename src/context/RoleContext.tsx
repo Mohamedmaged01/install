@@ -5,23 +5,32 @@ import { AuthUser } from '@/types';
 import { getToken, removeToken, setToken } from '@/lib/api';
 
 // ─── Permission helpers ───────────────────────────────────────────────
-/** All known permission strings from the backend */
 export const PERMS = {
     // Orders
-    ORDERS_VIEW_BRANCH: 'Permissions.Orders.ViewBranch',
-    ORDERS_VIEW_ALL: 'Permissions.Orders.ViewAll',
-    ORDERS_CREATE: 'Permissions.Orders.Create',
-    ORDERS_APPROVE_SALES: 'Permissions.Orders.ApproveSales',
-    ORDERS_APPROVE_SUPERVISOR: 'Permissions.Orders.ApproveSupervisor',
-    ORDERS_RETURN: 'Permissions.Orders.Return',
-    // Tasks
-    TASKS_VIEW: 'Permissions.Tasks.View',
-    TASKS_MANAGE: 'Permissions.Tasks.Manage',
-    TASKS_ASSIGN: 'Permissions.Tasks.Assign',
-    // Admin
-    USERS_MANAGE: 'Permissions.Users.Manage',
-    ROLES_MANAGE: 'Permissions.Roles.Manage',
-    SETTINGS_MANAGE: 'Permissions.Settings.Manage',
+    ORDERS_VIEW_ALL: 'ViewAllOrders',
+    ORDERS_VIEW_BRANCH: 'ViewBranchOrders',
+    ORDERS_VIEW_MINE: 'ViewMyOrders',
+    ORDERS_CREATE: 'CreateOrder',
+    ORDERS_EDIT: 'EditOrders',
+    ORDERS_DELETE: 'DeleteOrders',
+
+    // Approvals
+    ORDERS_APPROVE_SALES: 'SalesApprove',
+    ORDERS_APPROVE_SUPERVISOR: 'SupervisorApprove',
+    ORDERS_RETURN: 'ReturnOrders',
+
+    // Tasks & Technical
+    ORDERS_VIEW_HISTORY: 'ViewOrdersHistory',
+    TASKS_ASSIGN: 'InstallOrders',
+    TASKS_VIEW_ALL: 'ViewAllTasks',
+    TASKS_VIEW: 'ViewMyTasks',
+    TASKS_MANAGE: 'UpdateTaskStatus',
+    TASKS_EVIDENCE: 'UploadEvidence',
+
+    // Admin (fallback or expected future)
+    USERS_MANAGE: 'ManageUsers',
+    ROLES_MANAGE: 'ManageRoles',
+    SETTINGS_MANAGE: 'ManageSettings',
 } as const;
 
 // ─── Context type ─────────────────────────────────────────────────────

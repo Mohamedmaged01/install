@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createOrder, getBranches, getDepartments, getApexInvoices, getApexOffers } from '@/lib/endpoints';
 import { Branch, Department, AddOrderDto, ApexInvoice, ApexOffer } from '@/types';
+import PermissionGuard from '@/components/PermissionGuard';
+import { PERMS } from '@/context/RoleContext';
 
 export default function NewOrderPage() {
     const router = useRouter();
@@ -114,201 +116,203 @@ export default function NewOrderPage() {
     const filteredDepts = departments;
 
     return (
-        <div className="animate-in">
-            <div className="page-header">
-                <h1>Create Installation Order</h1>
-                <p>Create a new installation order from a sales document</p>
+        <PermissionGuard requiredPerms={[PERMS.ORDERS_CREATE]}>
+            <div className="animate-in">
+                <div className="page-header">
+                    <h1>Create Installation Order</h1>
+                    <p>Create a new installation order from a sales document</p>
+                </div>
+
+                {error && (
+                    <div style={{
+                        padding: '12px 16px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        borderRadius: 'var(--radius-md)',
+                        color: '#ef4444',
+                        fontSize: 13,
+                        marginBottom: 20,
+                    }}>
+                        {error}
+                    </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+                    {/* Form */}
+                    <div>
+                        {/* Sales Document */}
+                        <div className="card" style={{ marginBottom: 20 }}>
+                            <div className="card-title" style={{ marginBottom: 16 }}>📄 Sales Document</div>
+
+                            {apexError && (
+                                <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--radius-md)', color: '#f59e0b', fontSize: 12, marginBottom: 16 }}>
+                                    ⚠️ APEX connection issue — {apexError}. You can still enter document IDs manually.
+                                </div>
+                            )}
+
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">Document Type *</label>
+                                    <select className="form-select" value={docType} onChange={e => { setDocType(e.target.value as 'invoice' | 'quotation'); setSelectedDocId(''); }}>
+                                        <option value="invoice">Invoice</option>
+                                        <option value="quotation">Quotation / Offer</option>
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Select from APEX</label>
+                                    <select className="form-select" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
+                                        <option value="">— Select —</option>
+                                        {docType === 'invoice'
+                                            ? invoices.map(inv => (
+                                                <option key={inv.code} value={inv.code}>
+                                                    {inv.code} — {inv.customer?.latinName || inv.customer?.arabicName || '—'} ({new Date(inv.invoiceDate).toLocaleDateString()})
+                                                </option>
+                                            ))
+                                            : offers.map(off => (
+                                                <option key={off.code} value={off.code}>
+                                                    {off.code} — {off.customer?.latinName || off.customer?.arabicName || '—'}
+                                                </option>
+                                            ))
+                                        }
+                                    </select>
+                                    {invoices.length === 0 && offers.length === 0 && (
+                                        <span className="form-hint">No APEX documents loaded — enter ID manually below</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Selected doc preview */}
+                            {selectedDoc && (
+                                <div style={{ padding: '12px 16px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 'var(--radius-md)', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', fontSize: 13 }}>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>Customer: </span><strong>{selectedDoc.customer?.latinName || selectedDoc.customer?.arabicName}</strong></div>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>Net Total: </span><strong>SAR {selectedDoc.net?.toLocaleString()}</strong></div>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>VAT: </span>SAR {selectedDoc.totalVat?.toLocaleString()}</div>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>Items: </span>{selectedDoc.items?.length ?? 0}</div>
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label className="form-label">Document ID (manual override)</label>
+                                <input
+                                    className="form-input"
+                                    placeholder={docType === 'invoice' ? 'e.g. INV-2026-001' : 'e.g. OP-2026-001'}
+                                    value={selectedDocId}
+                                    onChange={e => setSelectedDocId(e.target.value)}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Customer Code</label>
+                                <input
+                                    className="form-input"
+                                    placeholder="Auto-filled from selection or enter manually"
+                                    value={customerId}
+                                    onChange={e => setCustomerId(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Installation Details */}
+                        <div className="card" style={{ marginBottom: 20 }}>
+                            <div className="card-title" style={{ marginBottom: 16 }}>🔧 Installation Details</div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">Branch *</label>
+                                    <select className="form-select" value={branchId} onChange={e => setBranchId(Number(e.target.value))}>
+                                        <option value={0}>— Select Branch —</option>
+                                        {branches.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Department *</label>
+                                    <select className="form-select" value={departmentId} onChange={e => setDepartmentId(Number(e.target.value))}>
+                                        <option value={0}>— Select Department —</option>
+                                        {filteredDepts.map(d => (
+                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">City</label>
+                                    <input className="form-input" placeholder="City" value={city} onChange={e => setCity(e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Address</label>
+                                    <input className="form-input" placeholder="Full address" value={address} onChange={e => setAddress(e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">Scheduled Date</label>
+                                    <input className="form-input" type="datetime-local" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Priority</label>
+                                    <select className="form-select" value={priority} onChange={e => setPriority(e.target.value as 'Normal' | 'Urgent')}>
+                                        <option value="Normal">Normal</option>
+                                        <option value="Urgent">Urgent</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Sidebar Summary */}
+                    <div style={{ position: 'sticky', top: 24 }}>
+                        <div className="card">
+                            <div className="card-title" style={{ marginBottom: 16 }}>📝 Summary</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14, marginBottom: 20 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Type</span>
+                                    <span>{docType === 'invoice' ? 'Invoice' : 'Quotation'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Doc ID</span>
+                                    <span>{selectedDocId || '—'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Branch</span>
+                                    <span>{branches.find(b => b.id === branchId)?.name || '—'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Department</span>
+                                    <span>{filteredDepts.find(d => d.id === departmentId)?.name || '—'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>City</span>
+                                    <span>{city || '—'}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: 'var(--text-muted)' }}>Priority</span>
+                                    <span style={{ color: priority === 'Urgent' ? '#ef4444' : '#10b981' }}>{priority}</span>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <button
+                                    className="btn btn-primary"
+                                    disabled={loading}
+                                    onClick={() => handleSubmit(false)}
+                                    style={{ width: '100%' }}
+                                >
+                                    {loading ? '⏳ Submitting...' : '📤 Submit for Approval'}
+                                </button>
+                                <button
+                                    className="btn btn-secondary"
+                                    disabled={loading}
+                                    onClick={() => handleSubmit(true)}
+                                    style={{ width: '100%' }}
+                                >
+                                    💾 Save as Draft
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            {error && (
-                <div style={{
-                    padding: '12px 16px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    borderRadius: 'var(--radius-md)',
-                    color: '#ef4444',
-                    fontSize: 13,
-                    marginBottom: 20,
-                }}>
-                    {error}
-                </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
-                {/* Form */}
-                <div>
-                    {/* Sales Document */}
-                    <div className="card" style={{ marginBottom: 20 }}>
-                        <div className="card-title" style={{ marginBottom: 16 }}>📄 Sales Document</div>
-
-                        {apexError && (
-                            <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--radius-md)', color: '#f59e0b', fontSize: 12, marginBottom: 16 }}>
-                                ⚠️ APEX connection issue — {apexError}. You can still enter document IDs manually.
-                            </div>
-                        )}
-
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="form-label">Document Type *</label>
-                                <select className="form-select" value={docType} onChange={e => { setDocType(e.target.value as 'invoice' | 'quotation'); setSelectedDocId(''); }}>
-                                    <option value="invoice">Invoice</option>
-                                    <option value="quotation">Quotation / Offer</option>
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Select from APEX</label>
-                                <select className="form-select" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
-                                    <option value="">— Select —</option>
-                                    {docType === 'invoice'
-                                        ? invoices.map(inv => (
-                                            <option key={inv.code} value={inv.code}>
-                                                {inv.code} — {inv.customer?.latinName || inv.customer?.arabicName || '—'} ({new Date(inv.invoiceDate).toLocaleDateString()})
-                                            </option>
-                                        ))
-                                        : offers.map(off => (
-                                            <option key={off.code} value={off.code}>
-                                                {off.code} — {off.customer?.latinName || off.customer?.arabicName || '—'}
-                                            </option>
-                                        ))
-                                    }
-                                </select>
-                                {invoices.length === 0 && offers.length === 0 && (
-                                    <span className="form-hint">No APEX documents loaded — enter ID manually below</span>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Selected doc preview */}
-                        {selectedDoc && (
-                            <div style={{ padding: '12px 16px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 'var(--radius-md)', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', fontSize: 13 }}>
-                                <div><span style={{ color: 'var(--text-muted)' }}>Customer: </span><strong>{selectedDoc.customer?.latinName || selectedDoc.customer?.arabicName}</strong></div>
-                                <div><span style={{ color: 'var(--text-muted)' }}>Net Total: </span><strong>SAR {selectedDoc.net?.toLocaleString()}</strong></div>
-                                <div><span style={{ color: 'var(--text-muted)' }}>VAT: </span>SAR {selectedDoc.totalVat?.toLocaleString()}</div>
-                                <div><span style={{ color: 'var(--text-muted)' }}>Items: </span>{selectedDoc.items?.length ?? 0}</div>
-                            </div>
-                        )}
-
-                        <div className="form-group">
-                            <label className="form-label">Document ID (manual override)</label>
-                            <input
-                                className="form-input"
-                                placeholder={docType === 'invoice' ? 'e.g. INV-2026-001' : 'e.g. OP-2026-001'}
-                                value={selectedDocId}
-                                onChange={e => setSelectedDocId(e.target.value)}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Customer Code</label>
-                            <input
-                                className="form-input"
-                                placeholder="Auto-filled from selection or enter manually"
-                                value={customerId}
-                                onChange={e => setCustomerId(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Installation Details */}
-                    <div className="card" style={{ marginBottom: 20 }}>
-                        <div className="card-title" style={{ marginBottom: 16 }}>🔧 Installation Details</div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="form-label">Branch *</label>
-                                <select className="form-select" value={branchId} onChange={e => setBranchId(Number(e.target.value))}>
-                                    <option value={0}>— Select Branch —</option>
-                                    {branches.map(b => (
-                                        <option key={b.id} value={b.id}>{b.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Department *</label>
-                                <select className="form-select" value={departmentId} onChange={e => setDepartmentId(Number(e.target.value))}>
-                                    <option value={0}>— Select Department —</option>
-                                    {filteredDepts.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="form-label">City</label>
-                                <input className="form-input" placeholder="City" value={city} onChange={e => setCity(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Address</label>
-                                <input className="form-input" placeholder="Full address" value={address} onChange={e => setAddress(e.target.value)} />
-                            </div>
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label className="form-label">Scheduled Date</label>
-                                <input className="form-input" type="datetime-local" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Priority</label>
-                                <select className="form-select" value={priority} onChange={e => setPriority(e.target.value as 'Normal' | 'Urgent')}>
-                                    <option value="Normal">Normal</option>
-                                    <option value="Urgent">Urgent</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sidebar Summary */}
-                <div style={{ position: 'sticky', top: 24 }}>
-                    <div className="card">
-                        <div className="card-title" style={{ marginBottom: 16 }}>📝 Summary</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14, marginBottom: 20 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>Type</span>
-                                <span>{docType === 'invoice' ? 'Invoice' : 'Quotation'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>Doc ID</span>
-                                <span>{selectedDocId || '—'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>Branch</span>
-                                <span>{branches.find(b => b.id === branchId)?.name || '—'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>Department</span>
-                                <span>{filteredDepts.find(d => d.id === departmentId)?.name || '—'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>City</span>
-                                <span>{city || '—'}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <span style={{ color: 'var(--text-muted)' }}>Priority</span>
-                                <span style={{ color: priority === 'Urgent' ? '#ef4444' : '#10b981' }}>{priority}</span>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            <button
-                                className="btn btn-primary"
-                                disabled={loading}
-                                onClick={() => handleSubmit(false)}
-                                style={{ width: '100%' }}
-                            >
-                                {loading ? '⏳ Submitting...' : '📤 Submit for Approval'}
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                disabled={loading}
-                                onClick={() => handleSubmit(true)}
-                                style={{ width: '100%' }}
-                            >
-                                💾 Save as Draft
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </PermissionGuard>
     );
 }

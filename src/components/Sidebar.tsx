@@ -32,7 +32,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             href: '/sales/orders',
             label: t('My Orders', 'طلباتي'),
             icon: '📋',
-            show: hasAnyPermission(PERMS.ORDERS_VIEW_BRANCH, PERMS.ORDERS_VIEW_ALL, PERMS.ORDERS_CREATE, PERMS.TASKS_VIEW),
+            show: hasAnyPermission(PERMS.ORDERS_VIEW_BRANCH, PERMS.ORDERS_VIEW_ALL, PERMS.ORDERS_CREATE),
         },
         {
             href: '/sales/orders/new',
