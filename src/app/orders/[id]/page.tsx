@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { QRCodeSVG } from 'qrcode.react';
 import {
     getOrderById, getOrderHistory, getOrderEvidence, uploadEvidence, deleteOrder, deleteTask,
     getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
@@ -44,6 +45,9 @@ export default function OrderDetailPage() {
     const [assignLoading, setAssignLoading] = useState(false);
     const [techsLoading, setTechsLoading] = useState(false);
     const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+    const [origin, setOrigin] = useState('');
+    const [itemsPage, setItemsPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
 
     // Edit Order state
     const [showEditModal, setShowEditModal] = useState(false);
@@ -107,6 +111,10 @@ export default function OrderDetailPage() {
     useEffect(() => {
         if (id) loadOrder();
     }, [id]);
+
+    useEffect(() => {
+        setOrigin(window.location.origin);
+    }, []);
 
     const handleUploadEvidence = async () => {
         if (uploadFiles.length === 0) return;
@@ -363,46 +371,72 @@ export default function OrderDetailPage() {
                     )}
 
                     {/* Items */}
-                    {activeTab === 'items' && (
+                    {activeTab === 'items' && (() => {
+                        const allItems = apexItems.length > 0 ? apexItems : (order.items || []);
+                        const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE);
+                        const pageItems = allItems.slice((itemsPage - 1) * ITEMS_PER_PAGE, itemsPage * ITEMS_PER_PAGE);
+                        return (
                         <div className="card">
                             <div className="card-title" style={{ marginBottom: 20 }}>
                                 {t('Installation Items', 'عناصر التركيب')}
+                                {allItems.length > 0 && <span style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 8, fontWeight: 400 }}>({allItems.length})</span>}
                                 {apexLoading && <span style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 12, fontWeight: 400 }}>⏳ {t('Loading from APEX...', 'جارٍ التحميل من أبكس...')}</span>}
                             </div>
-                            {apexItems.length > 0 ? (
+                            {allItems.length > 0 ? (
+                                <>
                                 <div className="table-container" style={{ border: 'none' }}>
                                     <table>
                                         <thead><tr><th>{t('Item Code', 'رمز العنصر')}</th><th>{t('Name', 'الاسم')}</th><th>{t('Qty', 'الكمية')}</th><th>{t('Price', 'السعر')}</th><th>{t('Total', 'المجموع')}</th></tr></thead>
                                         <tbody>
-                                            {apexItems.map((item, idx) => (
-                                                <tr key={`${item.itemCode}-${idx}`}>
-                                                    <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>{item.itemCode}</td>
-                                                    <td className="table-cell-main">{lang === 'ar' ? item.arabicName : item.latinName || item.arabicName}</td>
-                                                    <td>{item.quantity}</td>
-                                                    <td>SAR {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                    <td style={{ fontWeight: 600 }}>SAR {((item.quantity * item.price) + item.vatValue - item.discountValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                </tr>
-                                            ))}
+                                            {apexItems.length > 0
+                                                ? pageItems.map((item: any, idx: number) => (
+                                                    <tr key={`${item.itemCode}-${idx}`}>
+                                                        <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>{item.itemCode}</td>
+                                                        <td className="table-cell-main">{lang === 'ar' ? item.arabicName : item.latinName || item.arabicName}</td>
+                                                        <td>{item.quantity}</td>
+                                                        <td>SAR {item.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                        <td style={{ fontWeight: 600 }}>SAR {((item.quantity * item.price) + item.vatValue - item.discountValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    </tr>
+                                                ))
+                                                : pageItems.map((item: any, idx: number) => (
+                                                    <tr key={`${item.id || idx}`}>
+                                                        <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>#{item.id || ((itemsPage - 1) * ITEMS_PER_PAGE + idx + 1)}</td>
+                                                        <td className="table-cell-main">{item.name} {item.unit ? `(${item.unit})` : ''}</td>
+                                                        <td>{item.quantity}</td>
+                                                        <td>SAR {item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                        <td style={{ fontWeight: 600 }}>SAR {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                                    </tr>
+                                                ))
+                                            }
                                         </tbody>
                                     </table>
                                 </div>
-                            ) : order.items && order.items.length > 0 ? (
-                                <div className="table-container" style={{ border: 'none' }}>
-                                    <table>
-                                        <thead><tr><th>{t('Item Code', 'رمز العنصر')}</th><th>{t('Name', 'الاسم')}</th><th>{t('Qty', 'الكمية')}</th><th>{t('Price', 'السعر')}</th><th>{t('Total', 'المجموع')}</th></tr></thead>
-                                        <tbody>
-                                            {order.items.map((item, idx) => (
-                                                <tr key={`${item.id || idx}`}>
-                                                    <td style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--text-secondary)' }}>#{item.id || idx + 1}</td>
-                                                    <td className="table-cell-main">{item.name} {item.unit ? `(${item.unit})` : ''}</td>
-                                                    <td>{item.quantity}</td>
-                                                    <td>SAR {item.unitPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                    <td style={{ fontWeight: 600 }}>SAR {item.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
+                                {totalPages > 1 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                                        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                                            {t('Page', 'صفحة')} {itemsPage} / {totalPages} &nbsp;·&nbsp; {allItems.length} {t('items', 'عناصر')}
+                                        </span>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            <button className="btn btn-secondary btn-sm" disabled={itemsPage === 1} onClick={() => setItemsPage(1)}>«</button>
+                                            <button className="btn btn-secondary btn-sm" disabled={itemsPage === 1} onClick={() => setItemsPage(p => p - 1)}>‹</button>
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                                .filter(p => p === 1 || p === totalPages || Math.abs(p - itemsPage) <= 1)
+                                                .reduce<(number | '...')[]>((acc, p, i, arr) => {
+                                                    if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...');
+                                                    acc.push(p);
+                                                    return acc;
+                                                }, [])
+                                                .map((p, i) => p === '...'
+                                                    ? <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--text-muted)' }}>…</span>
+                                                    : <button key={p} className={`btn btn-sm ${itemsPage === p ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setItemsPage(p as number)}>{p}</button>
+                                                )
+                                            }
+                                            <button className="btn btn-secondary btn-sm" disabled={itemsPage === totalPages} onClick={() => setItemsPage(p => p + 1)}>›</button>
+                                            <button className="btn btn-secondary btn-sm" disabled={itemsPage === totalPages} onClick={() => setItemsPage(totalPages)}>»</button>
+                                        </div>
+                                    </div>
+                                )}
+                                </>
                             ) : apexLoading ? (
                                 <div style={{ textAlign: 'center', padding: '32px 0' }}>
                                     <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('Loading items...', 'جارٍ تحميل العناصر...')}</p>
@@ -414,7 +448,8 @@ export default function OrderDetailPage() {
                                 </div>
                             )}
                         </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Evidence */}
                     {activeTab === 'evidence' && (
@@ -568,13 +603,24 @@ export default function OrderDetailPage() {
                     {order.qrToken && (
                         <div className="card">
                             <div className="card-title" style={{ marginBottom: 12 }}>📱 QR Code</div>
-                            <div style={{ fontSize: 14 }}>
-                                <div style={{ fontFamily: 'monospace', color: 'var(--text-primary)', marginBottom: 8 }}>{order.qrToken}</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                                {origin && (
+                                    <QRCodeSVG
+                                        value={`${origin}/qr/verify?orderId=${order.id}&token=${order.qrToken}`}
+                                        size={180}
+                                        bgColor="#ffffff"
+                                        fgColor="#1a1a2e"
+                                        level="M"
+                                    />
+                                )}
                                 {order.qrExpiry && (
                                     <div style={{ fontSize: 12, color: new Date(order.qrExpiry) < new Date() ? '#ef4444' : '#10b981' }}>
                                         {t('Expires', 'ينتهي')}: {new Date(order.qrExpiry).toLocaleString()}
                                     </div>
                                 )}
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontFamily: 'monospace', wordBreak: 'break-all', textAlign: 'center' }}>
+                                    {order.qrToken}
+                                </div>
                             </div>
                         </div>
                     )}

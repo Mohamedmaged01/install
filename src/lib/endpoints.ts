@@ -132,12 +132,27 @@ export async function deleteBranch(id: number): Promise<void> {
     return api<void>(`/api/Branches/${id}`, { method: 'DELETE' });
 }
 
+function normalizeDepartmentUser(u: any): DepartmentUser {
+    return {
+        id: u.id ?? u.Id ?? u.userId ?? u.UserId ?? u.appUserId ?? u.AppUserId ?? 0,
+        name: u.name ?? u.Name ?? u.fullName ?? u.FullName ?? '',
+        email: u.email ?? u.Email ?? '',
+        phone: u.phone ?? u.Phone ?? '',
+        image: u.image ?? u.Image,
+        roleId: u.roleId ?? u.RoleId ?? 0,
+        roleName: u.roleName ?? u.RoleName,
+        departmentId: u.departmentId ?? u.DepartmentId ?? 0,
+        departmentName: u.departmentName ?? u.DepartmentName,
+        isSuperAdmin: u.isSuperAdmin ?? u.IsSuperAdmin ?? false,
+        type: u.type ?? u.Type,
+        role: u.role ?? u.Role,
+    };
+}
+
 export async function getBranchTechnicians(branchId: number): Promise<DepartmentUser[]> {
     const raw = await api<unknown>(`/api/Branches/${branchId}/technicians`);
-    if (Array.isArray(raw)) return raw as DepartmentUser[];
-    const obj = raw as Record<string, unknown>;
-    if (obj && Array.isArray(obj.data)) return obj.data as DepartmentUser[];
-    return [];
+    const arr = Array.isArray(raw) ? raw : Array.isArray((raw as any)?.data) ? (raw as any).data : [];
+    return arr.map(normalizeDepartmentUser);
 }
 
 // ==================== DEPARTMENTS ====================
@@ -160,10 +175,8 @@ export async function getDepartmentUsers(branchId?: number, departmentId?: numbe
     const raw = await api<unknown>('/api/Departments/users', {
         params: { branchId, departmentId },
     });
-    if (Array.isArray(raw)) return raw as DepartmentUser[];
-    const obj = raw as Record<string, unknown>;
-    if (obj && Array.isArray(obj.data)) return obj.data as DepartmentUser[];
-    return [];
+    const arr = Array.isArray(raw) ? raw : Array.isArray((raw as any)?.data) ? (raw as any).data : [];
+    return arr.map(normalizeDepartmentUser);
 }
 
 export async function createDepartmentUser(formData: FormData): Promise<DepartmentUser> {
@@ -258,10 +271,10 @@ export async function approveSalesManager(id: number): Promise<void> {
     return api<void>(`/api/Orders/${id}/approve-sales`, { method: 'POST' });
 }
 
-export async function approveSupervisor(id: number, taskIds: number[] = []): Promise<void> {
+export async function approveSupervisor(id: number, technicianIds: number[] = [], note?: string | null): Promise<void> {
     return api<void>(`/api/Orders/${id}/approve-supervisor`, {
         method: 'POST',
-        body: taskIds,
+        body: technicianIds.map(techId => ({ technicianId: Number(techId), note: note || null })),
     });
 }
 
@@ -320,6 +333,17 @@ export async function assignTask(dto: AssignTaskDto): Promise<Task> {
 
 export async function updateTaskStatus(id: number, dto: TaskStatusUpdateDto): Promise<void> {
     return api<void>(`/api/Tasks/${id}/status`, { method: 'POST', body: dto });
+}
+
+export async function uploadTaskImage(taskId: number, image: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('Image', image);
+    const result = await api<{ imagePath?: string; imageUrl?: string; url?: string } | string>(
+        `/api/Tasks/${taskId}/image`,
+        { method: 'POST', body: formData, isFormData: true }
+    );
+    if (typeof result === 'string') return result;
+    return (result as any).imagePath ?? (result as any).imageUrl ?? (result as any).url ?? '';
 }
 
 export async function getMyTasks(): Promise<Task[]> {

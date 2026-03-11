@@ -1,29 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { verifyQr } from '@/lib/endpoints';
 
 type VerifyStep = 'scan' | 'verifying' | 'success' | 'error';
 
 export default function QRVerifyPage() {
+    const searchParams = useSearchParams();
     const [step, setStep] = useState<VerifyStep>('scan');
     const [orderId, setOrderId] = useState('');
     const [token, setToken] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [resultData, setResultData] = useState<Record<string, unknown> | null>(null);
+    const [scanning, setScanning] = useState(false);
+    const scannerRef = useRef<any>(null);
+    const scannerDivId = 'qr-reader';
 
-    const handleVerify = async () => {
-        if (!orderId || !token) {
-            setErrorMsg('Please enter both Order ID and QR Token');
+    // Auto-verify if URL params are present (e.g. scanned from order page QR)
+    useEffect(() => {
+        const pOrderId = searchParams.get('orderId');
+        const pToken = searchParams.get('token');
+        if (pOrderId && pToken) {
+            setOrderId(pOrderId);
+            setToken(pToken);
+            handleVerifyValues(pOrderId, pToken);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const handleVerifyValues = async (oid: string, tok: string) => {
+        if (!oid || !tok) {
+            setErrorMsg('Missing Order ID or token');
+            setStep('error');
             return;
         }
-
         setStep('verifying');
         setErrorMsg('');
-
         try {
-            const result = await verifyQr({ orderId: Number(orderId), token });
+            const result = await verifyQr({ orderId: Number(oid), token: tok });
             setResultData(result as Record<string, unknown>);
             setStep('success');
         } catch (err) {
@@ -32,18 +48,49 @@ export default function QRVerifyPage() {
         }
     };
 
-    const handleScanSimulate = () => {
-        // Simulate camera scan — in production this would use a QR scanner library
-        setStep('verifying');
-        setTimeout(() => {
-            if (orderId && token) {
-                handleVerify();
-            } else {
-                setErrorMsg('Please enter Order ID and Token to verify');
-                setStep('error');
-            }
-        }, 1500);
+    const handleVerify = () => handleVerifyValues(orderId, token);
+
+    const startScanner = async () => {
+        setScanning(true);
+        try {
+            const { Html5Qrcode } = await import('html5-qrcode');
+            const scanner = new Html5Qrcode(scannerDivId);
+            scannerRef.current = scanner;
+            await scanner.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText: string) => {
+                    stopScanner();
+                    try {
+                        const url = new URL(decodedText);
+                        const scannedOrderId = url.searchParams.get('orderId') || '';
+                        const scannedToken = url.searchParams.get('token') || '';
+                        setOrderId(scannedOrderId);
+                        setToken(scannedToken);
+                        handleVerifyValues(scannedOrderId, scannedToken);
+                    } catch {
+                        // Not a URL — treat the whole text as token
+                        setToken(decodedText);
+                    }
+                },
+                () => { /* ignore scan errors */ }
+            );
+        } catch {
+            setScanning(false);
+            setErrorMsg('Camera access denied or not available');
+        }
     };
+
+    const stopScanner = () => {
+        if (scannerRef.current) {
+            scannerRef.current.stop().catch(() => {});
+            scannerRef.current = null;
+        }
+        setScanning(false);
+    };
+
+    // Cleanup on unmount
+    useEffect(() => () => stopScanner(), []);
 
     return (
         <div className="animate-in" style={{ maxWidth: 500, margin: '0 auto' }}>
@@ -54,15 +101,28 @@ export default function QRVerifyPage() {
 
             {step === 'scan' && (
                 <div className="card" style={{ textAlign: 'center' }}>
-                    {/* Scanner Area */}
-                    <div className="qr-container">
-                        <div className="qr-scanner-area" onClick={handleScanSimulate} style={{ cursor: 'pointer' }}>
-                            <span style={{ fontSize: 48, zIndex: 1 }}>📷</span>
-                            <span style={{ fontSize: 14, color: 'var(--text-muted)', zIndex: 1 }}>Tap to scan QR code</span>
-                        </div>
-                    </div>
+                    {/* Camera scanner area */}
+                    <div id={scannerDivId} style={{ width: '100%', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: 12 }} />
 
-                    <div style={{ margin: '24px 0', display: 'flex', alignItems: 'center', gap: 16 }}>
+                    {!scanning ? (
+                        <button
+                            className="btn btn-primary"
+                            style={{ width: '100%', marginBottom: 16 }}
+                            onClick={startScanner}
+                        >
+                            📷 Scan QR Code with Camera
+                        </button>
+                    ) : (
+                        <button
+                            className="btn btn-secondary"
+                            style={{ width: '100%', marginBottom: 16 }}
+                            onClick={stopScanner}
+                        >
+                            ✕ Stop Camera
+                        </button>
+                    )}
+
+                    <div style={{ margin: '16px 0', display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                         <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>or enter manually</span>
                         <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
@@ -124,7 +184,7 @@ export default function QRVerifyPage() {
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--text-muted)' }}>QR Token</span>
-                            <span style={{ fontFamily: 'monospace' }}>{token}</span>
+                            <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{token}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--text-muted)' }}>Verified At</span>

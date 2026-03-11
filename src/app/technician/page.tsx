@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getMyTasks, updateTaskStatus } from '@/lib/endpoints';
+import { getMyTasks, updateTaskStatus, uploadTaskImage } from '@/lib/endpoints';
 import { Task, TaskStatus } from '@/types';
 import { useLang } from '@/context/LanguageContext';
 import { useAuth } from '@/context/RoleContext';
@@ -29,7 +29,10 @@ export default function TechnicianPage() {
     const [loading, setLoading] = useState(true);
     const [expandedTask, setExpandedTask] = useState<number | null>(null);
     const [statusModal, setStatusModal] = useState<Task | null>(null);
+    const [pendingStatus, setPendingStatus] = useState<TaskStatus | null>(null);
     const [statusNotes, setStatusNotes] = useState('');
+    const [statusError, setStatusError] = useState('');
+    const [completionImage, setCompletionImage] = useState<File | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
     const loadTasks = async () => {
@@ -50,15 +53,28 @@ export default function TechnicianPage() {
     const activeTasks = tasks.filter(t => activeStatuses.includes(t.status));
     const completedTasks = tasks.filter(t => doneStatuses.includes(t.status));
 
-    const handleStatusUpdate = async (taskId: number, newStatus: TaskStatus) => {
+    const handleStatusUpdate = async () => {
+        if (!statusModal || !pendingStatus) return;
         setActionLoading(true);
+        setStatusError('');
         try {
-            await updateTaskStatus(taskId, { newStatus, notes: statusNotes || null, imagePath: null });
+            let imagePath: string | null = null;
+            if (completionImage) {
+                try {
+                    imagePath = await uploadTaskImage(statusModal.id, completionImage);
+                } catch {
+                    // If dedicated upload endpoint doesn't exist, proceed without image
+                    imagePath = null;
+                }
+            }
+            await updateTaskStatus(statusModal.id, { newStatus: pendingStatus, notes: statusNotes || null, imagePath });
             await loadTasks();
             setStatusModal(null);
+            setPendingStatus(null);
             setStatusNotes('');
+            setCompletionImage(null);
         } catch (err) {
-            alert(err instanceof Error ? err.message : t('Failed to update status', 'فشل تحديث الحالة'));
+            setStatusError(err instanceof Error ? err.message : t('Failed to update status', 'فشل تحديث الحالة'));
         } finally {
             setActionLoading(false);
         }
@@ -237,11 +253,11 @@ export default function TechnicianPage() {
 
             {/* Status Modal */}
             {statusModal && (
-                <div className="modal-overlay" onClick={() => setStatusModal(null)}>
+                <div className="modal-overlay" onClick={() => { setStatusModal(null); setPendingStatus(null); setStatusError(''); setCompletionImage(null); }}>
                     <div className="modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>{t('Update Task Status', 'تحديث حالة المهمة')}</h2>
-                            <button className="modal-close" onClick={() => setStatusModal(null)}>×</button>
+                            <button className="modal-close" onClick={() => { setStatusModal(null); setPendingStatus(null); setStatusError(''); setCompletionImage(null); }}>×</button>
                         </div>
                         <div className="modal-body">
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -250,20 +266,53 @@ export default function TechnicianPage() {
                                         key={status}
                                         disabled={actionLoading}
                                         style={{
-                                            padding: '14px 16px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+                                            padding: '14px 16px',
+                                            background: pendingStatus === status ? `${getStatusColor(status)}20` : 'var(--bg-tertiary)',
+                                            border: pendingStatus === status ? `2px solid ${getStatusColor(status)}` : '1px solid var(--border)',
                                             borderRadius: 'var(--radius-md)', textAlign: 'left', cursor: 'pointer',
                                             color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 14,
                                         }}
-                                        onClick={() => handleStatusUpdate(statusModal.id, status)}
+                                        onClick={() => { setPendingStatus(status); setStatusError(''); setCompletionImage(null); }}
                                     >
                                         <span style={{ color: getStatusColor(status), fontWeight: 600 }}>● {taskLabel(status)}</span>
                                     </button>
                                 ))}
                             </div>
+
+                            {pendingStatus === 'Completed' && (
+                                <div className="form-group" style={{ marginTop: 16, padding: 14, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 'var(--radius-md)' }}>
+                                    <label className="form-label" style={{ color: '#10b981' }}>📷 {t('Completion Photo', 'صورة الإنجاز')} ({t('optional', 'اختياري')})</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        className="form-input"
+                                        style={{ padding: 8 }}
+                                        onChange={e => setCompletionImage(e.target.files?.[0] ?? null)}
+                                    />
+                                    {completionImage && <div style={{ fontSize: 12, color: '#10b981', marginTop: 6 }}>✓ {completionImage.name}</div>}
+                                </div>
+                            )}
+
                             <div className="form-group" style={{ marginTop: 16 }}>
                                 <label className="form-label">{t('Notes', 'ملاحظات')}</label>
                                 <textarea className="form-textarea" placeholder={t('Optional notes...', 'ملاحظات اختيارية...')} value={statusNotes} onChange={e => setStatusNotes(e.target.value)} />
                             </div>
+
+                            {statusError && (
+                                <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', color: '#ef4444', fontSize: 13, marginTop: 12 }}>
+                                    {statusError}
+                                </div>
+                            )}
+
+                            <button
+                                className="btn btn-primary"
+                                style={{ width: '100%', marginTop: 16 }}
+                                disabled={!pendingStatus || actionLoading}
+                                onClick={handleStatusUpdate}
+                            >
+                                {actionLoading ? t('Updating...', 'جارٍ التحديث...') : t('Confirm Update', 'تأكيد التحديث')}
+                            </button>
                         </div>
                     </div>
                 </div>

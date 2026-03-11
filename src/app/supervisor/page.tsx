@@ -142,20 +142,20 @@ export default function SupervisorPage() {
         try {
             if (isApproveWorkflow) {
                 const techIds = Array.from(selectedTechs);
-                await approveSupervisor(assignModal.id, techIds);
+                await approveSupervisor(assignModal.id, techIds, assignNotes || null);
+            } else {
+                // Assign a task for each selected technician in parallel
+                await Promise.all(
+                    Array.from(selectedTechs).map(techId => {
+                        const dto: AssignTaskDto = {
+                            orderId: assignModal.id,
+                            technicianId: techId,
+                            notes: assignNotes || null,
+                        };
+                        return assignTask(dto);
+                    })
+                );
             }
-
-            // Assign a task for each selected technician in parallel
-            await Promise.all(
-                Array.from(selectedTechs).map(techId => {
-                    const dto: AssignTaskDto = {
-                        orderId: assignModal.id,
-                        technicianId: techId,
-                        notes: assignNotes || null,
-                    };
-                    return assignTask(dto);
-                })
-            );
             setAssignModal(null);
             showToast('success', isApproveWorkflow
                 ? t('Order approved and technicians assigned', 'تم الموافقة على الطلب وتعيين الفنيين')
