@@ -15,6 +15,7 @@ export default function QRVerifyPage() {
     const [errorMsg, setErrorMsg] = useState('');
     const [resultData, setResultData] = useState<Record<string, unknown> | null>(null);
     const [scanning, setScanning] = useState(false);
+    const [rawScan, setRawScan] = useState('');
     const scannerRef = useRef<any>(null);
     const scannerDivId = 'qr-reader';
 
@@ -61,6 +62,7 @@ export default function QRVerifyPage() {
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText: string) => {
                     stopScanner();
+                    setRawScan(decodedText);
                     let scannedOrderId = '';
                     let scannedToken = '';
                     try {
@@ -223,8 +225,14 @@ export default function QRVerifyPage() {
                         ❌
                     </div>
                     <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4, color: '#ef4444' }}>Verification Failed</h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>{errorMsg || 'The QR code could not be verified.'}</p>
-                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => { setStep('scan'); setErrorMsg(''); }}>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>{errorMsg || 'The QR code could not be verified.'}</p>
+                    {rawScan && (
+                        <div style={{ padding: '8px 12px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all', color: 'var(--text-muted)', marginBottom: 16, textAlign: 'left' }}>
+                            <div style={{ marginBottom: 4, fontWeight: 600 }}>Raw scan:</div>
+                            {rawScan}
+                        </div>
+                    )}
+                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => { setStep('scan'); setErrorMsg(''); setRawScan(''); }}>
                         Try Again
                     </button>
                 </div>

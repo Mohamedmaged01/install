@@ -625,7 +625,7 @@ export default function OrderDetailPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                                 {origin && (
                                     <QRCodeSVG
-                                        value={`${origin}/qr/verify?orderId=${order.id}&token=${order.qrToken}`}
+                                        value={`${origin}/qr/verify?orderId=${order.id}&token=${encodeURIComponent(order.qrToken ?? '')}`}
                                         size={180}
                                         bgColor="#ffffff"
                                         fgColor="#1a1a2e"
