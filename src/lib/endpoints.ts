@@ -12,6 +12,7 @@ import type {
     VerifyQrDto,
     AssignTaskDto,
     Task,
+    TaskStatus,
     TaskStatusUpdateDto,
     TaskHistoryEntry,
     TaskStatistics,
@@ -335,27 +336,31 @@ export async function assignTask(dto: AssignTaskDto): Promise<Task> {
     return api<Task>('/api/Tasks', { method: 'POST', body: dto });
 }
 
-export async function updateTaskStatus(id: number, dto: TaskStatusUpdateDto): Promise<void> {
-    return api<void>(`/api/Tasks/${id}/status`, { method: 'POST', body: dto });
-}
-
-export async function uploadTaskImage(taskId: number, image: File): Promise<string> {
+export async function updateTaskStatus(id: number, dto: { newStatus: TaskStatus; note?: string | null; imageFiles?: File[] }): Promise<void> {
     const formData = new FormData();
-    formData.append('Image', image);
-    const result = await api<{ imagePath?: string; imageUrl?: string; url?: string } | string>(
-        `/api/Tasks/${taskId}/image`,
-        { method: 'POST', body: formData, isFormData: true }
-    );
-    if (typeof result === 'string') return result;
-    return (result as any).imagePath ?? (result as any).imageUrl ?? (result as any).url ?? '';
+    formData.append('NewStatus', dto.newStatus);
+    if (dto.note) formData.append('Note', dto.note);
+    if (dto.imageFiles) {
+        dto.imageFiles.forEach(f => formData.append('ImageFiles', f));
+    }
+    return api<void>(`/api/Tasks/${id}/status`, { method: 'POST', body: formData, isFormData: true });
 }
 
-export async function getMyTasks(): Promise<Task[]> {
-    const raw = await api<unknown>('/api/Tasks/tasks');
+export async function getMyTasks(params?: { technicianId?: number; branchId?: number; technicianName?: string }): Promise<Task[]> {
+    const raw = await api<unknown>('/api/Tasks/tasks', { params: params as Record<string, string | number> });
     if (Array.isArray(raw)) return raw as Task[];
     const obj = raw as Record<string, unknown>;
     if (obj && Array.isArray(obj.data)) return obj.data as Task[];
     return [];
+}
+
+export async function getTaskById(id: number): Promise<Task> {
+    const raw = await api<unknown>(`/api/Tasks/${id}`);
+    const obj = raw as Record<string, unknown>;
+    if (obj && typeof obj === 'object') {
+        if ('data' in obj && obj.data) return obj.data as Task;
+    }
+    return raw as Task;
 }
 
 export async function deleteTask(id: number): Promise<void> {

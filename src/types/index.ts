@@ -218,14 +218,14 @@ export interface TaskStatusUpdateDto {
 
 export interface Task {
     id: number;
-    orderId: number;
-    technicianId: number;
+    installationOrderId?: number;
+    orderId?: number;
+    technicianId?: number;
     technicianName?: string;
     status: TaskStatus;
     notes?: string;
     createdAt?: string;
     updatedAt?: string;
-    // Order info when returned from GET /api/Tasks/tasks
     orderNumber?: string;
     customerName?: string;
     city?: string;

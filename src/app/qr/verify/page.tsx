@@ -61,16 +61,32 @@ export default function QRVerifyPage() {
                 { fps: 10, qrbox: { width: 250, height: 250 } },
                 (decodedText: string) => {
                     stopScanner();
+                    let scannedOrderId = '';
+                    let scannedToken = '';
                     try {
+                        // Try as absolute URL
                         const url = new URL(decodedText);
-                        const scannedOrderId = url.searchParams.get('orderId') || '';
-                        const scannedToken = url.searchParams.get('token') || '';
-                        setOrderId(scannedOrderId);
-                        setToken(scannedToken);
-                        handleVerifyValues(scannedOrderId, scannedToken);
+                        scannedOrderId = url.searchParams.get('orderId') || '';
+                        scannedToken = url.searchParams.get('token') || '';
                     } catch {
-                        // Not a URL — treat the whole text as token
-                        setToken(decodedText);
+                        // Try extracting query params from relative URL or bare query string
+                        try {
+                            const qIndex = decodedText.indexOf('?');
+                            const qs = qIndex !== -1 ? decodedText.slice(qIndex + 1) : decodedText;
+                            const params = new URLSearchParams(qs);
+                            scannedOrderId = params.get('orderId') || '';
+                            scannedToken = params.get('token') || '';
+                        } catch {
+                            scannedToken = decodedText;
+                        }
+                    }
+                    setOrderId(scannedOrderId);
+                    setToken(scannedToken);
+                    if (scannedOrderId && scannedToken) {
+                        handleVerifyValues(scannedOrderId, scannedToken);
+                    } else {
+                        setErrorMsg('Could not extract Order ID and token from QR code');
+                        setStep('error');
                     }
                 },
                 () => { /* ignore scan errors */ }

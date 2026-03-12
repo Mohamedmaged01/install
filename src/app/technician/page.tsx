@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getMyTasks, updateTaskStatus, uploadTaskImage, getTaskHistory, getTaskStatistics, getBranches, getDepartments } from '@/lib/endpoints';
+import { getMyTasks, updateTaskStatus, getTaskHistory, getTaskStatistics, getBranches, getDepartments } from '@/lib/endpoints';
 import { Task, TaskStatus, TaskHistoryEntry, Branch, Department } from '@/types';
 import { useLang } from '@/context/LanguageContext';
 import { useAuth } from '@/context/RoleContext';
@@ -113,15 +113,11 @@ export default function TechnicianPage() {
         setActionLoading(true);
         setStatusError('');
         try {
-            let imagePath: string | null = null;
-            if (completionImage) {
-                try {
-                    imagePath = await uploadTaskImage(statusModal.id, completionImage);
-                } catch {
-                    imagePath = null;
-                }
-            }
-            await updateTaskStatus(statusModal.id, { newStatus: pendingStatus, notes: statusNotes || null, imagePath });
+            await updateTaskStatus(statusModal.id, {
+                newStatus: pendingStatus,
+                note: statusNotes || null,
+                imageFiles: completionImage ? [completionImage] : undefined,
+            });
             // Clear cached history so it reloads fresh
             setTaskHistories(prev => { const n = { ...prev }; delete n[statusModal.id]; return n; });
             await loadTasks();

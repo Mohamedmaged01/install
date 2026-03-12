@@ -53,7 +53,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             show: hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR),
         },
         {
-            href: '/technician',
+            href: '/tasks',
             label: t('My Tasks', 'مهامي'),
             icon: '🔧',
             show: hasAnyPermission(PERMS.TASKS_VIEW, PERMS.TASKS_MANAGE),
