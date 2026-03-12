@@ -35,7 +35,7 @@ export default function TasksPage() {
     const [search, setSearch] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-    const [stats, setStats] = useState<{ total: number; active: number; completed: number } | null>(null);
+    const [stats, setStats] = useState<import('@/types').TaskStatistics | null>(null);
 
     useEffect(() => {
         getBranches().then(setBranches).catch(() => {});
@@ -49,12 +49,11 @@ export default function TasksPage() {
     }, [branchFilter]);
 
     useEffect(() => {
-        if (!branchFilter && !dateFrom && !dateTo) { setStats(null); return; }
         getTaskStatistics({
             branchId: branchFilter || undefined,
             from: dateFrom || undefined,
             to: dateTo || undefined,
-        }).then(s => setStats({ total: s.total ?? 0, active: s.active ?? 0, completed: s.completed ?? 0 })).catch(() => {});
+        }).then(s => setStats(s)).catch(() => {});
     }, [branchFilter, dateFrom, dateTo]);
 
     const taskLabel = (s: TaskStatus) => lang === 'ar' ? TASK_LABELS[s].ar : TASK_LABELS[s].en;
@@ -69,9 +68,6 @@ export default function TasksPage() {
         return true;
     });
 
-    const activeTasks = tasks.filter(t => !['Completed', 'Returned'].includes(t.status));
-    const completedTasks = tasks.filter(t => ['Completed', 'Returned'].includes(t.status));
-
     return (
         <div className="animate-in">
             <div className="page-header">
@@ -82,18 +78,34 @@ export default function TasksPage() {
             </div>
 
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 16, marginBottom: 24 }}>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#3b82f620', color: '#3b82f6' }}>📋</div>
-                    <div><div className="stat-value">{stats?.total ?? tasks.length}</div><div className="stat-label">{t('Total', 'المجموع')}</div></div>
+                    <div><div className="stat-value">{stats?.totalTasks ?? tasks.length}</div><div className="stat-label">{t('Total', 'المجموع')}</div></div>
                 </div>
                 <div className="stat-card">
-                    <div className="stat-icon" style={{ background: '#f59e0b20', color: '#f59e0b' }}>⚡</div>
-                    <div><div className="stat-value">{stats?.active ?? activeTasks.length}</div><div className="stat-label">{t('Active', 'نشطة')}</div></div>
+                    <div className="stat-icon" style={{ background: '#f59e0b20', color: '#f59e0b' }}>📌</div>
+                    <div><div className="stat-value">{stats?.assigned ?? 0}</div><div className="stat-label">{t('Assigned', 'مُعيَّن')}</div></div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: '#8b5cf620', color: '#8b5cf6' }}>🚗</div>
+                    <div><div className="stat-value">{stats?.enroute ?? 0}</div><div className="stat-label">{t('En Route', 'في الطريق')}</div></div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: '#06b6d420', color: '#06b6d4' }}>📍</div>
+                    <div><div className="stat-value">{stats?.onsite ?? 0}</div><div className="stat-label">{t('On Site', 'في الموقع')}</div></div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: '#3b82f620', color: '#3b82f6' }}>⚡</div>
+                    <div><div className="stat-value">{stats?.inProgress ?? 0}</div><div className="stat-label">{t('In Progress', 'قيد التنفيذ')}</div></div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#10b98120', color: '#10b981' }}>✅</div>
-                    <div><div className="stat-value">{stats?.completed ?? completedTasks.length}</div><div className="stat-label">{t('Completed', 'مكتملة')}</div></div>
+                    <div><div className="stat-value">{stats?.completed ?? 0}</div><div className="stat-label">{t('Completed', 'مكتملة')}</div></div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: '#64748b20', color: '#64748b' }}>⏸️</div>
+                    <div><div className="stat-value">{stats?.hold ?? 0}</div><div className="stat-label">{t('On Hold', 'معلق')}</div></div>
                 </div>
             </div>
 

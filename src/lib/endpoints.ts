@@ -15,6 +15,7 @@ import type {
     TaskStatus,
     TaskStatusUpdateDto,
     TaskHistoryEntry,
+    TaskNote,
     TaskStatistics,
     Role,
     Permission,
@@ -247,26 +248,12 @@ export async function deleteOrder(id: number): Promise<void> {
 export async function getOrderHistory(id: number): Promise<OrderHistoryEntry[]> {
     try {
         const raw = await api<unknown>(`/api/Orders/${id}/history`);
-        let list: any[] = [];
-        if (Array.isArray(raw)) list = raw;
-        else {
-            const obj = raw as Record<string, unknown>;
-            if (obj && Array.isArray(obj.data)) list = obj.data;
-        }
-
-        return list.map((item, idx) => {
-            const isStatusChange = item.fromStatus || item.toStatus;
-            return {
-                id: item.id || idx,
-                orderId: item.orderId || id,
-                action: item.action || (isStatusChange ? `Status updated to ${item.toStatus}` : 'Updated'),
-                description: item.description || item.note,
-                userName: item.userName || item.actionByUserName,
-                userId: item.userId,
-                timestamp: item.timestamp || item.actionDate || new Date().toISOString(),
-                metadata: item.metadata,
-            };
-        });
+        const entries: OrderHistoryEntry[] = Array.isArray(raw)
+            ? raw as OrderHistoryEntry[]
+            : Array.isArray((raw as Record<string, unknown>)?.data)
+                ? (raw as Record<string, unknown>).data as OrderHistoryEntry[]
+                : [];
+        return entries;
     } catch {
         return [];
     }
@@ -276,11 +263,12 @@ export async function approveSalesManager(id: number): Promise<void> {
     return api<void>(`/api/Orders/${id}/approve-sales`, { method: 'POST' });
 }
 
-export async function approveSupervisor(id: number, technicianIds: number[] = [], note?: string | null): Promise<void> {
-    return api<void>(`/api/Orders/${id}/approve-supervisor`, {
+export async function approveSupervisor(id: number, technicianIds: number[] = [], note?: string | null): Promise<string | null> {
+    const result = await api<string | null>(`/api/Orders/${id}/approve-supervisor`, {
         method: 'POST',
         body: technicianIds.map(techId => ({ technicianId: Number(techId), note: note || null })),
     });
+    return typeof result === 'string' ? result : null;
 }
 
 export async function rejectOrder(id: number, reason: string): Promise<void> {
@@ -375,17 +363,23 @@ export async function getTaskHistory(id: number): Promise<TaskHistoryEntry[]> {
     return [];
 }
 
+export async function getTaskNotes(id: number): Promise<TaskNote[]> {
+    const raw = await api<unknown>(`/api/Tasks/${id}/notes`);
+    if (Array.isArray(raw)) return raw as TaskNote[];
+    const obj = raw as Record<string, unknown>;
+    if (obj && Array.isArray(obj.data)) return obj.data as TaskNote[];
+    return [];
+}
+
 export async function getTaskStatistics(params?: {
     branchId?: number;
     departmentId?: number;
     from?: string;
     to?: string;
 }): Promise<TaskStatistics> {
-    const raw = await api<Record<string, unknown>>('/api/Tasks/statistics', { params: params as Record<string, string | number> });
-    const payload = raw && typeof raw === 'object' ? raw : {};
-    return Object.fromEntries(
-        Object.entries(payload).map(([k, v]) => [k.charAt(0).toLowerCase() + k.slice(1), v])
-    ) as TaskStatistics;
+    const raw = await api<unknown>('/api/Tasks/statistics', { params: params as Record<string, string | number> });
+    if (raw && typeof raw === 'object') return raw as TaskStatistics;
+    return {};
 }
 
 // ==================== STATISTICS ====================

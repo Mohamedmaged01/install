@@ -89,9 +89,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
 
             <div className="sidebar-brand">
-                <Link href="/" style={{ textDecoration: 'none' }}>
-                    <h1>⚡ InstallFlow</h1>
-                    <p>{t('Installation Order Management', 'إدارة أوامر التركيب')}</p>
+                <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src="/apex-erp.png" alt="Apex ERP" style={{ maxWidth: '100%', maxHeight: 64, objectFit: 'contain' }} />
                 </Link>
             </div>
 

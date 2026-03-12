@@ -23,8 +23,9 @@ export default function SupervisorPage() {
     const [assignNotes, setAssignNotes] = useState('');
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [rolesMap, setRolesMap] = useState<Record<number, string>>({});
-    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [statusFilter, setStatusFilter] = useState<string>('PendingSupervisorApproval');
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
+    const [branchFilter, setBranchFilter] = useState<number | ''>('');
     const [rejectModal, setRejectModal] = useState<Order | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
@@ -54,6 +55,7 @@ export default function SupervisorPage() {
                 const params: Record<string, unknown> = {};
                 if (statusFilter) params.status = statusFilter;
                 if (deptFilter) params.departmentId = deptFilter;
+                if (branchFilter) params.branchId = branchFilter;
                 const data = await getOrders(params as Parameters<typeof getOrders>[0]);
                 setOrders(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -63,7 +65,7 @@ export default function SupervisorPage() {
             }
         }
         loadOrders();
-    }, [statusFilter, deptFilter]);
+    }, [statusFilter, deptFilter, branchFilter]);
 
     const handleApprove = async (order: Order) => {
         openAssignModal(order, true);
@@ -142,7 +144,8 @@ export default function SupervisorPage() {
         try {
             if (isApproveWorkflow) {
                 const techIds = Array.from(selectedTechs);
-                await approveSupervisor(assignModal.id, techIds, assignNotes || null);
+                const whatsappUrl = await approveSupervisor(assignModal.id, techIds, assignNotes || null);
+                if (whatsappUrl) window.open(whatsappUrl, '_blank');
             } else {
                 // Assign a task for each selected technician in parallel
                 await Promise.all(
@@ -219,6 +222,10 @@ export default function SupervisorPage() {
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 20, padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <select className="form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
+                            <option value="">{t('All Branches', 'جميع الفروع')}</option>
+                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
                         <select className="form-select" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
                             <option value="">{t('All Departments', 'جميع الأقسام')}</option>
                             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}

@@ -351,6 +351,28 @@ export default function OrderDetailPage() {
                             <div className="card-title" style={{ marginBottom: 24 }}>{t('Order Timeline', 'الجدول الزمني للطلب')}</div>
                             {(
                                 <div className="timeline">
+                                    {history.map((event, index) => {
+                                        const dotColor = event.toStatus?.includes('Complet') || event.toStatus?.includes('Close') ? '#10b981' : event.toStatus?.includes('Return') || event.toStatus?.includes('Cancel') || event.toStatus?.includes('Reject') ? '#ef4444' : '#6366f1';
+                                        return (
+                                            <div key={index} className="timeline-item">
+                                                <div className="timeline-dot" style={{ background: dotColor }} />
+                                                <div className="timeline-content">
+                                                    <h4>
+                                                        {event.fromStatus ? (
+                                                            <span><span style={{ color: '#94a3b8' }}>{event.fromStatus}</span>{' → '}<strong>{event.toStatus}</strong></span>
+                                                        ) : (
+                                                            <span>{t('Created', 'تم الإنشاء')} → <strong>{event.toStatus}</strong></span>
+                                                        )}
+                                                    </h4>
+                                                    {event.note && <p style={{ marginTop: 4, fontSize: 13 }}>{event.note}</p>}
+                                                    <div className="timeline-meta">
+                                                        <span>👤 {event.actionByUserName || '—'}</span>
+                                                        <span>{event.actionDate && !isNaN(new Date(event.actionDate).getTime()) ? new Date(event.actionDate).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                     <div key="created" className="timeline-item">
                                         <div className="timeline-dot info" />
                                         <div className="timeline-content">
@@ -362,19 +384,6 @@ export default function OrderDetailPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    {history.map((event, index) => (
-                                        <div key={`${event.id}-${index}`} className="timeline-item">
-                                            <div className="timeline-dot info" />
-                                            <div className="timeline-content">
-                                                <h4>{event.action}</h4>
-                                                <p>{event.description || '—'}</p>
-                                                <div className="timeline-meta">
-                                                    <span>👤 {event.userName || (event.userId ? `User #${event.userId}` : '—')}</span>
-                                                    <span>{event.timestamp && !isNaN(new Date(event.timestamp).getTime()) ? new Date(event.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
                                 </div>
                             )}
                         </div>
@@ -576,6 +585,18 @@ export default function OrderDetailPage() {
                             )}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Scheduled', 'الموعد المحدد')}:</span> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString() : '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Created by', 'أُنشئ بواسطة')}:</span> {order.salesRepresentative || order.createdByName || '—'}</div>
+                            {(() => {
+                                const salesApproval = history.find(h => h.toStatus === 'PendingSupervisorApproval');
+                                const supervisorApproval = history.find(h => h.toStatus === 'ReadyForInstallation');
+                                return (<>
+                                    {salesApproval?.actionByUserName && (
+                                        <div><span style={{ color: 'var(--text-muted)' }}>{t('Sales Approved by', 'اعتمد المبيعات')}:</span> {salesApproval.actionByUserName}</div>
+                                    )}
+                                    {supervisorApproval?.actionByUserName && (
+                                        <div><span style={{ color: 'var(--text-muted)' }}>{t('Supervisor Approved by', 'اعتمد المشرف')}:</span> {supervisorApproval.actionByUserName}</div>
+                                    )}
+                                </>);
+                            })()}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Status', 'الحالة')}:</span> <StatusBadge status={order.status} lang={lang} /></div>
                             {order.notes && (
                                 <div style={{ marginTop: 4, padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>

@@ -239,30 +239,21 @@ export default function TechnicianPage() {
                                     <p style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: '16px 0' }}>⏳ {t('Loading...', 'جارٍ التحميل...')}</p>
                                 ) : (
                                     <div className="timeline">
-                                        {/* Creation entry */}
-                                        <div className="timeline-item">
-                                            <div className="timeline-dot info" />
-                                            <div className="timeline-content">
-                                                <h4>{t('Task Created', 'تم إنشاء المهمة')}</h4>
-                                                <p>—</p>
-                                                <div className="timeline-meta">
-                                                    <span>👤 {task.technicianName || '—'}</span>
-                                                    <span>{task.createdAt && !isNaN(new Date(task.createdAt).getTime()) ? new Date(task.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
                                         {history.map((entry, i) => (
-                                            <div key={`${entry.id}-${i}`} className="timeline-item">
+                                            <div key={i} className="timeline-item">
                                                 <div className="timeline-dot info" />
                                                 <div className="timeline-content">
-                                                    <h4>{entry.action}</h4>
-                                                    <p>{entry.description || entry.notes || '—'}</p>
-                                                    {(entry.imagePath || entry.imageUrl) && (
-                                                        <a href={entry.imagePath || entry.imageUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent-primary-hover)' }}>📷 {t('View Image', 'عرض الصورة')}</a>
-                                                    )}
+                                                    <h4>
+                                                        {entry.fromStatus ? (
+                                                            <span><span style={{ color: '#94a3b8' }}>{entry.fromStatus}</span>{' → '}<strong>{entry.toStatus}</strong></span>
+                                                        ) : (
+                                                            <span>{t('Task Created', 'تم إنشاء المهمة')} → <strong>{entry.toStatus}</strong></span>
+                                                        )}
+                                                    </h4>
+                                                    {entry.note && <p>{entry.note}</p>}
                                                     <div className="timeline-meta">
-                                                        <span>👤 {entry.userName || '—'}</span>
-                                                        <span>{entry.timestamp && !isNaN(new Date(entry.timestamp).getTime()) ? new Date(entry.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                                                        <span>👤 {entry.actionByUserName || '—'}</span>
+                                                        <span>{entry.actionDate && !isNaN(new Date(entry.actionDate).getTime()) ? new Date(entry.actionDate).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
                                                     </div>
                                                 </div>
                                             </div>

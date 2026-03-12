@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getOrders, approveSalesManager, rejectOrder } from '@/lib/endpoints';
-import { Order } from '@/types';
+import { getOrders, approveSalesManager, rejectOrder, getBranches, getDepartments } from '@/lib/endpoints';
+import { Order, Branch, Department } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
@@ -13,30 +13,37 @@ import { PERMS } from '@/context/RoleContext';
 export default function ManagerPage() {
     const { lang, t } = useLang();
     const [orders, setOrders] = useState<Order[]>([]);
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const [departments, setDepartments] = useState<Department[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [rejectModal, setRejectModal] = useState<Order | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+    const [branchFilter, setBranchFilter] = useState<number | ''>('');
+    const [deptFilter, setDeptFilter] = useState<number | ''>('');
 
     const showToast = (type: 'error' | 'success', msg: string) => {
         setToast({ type, msg });
         setTimeout(() => setToast(null), 6000);
     };
 
-    const loadOrders = async () => {
-        setLoading(true);
-        try {
-            const data = await getOrders({ status: 'PendingSalesApproval' });
-            setOrders(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error('Failed to load pending orders:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => {
+        Promise.all([getBranches(), getDepartments()])
+            .then(([b, d]) => { setBranches(b); setDepartments(d); })
+            .catch(() => {});
+    }, []);
 
-    useEffect(() => { loadOrders(); }, []);
+    useEffect(() => {
+        setLoading(true);
+        const params: Record<string, unknown> = { status: 'PendingSalesApproval' };
+        if (branchFilter) params.branchId = branchFilter;
+        if (deptFilter) params.departmentId = deptFilter;
+        getOrders(params as Parameters<typeof getOrders>[0])
+            .then(data => setOrders(Array.isArray(data) ? data : []))
+            .catch(err => console.error('Failed to load pending orders:', err))
+            .finally(() => setLoading(false));
+    }, [branchFilter, deptFilter]);
 
     const handleApprove = async (id: number) => {
         setActionLoading(id);
@@ -112,6 +119,25 @@ export default function ManagerPage() {
                             <div className="stat-value">{orders.length}</div>
                             <div className="stat-label">{t('Pending', 'معلق')}</div>
                         </div>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="card" style={{ marginBottom: 20, padding: '12px 16px' }}>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        <select className="form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
+                            <option value="">{t('All Branches', 'جميع الفروع')}</option>
+                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                        <select className="form-select" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
+                            <option value="">{t('All Departments', 'جميع الأقسام')}</option>
+                            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                        {(branchFilter || deptFilter) && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); }}>
+                                {t('Clear', 'مسح')}
+                            </button>
+                        )}
                     </div>
                 </div>
 

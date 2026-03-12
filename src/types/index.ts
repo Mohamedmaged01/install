@@ -245,43 +245,38 @@ export interface VerifyQrDto {
 // ==================== TASK HISTORY ====================
 
 export interface TaskHistoryEntry {
+    fromStatus: string | null;
+    toStatus: string;
+    actionByUserName: string | null;
+    actionDate: string;
+    note: string | null;
+}
+
+export interface TaskNote {
     id: number;
-    taskId: number;
-    action: string;
-    description?: string;
-    userName?: string;
-    userId?: number;
-    timestamp: string;
-    imagePath?: string;
-    imageUrl?: string;
-    notes?: string;
+    createdAt: string;
+    note: string | null;
+    imagePaths: string[];
 }
 
 export interface TaskStatistics {
-    total?: number;
-    active?: number;
-    completed?: number;
+    totalTasks?: number;
     assigned?: number;
-    accepted?: number;
+    hold?: number;
     enroute?: number;
     onsite?: number;
     inProgress?: number;
-    returned?: number;
-    onHold?: number;
-    urgent?: number;
+    completed?: number;
 }
 
 // ==================== HISTORY / EVIDENCE ====================
 
 export interface OrderHistoryEntry {
-    id: number;
-    orderId: number;
-    action: string;
-    description?: string;
-    userName?: string;
-    userId?: number;
-    timestamp: string;
-    metadata?: Record<string, string>;
+    fromStatus: string | null;
+    toStatus: string;
+    actionByUserName: string | null;
+    actionDate: string;
+    note: string | null;
 }
 
 export interface Evidence {

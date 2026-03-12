@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getMyTasks, updateTaskStatus, getTaskHistory } from '@/lib/endpoints';
-import { Task, TaskStatus, TaskHistoryEntry } from '@/types';
+import { getMyTasks, updateTaskStatus, getTaskHistory, getTaskNotes } from '@/lib/endpoints';
+import { Task, TaskStatus, TaskHistoryEntry, TaskNote } from '@/types';
 import { useLang } from '@/context/LanguageContext';
+
+const API_BASE = 'https://apiorders.runasp.net';
 
 const TASK_LABELS: Record<TaskStatus, { en: string; ar: string }> = {
     Assigned: { en: 'Assigned', ar: 'مُعيَّن' },
@@ -27,6 +29,12 @@ const STATUS_COLORS: Record<TaskStatus, string> = {
 const allStatuses = Object.keys(TASK_LABELS) as TaskStatus[];
 type TabType = 'notes' | 'timeline' | 'update';
 
+function formatDate(dateStr: string, lang: string) {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function TaskDetailPage() {
     const { lang, t } = useLang();
     const params = useParams();
@@ -34,7 +42,11 @@ export default function TaskDetailPage() {
 
     const [task, setTask] = useState<Task | null>(null);
     const [history, setHistory] = useState<TaskHistoryEntry[]>([]);
+    const [taskNotes, setTaskNotes] = useState<TaskNote[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [notesLoading, setNotesLoading] = useState(false);
+    const [notesLoaded, setNotesLoaded] = useState(false);
+    const [historyLoaded, setHistoryLoaded] = useState(false);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<TabType>('notes');
 
@@ -48,7 +60,6 @@ export default function TaskDetailPage() {
 
     const loadTask = async () => {
         try {
-            // Fetch all tasks and find by id (no single-task endpoint confirmed)
             const all = await getMyTasks();
             const found = all.find(t => t.id === id);
             setTask(found ?? null);
@@ -64,6 +75,7 @@ export default function TaskDetailPage() {
         try {
             const h = await getTaskHistory(id);
             setHistory(Array.isArray(h) ? h : []);
+            setHistoryLoaded(true);
         } catch {
             setHistory([]);
         } finally {
@@ -71,12 +83,24 @@ export default function TaskDetailPage() {
         }
     };
 
+    const loadNotes = async () => {
+        setNotesLoading(true);
+        try {
+            const n = await getTaskNotes(id);
+            setTaskNotes(Array.isArray(n) ? n : []);
+            setNotesLoaded(true);
+        } catch {
+            setTaskNotes([]);
+        } finally {
+            setNotesLoading(false);
+        }
+    };
+
     useEffect(() => { loadTask(); }, [id]);
 
     useEffect(() => {
-        if (activeTab === 'timeline' && history.length === 0 && !historyLoading) {
-            loadHistory();
-        }
+        if (activeTab === 'timeline' && !historyLoaded && !historyLoading) loadHistory();
+        if (activeTab === 'notes' && !notesLoaded && !notesLoading) loadNotes();
     }, [activeTab]);
 
     const handleStatusUpdate = async () => {
@@ -90,9 +114,10 @@ export default function TaskDetailPage() {
             setNote('');
             setImageFiles([]);
             setPendingStatus(null);
-            // Reload task and history
             await loadTask();
-            setHistory([]); // force history reload next time
+            // Reset so they reload fresh next time
+            setHistoryLoaded(false);
+            setNotesLoaded(false);
         } catch (err) {
             setUpdateError(err instanceof Error ? err.message : t('Failed to update status', 'فشل تحديث الحالة'));
         } finally {
@@ -178,60 +203,72 @@ export default function TaskDetailPage() {
                         ))}
                     </div>
 
-                    {/* Notes Tab */}
+                    {/* Notes Tab — uses /api/Tasks/{id}/notes */}
                     {activeTab === 'notes' && (
                         <div className="card" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
-                            {task.notes ? (
-                                <div style={{ padding: '16px', background: 'var(--bg-tertiary)', borderLeft: '4px solid var(--accent-primary)', borderRadius: '0 var(--radius-md) var(--radius-md) 0', fontSize: 14, lineHeight: 1.6 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>📝 {t('Assignment Notes', 'ملاحظات التعيين')}</div>
-                                    {task.notes}
-                                </div>
-                            ) : (
+                            {notesLoading ? (
+                                <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>⏳ {t('Loading notes...', 'جارٍ تحميل الملاحظات...')}</div>
+                            ) : taskNotes.filter(n => n.note || n.imagePaths.length > 0).length === 0 ? (
                                 <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
                                     <div style={{ fontSize: 32, marginBottom: 8 }}>📝</div>
                                     <p>{t('No notes for this task.', 'لا توجد ملاحظات لهذه المهمة.')}</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {taskNotes.filter(n => n.note || n.imagePaths.length > 0).map(n => (
+                                        <div key={n.id} style={{ padding: '14px 16px', background: 'var(--bg-tertiary)', borderLeft: '4px solid var(--accent-primary)', borderRadius: '0 var(--radius-md) var(--radius-md) 0' }}>
+                                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6 }}>{formatDate(n.createdAt, lang)}</div>
+                                            {n.note && <div style={{ fontSize: 14, lineHeight: 1.6 }}>{n.note}</div>}
+                                            {n.imagePaths.length > 0 && (
+                                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                                                    {n.imagePaths.map((path, i) => (
+                                                        <a key={i} href={`${API_BASE}${path}`} target="_blank" rel="noopener noreferrer">
+                                                            <img src={`${API_BASE}${path}`} alt="" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }} />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>
                     )}
 
-                    {/* Timeline Tab */}
+                    {/* Timeline Tab — uses /api/Tasks/{id}/history */}
                     {activeTab === 'timeline' && (
                         <div className="card" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
                             {historyLoading ? (
                                 <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>⏳ {t('Loading history...', 'جارٍ تحميل السجل...')}</div>
                             ) : (
                                 <div className="timeline">
-                                    {/* Creation entry */}
-                                    <div className="timeline-item">
-                                        <div className="timeline-dot info" />
-                                        <div className="timeline-content">
-                                            <h4>{t('Task Created', 'تم إنشاء المهمة')}</h4>
-                                            <p>{task.notes || '—'}</p>
-                                            <div className="timeline-meta">
-                                                <span>👤 {task.technicianName || '—'}</span>
-                                                <span>{task.createdAt && !isNaN(new Date(task.createdAt).getTime()) ? new Date(task.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {history.map((entry, i) => (
-                                        <div key={`${entry.id}-${i}`} className="timeline-item">
-                                            <div className="timeline-dot info" />
-                                            <div className="timeline-content">
-                                                <h4>{entry.action}</h4>
-                                                <p>{entry.description || entry.notes || '—'}</p>
-                                                {(entry.imagePath || entry.imageUrl) && (
-                                                    <a href={entry.imagePath || entry.imageUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--accent-primary-hover)', display: 'inline-block', marginTop: 4 }}>
-                                                        📷 {t('View Image', 'عرض الصورة')}
-                                                    </a>
-                                                )}
-                                                <div className="timeline-meta">
-                                                    <span>👤 {entry.userName || '—'}</span>
-                                                    <span>{entry.timestamp && !isNaN(new Date(entry.timestamp).getTime()) ? new Date(entry.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                                    {history.map((entry, i) => {
+                                        const isCreate = !entry.fromStatus;
+                                        const dotColor = entry.toStatus === 'Completed' ? '#10b981' : entry.toStatus === 'Returned' ? '#ef4444' : '#6366f1';
+                                        return (
+                                            <div key={i} className="timeline-item">
+                                                <div className="timeline-dot" style={{ background: dotColor }} />
+                                                <div className="timeline-content">
+                                                    <h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        {isCreate ? (
+                                                            <span>{t('Task Created', 'تم إنشاء المهمة')} → <span style={{ color: STATUS_COLORS[entry.toStatus as TaskStatus] || '#94a3b8', fontWeight: 700 }}>{entry.toStatus}</span></span>
+                                                        ) : (
+                                                            <span>
+                                                                <span style={{ color: '#94a3b8' }}>{entry.fromStatus}</span>
+                                                                {' → '}
+                                                                <span style={{ color: STATUS_COLORS[entry.toStatus as TaskStatus] || '#94a3b8', fontWeight: 700 }}>{entry.toStatus}</span>
+                                                            </span>
+                                                        )}
+                                                    </h4>
+                                                    {entry.note && <p style={{ marginTop: 4, fontSize: 13 }}>{entry.note}</p>}
+                                                    <div className="timeline-meta">
+                                                        <span>👤 {entry.actionByUserName || '—'}</span>
+                                                        <span>{formatDate(entry.actionDate, lang)}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                     {history.length === 0 && (
                                         <p style={{ color: 'var(--text-muted)', fontSize: 13, padding: '8px 0' }}>{t('No history events yet.', 'لا يوجد سجل بعد.')}</p>
                                     )}
