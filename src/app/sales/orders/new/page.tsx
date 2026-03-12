@@ -20,9 +20,12 @@ export default function NewOrderPage() {
     // Form state
     const [docType, setDocType] = useState<'invoice' | 'quotation'>('invoice');
     const [selectedDocId, setSelectedDocId] = useState('');
+    const [apexSearch, setApexSearch] = useState('');
     const [customerId, setCustomerId] = useState('');
     const [city, setCity] = useState('');
     const [address, setAddress] = useState('');
+    const [location, setLocation] = useState('');
+    const [notes, setNotes] = useState('');
     const [scheduledDate, setScheduledDate] = useState('');
     const [priority, setPriority] = useState<'Normal' | 'Urgent'>('Normal');
     const [branchId, setBranchId] = useState<number>(0);
@@ -83,6 +86,7 @@ export default function NewOrderPage() {
                 status: asDraft ? 'Draft' : 'PendingSalesApproval',
                 city: city || null,
                 address: address || null,
+                location: location || null,
                 scheduledDate: scheduledDate ? new Date(scheduledDate).toISOString() : null,
                 quotationId: docType === 'quotation' ? selectedDocId || null : null,
                 invoiceId: docType === 'invoice' ? selectedDocId || null : null,
@@ -91,6 +95,7 @@ export default function NewOrderPage() {
                 priority,
                 branchId,
                 departmentId,
+                notes: notes || null,
             };
 
             const newOrder = await createOrder(dto);
@@ -153,33 +158,48 @@ export default function NewOrderPage() {
                             <div className="form-row">
                                 <div className="form-group">
                                     <label className="form-label">Document Type *</label>
-                                    <select className="form-select" value={docType} onChange={e => { setDocType(e.target.value as 'invoice' | 'quotation'); setSelectedDocId(''); }}>
+                                    <select className="form-select" value={docType} onChange={e => { setDocType(e.target.value as 'invoice' | 'quotation'); setSelectedDocId(''); setApexSearch(''); }}>
                                         <option value="invoice">Invoice</option>
                                         <option value="quotation">Quotation / Offer</option>
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Select from APEX</label>
-                                    <select className="form-select" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
-                                        <option value="">— Select —</option>
-                                        {docType === 'invoice'
-                                            ? invoices.map(inv => (
-                                                <option key={inv.code} value={inv.code}>
-                                                    {inv.code} — {inv.customer?.latinName || inv.customer?.arabicName || '—'} ({new Date(inv.invoiceDate).toLocaleDateString()})
-                                                </option>
-                                            ))
-                                            : offers.map(off => (
-                                                <option key={off.code} value={off.code}>
-                                                    {off.code} — {off.customer?.latinName || off.customer?.arabicName || '—'}
-                                                </option>
-                                            ))
-                                        }
-                                    </select>
-                                    {invoices.length === 0 && offers.length === 0 && (
-                                        <span className="form-hint">No APEX documents loaded — enter ID manually below</span>
-                                    )}
+                                    <label className="form-label">Search APEX Code</label>
+                                    <input
+                                        className="form-input"
+                                        placeholder="Search by code or customer..."
+                                        value={apexSearch}
+                                        onChange={e => setApexSearch(e.target.value)}
+                                    />
                                 </div>
                             </div>
+                            {(() => {
+                                const q = apexSearch.toLowerCase();
+                                const docs = docType === 'invoice'
+                                    ? invoices.filter(inv => !q || inv.code.toLowerCase().includes(q) || (inv.customer?.latinName || inv.customer?.arabicName || '').toLowerCase().includes(q))
+                                    : offers.filter(off => !q || off.code.toLowerCase().includes(q) || (off.customer?.latinName || off.customer?.arabicName || '').toLowerCase().includes(q));
+                                if (invoices.length === 0 && offers.length === 0) return <span className="form-hint">No APEX documents loaded — enter ID manually below</span>;
+                                return (
+                                    <div className="form-group">
+                                        <label className="form-label">Select from APEX {docs.length > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({docs.length})</span>}</label>
+                                        <select className="form-select" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
+                                            <option value="">— Select —</option>
+                                            {docType === 'invoice'
+                                                ? (docs as typeof invoices).map(inv => (
+                                                    <option key={inv.code} value={inv.code}>
+                                                        {inv.code} — {inv.customer?.latinName || inv.customer?.arabicName || '—'} ({new Date(inv.invoiceDate).toLocaleDateString()})
+                                                    </option>
+                                                ))
+                                                : (docs as typeof offers).map(off => (
+                                                    <option key={off.code} value={off.code}>
+                                                        {off.code} — {off.customer?.latinName || off.customer?.arabicName || '—'}
+                                                    </option>
+                                                ))
+                                            }
+                                        </select>
+                                    </div>
+                                );
+                            })()}
 
                             {/* Selected doc preview */}
                             {selectedDoc && (
@@ -243,6 +263,14 @@ export default function NewOrderPage() {
                                     <label className="form-label">Address</label>
                                     <input className="form-input" placeholder="Full address" value={address} onChange={e => setAddress(e.target.value)} />
                                 </div>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">📍 Location Link</label>
+                                <input className="form-input" placeholder="https://maps.google.com/..." value={location} onChange={e => setLocation(e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">📝 Notes</label>
+                                <textarea className="form-textarea" rows={3} placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} />
                             </div>
                             <div className="form-row">
                                 <div className="form-group">

@@ -52,7 +52,7 @@ export default function OrderDetailPage() {
     // Edit Order state
     const [showEditModal, setShowEditModal] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
-    const [editForm, setEditForm] = useState<Partial<UpdateOrderDto>>({});
+    const [editForm, setEditForm] = useState<Partial<UpdateOrderDto & { location: string; notes: string }>>({});
 
     const showToast = (type: 'error' | 'success', msg: string) => {
         setToast({ type, msg });
@@ -191,6 +191,7 @@ export default function OrderDetailPage() {
                 status: editForm.status || order.status,
                 city: editForm.city || order.city || null,
                 address: editForm.address || order.address || null,
+                location: editForm.location ?? order.location ?? null,
                 scheduledDate: editForm.scheduledDate || order.scheduledDate || null,
                 quotationId: editForm.quotationId || order.quotationId || null,
                 invoiceId: editForm.invoiceId || order.invoiceId || null,
@@ -200,6 +201,7 @@ export default function OrderDetailPage() {
                 priority: editForm.priority || order.priority,
                 branchId: editForm.branchId || order.branchId,
                 departmentId: editForm.departmentId || order.departmentId,
+                notes: editForm.notes ?? order.notes ?? null,
             };
 
             await updateOrder(order.id, dto);
@@ -308,6 +310,8 @@ export default function OrderDetailPage() {
                                 city: order.city || '',
                                 address: order.address || '',
                                 scheduledDate: order.scheduledDate || '',
+                                location: order.location || '',
+                                notes: order.notes || '',
                                 quotationId: order.quotationId || '',
                                 invoiceId: order.invoiceId || '',
                                 customerId: order.customerId || '',
@@ -345,13 +349,19 @@ export default function OrderDetailPage() {
                     {activeTab === 'timeline' && (
                         <div className="card">
                             <div className="card-title" style={{ marginBottom: 24 }}>{t('Order Timeline', 'الجدول الزمني للطلب')}</div>
-                            {history.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '32px 0' }}>
-                                    <div style={{ fontSize: 36, marginBottom: 8 }}>📅</div>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No timeline events yet. Events appear as the order progresses through statuses.', 'لا توجد أحداث بعد. ستظهر الأحداث عند تقدم الطلب عبر المراحل.')}</p>
-                                </div>
-                            ) : (
+                            {(
                                 <div className="timeline">
+                                    <div key="created" className="timeline-item">
+                                        <div className="timeline-dot info" />
+                                        <div className="timeline-content">
+                                            <h4>تم الانشاء</h4>
+                                            <p>—</p>
+                                            <div className="timeline-meta">
+                                                <span>👤 {order.salesRepresentative || order.createdByName || '—'}</span>
+                                                <span>{order.createdAt && !isNaN(new Date(order.createdAt).getTime()) ? new Date(order.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                     {history.map((event, index) => (
                                         <div key={`${event.id}-${index}`} className="timeline-item">
                                             <div className="timeline-dot info" />
@@ -548,6 +558,9 @@ export default function OrderDetailPage() {
                             {(apexCustomer?.phone || order.customerPhone) && <div><span style={{ color: 'var(--text-muted)' }}>{t('Phone', 'الهاتف')}:</span> {apexCustomer?.phone || order.customerPhone}</div>}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Address', 'العنوان')}:</span> {order.address || '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('City', 'المدينة')}:</span> {order.city || '—'}</div>
+                            {order.location && (
+                                <div><span style={{ color: 'var(--text-muted)' }}>📍 {t('Location', 'الموقع')}:</span> <a href={order.location} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary-hover)' }}>{t('Open Map', 'فتح الخريطة')}</a></div>
+                            )}
                         </div>
                     </div>
 
@@ -562,8 +575,14 @@ export default function OrderDetailPage() {
                                 <div><span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}:</span> {order.departmentName && order.departmentName !== 'string' ? order.departmentName : `#${order.departmentId}`}</div>
                             )}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Scheduled', 'الموعد المحدد')}:</span> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString() : '—'}</div>
-                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Created by', 'أُنشئ بواسطة')}:</span> {order.createdByName || '—'}</div>
+                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Created by', 'أُنشئ بواسطة')}:</span> {order.salesRepresentative || order.createdByName || '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Status', 'الحالة')}:</span> <StatusBadge status={order.status} lang={lang} /></div>
+                            {order.notes && (
+                                <div style={{ marginTop: 4, padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
+                                    <span style={{ color: 'var(--text-muted)', display: 'block', marginBottom: 2 }}>📝 {t('Notes', 'الملاحظات')}:</span>
+                                    {order.notes}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -782,6 +801,14 @@ export default function OrderDetailPage() {
                             <div className="form-group">
                                 <label className="form-label">{t('Address', 'العنوان')}</label>
                                 <textarea className="form-textarea" rows={2} value={editForm.address || ''} onChange={e => setEditForm(prev => ({ ...prev, address: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">📍 {t('Location Link', 'رابط الموقع')}</label>
+                                <input type="text" className="form-input" placeholder="https://maps.google.com/..." value={editForm.location || ''} onChange={e => setEditForm(prev => ({ ...prev, location: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">📝 {t('Notes', 'الملاحظات')}</label>
+                                <textarea className="form-textarea" rows={3} value={editForm.notes || ''} onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))} />
                             </div>
                             <button className="btn btn-primary" style={{ marginTop: 8 }} onClick={handleUpdateOrder} disabled={editLoading}>
                                 {editLoading ? '✍️...' : t('Save Changes', 'حفظ التغييرات')}

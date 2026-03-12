@@ -13,6 +13,8 @@ import type {
     AssignTaskDto,
     Task,
     TaskStatusUpdateDto,
+    TaskHistoryEntry,
+    TaskStatistics,
     Role,
     Permission,
     Statistics,
@@ -201,6 +203,8 @@ export async function getOrders(params?: {
     branchId?: number;
     departmentId?: number;
     status?: OrderStatus;
+    dateFrom?: string;
+    dateTo?: string;
 }): Promise<Order[]> {
     const raw = await api<unknown>('/api/Orders', { params: params as Record<string, string | number> });
     if (Array.isArray(raw)) return raw as Order[];
@@ -358,10 +362,31 @@ export async function deleteTask(id: number): Promise<void> {
     return api<void>(`/api/Tasks/${id}`, { method: 'DELETE' });
 }
 
+export async function getTaskHistory(id: number): Promise<TaskHistoryEntry[]> {
+    const raw = await api<unknown>(`/api/Tasks/${id}/history`);
+    if (Array.isArray(raw)) return raw as TaskHistoryEntry[];
+    const obj = raw as Record<string, unknown>;
+    if (obj && Array.isArray(obj.data)) return obj.data as TaskHistoryEntry[];
+    return [];
+}
+
+export async function getTaskStatistics(params?: {
+    branchId?: number;
+    departmentId?: number;
+    from?: string;
+    to?: string;
+}): Promise<TaskStatistics> {
+    const raw = await api<Record<string, unknown>>('/api/Tasks/statistics', { params: params as Record<string, string | number> });
+    const payload = raw && typeof raw === 'object' ? raw : {};
+    return Object.fromEntries(
+        Object.entries(payload).map(([k, v]) => [k.charAt(0).toLowerCase() + k.slice(1), v])
+    ) as TaskStatistics;
+}
+
 // ==================== STATISTICS ====================
 
-export async function getStatistics(branchId?: number): Promise<Statistics> {
-    const raw = await api<Record<string, unknown>>('/api/Statistics', { params: { branchId } });
+export async function getStatistics(branchId?: number, dateFrom?: string, dateTo?: string): Promise<Statistics> {
+    const raw = await api<Record<string, unknown>>('/api/Statistics', { params: { branchId, dateFrom, dateTo } });
 
     // api<T> already unwraps `data` from `{ succeeded: true, data: { ... } }`,
     // so `raw` is `{ total: 2, pendingSalesApproval: 1, orders: [...] }`.

@@ -25,6 +25,8 @@ export default function SalesOrdersPage() {
     const [statusFilter, setStatusFilter] = useState<OrderStatus | ''>('');
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
 
     useEffect(() => {
         async function load() {
@@ -47,6 +49,8 @@ export default function SalesOrdersPage() {
                     branchId: branchFilter || undefined,
                     departmentId: deptFilter || undefined,
                     status: statusFilter || undefined,
+                    dateFrom: dateFrom || undefined,
+                    dateTo: dateTo || undefined,
                 });
                 setOrders(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -57,7 +61,7 @@ export default function SalesOrdersPage() {
             }
         }
         loadOrders();
-    }, [statusFilter, deptFilter, branchFilter]);
+    }, [statusFilter, deptFilter, branchFilter, dateFrom, dateTo]);
 
     const handleDeleteOrder = async (id: number, orderNum: string) => {
         if (!confirm(t(`Are you sure you want to delete order ${orderNum}?`, `هل أنت متأكد من حذف الطلب ${orderNum}؟`))) return;
@@ -135,6 +139,22 @@ export default function SalesOrdersPage() {
                                 <option key={s} value={s}>{getOrderStatusLabel(s, lang)}</option>
                             ))}
                         </select>
+                        <input
+                            type="date"
+                            className="form-input"
+                            value={dateFrom}
+                            onChange={e => setDateFrom(e.target.value)}
+                            style={{ minWidth: 150 }}
+                            title={t('From date', 'من تاريخ')}
+                        />
+                        <input
+                            type="date"
+                            className="form-input"
+                            value={dateTo}
+                            onChange={e => setDateTo(e.target.value)}
+                            style={{ minWidth: 150 }}
+                            title={t('To date', 'إلى تاريخ')}
+                        />
                     </div>
                 </div>
 

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getStatistics } from '@/lib/endpoints';
-import { Statistics, Order } from '@/types';
+import { getStatistics, getBranches } from '@/lib/endpoints';
+import { Statistics, Order, Branch } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import { useLang } from '@/context/LanguageContext';
 
@@ -12,11 +12,24 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Statistics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchFilter, setBranchFilter] = useState<number | ''>('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  useEffect(() => {
+    getBranches().then(setBranches).catch(() => {});
+  }, []);
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
       try {
-        const statsData = await getStatistics();
+        const statsData = await getStatistics(
+          branchFilter || undefined,
+          dateFrom || undefined,
+          dateTo || undefined,
+        );
         setStats(statsData);
         // Use orders embedded in the statistics response
         const orders = Array.isArray(statsData?.orders) ? statsData.orders : [];
@@ -31,7 +44,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, []);
+  }, [branchFilter, dateFrom, dateTo]);
 
   if (loading) {
     return (
@@ -69,6 +82,44 @@ export default function DashboardPage() {
       <div className="page-header">
         <h1>{t('Dashboard', 'لوحة التحكم')}</h1>
         <p>{t('Overview of installation orders', 'نظرة عامة على أوامر التركيب')}</p>
+      </div>
+
+      {/* Filters */}
+      <div className="card" style={{ marginBottom: 24, padding: '14px 20px' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <select
+            className="form-select"
+            value={branchFilter}
+            onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}
+            style={{ minWidth: 140 }}
+          >
+            <option value="">{t('All Branches', 'جميع الفروع')}</option>
+            {branches.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <input
+            type="date"
+            className="form-input"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            style={{ minWidth: 150 }}
+            placeholder={t('From', 'من')}
+          />
+          <input
+            type="date"
+            className="form-input"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            style={{ minWidth: 150 }}
+            placeholder={t('To', 'إلى')}
+          />
+          {(branchFilter || dateFrom || dateTo) && (
+            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDateFrom(''); setDateTo(''); }}>
+              {t('Clear', 'مسح')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats Grid */}

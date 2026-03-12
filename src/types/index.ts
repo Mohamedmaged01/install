@@ -131,6 +131,7 @@ export interface AddOrderDto {
     status: OrderStatus;
     city: string | null;
     address: string | null;
+    location: string | null;
     scheduledDate: string | null;
     quotationId: string | null;
     invoiceId: string | null;
@@ -139,12 +140,14 @@ export interface AddOrderDto {
     priority: Priority;
     branchId: number;
     departmentId: number;
+    notes: string | null;
 }
 
 export interface UpdateOrderDto {
     status: OrderStatus;
     city: string | null;
     address: string | null;
+    location: string | null;
     scheduledDate: string | null;
     quotationId: string | null;
     invoiceId: string | null;
@@ -154,6 +157,7 @@ export interface UpdateOrderDto {
     priority: Priority;
     branchId: number;
     departmentId: number;
+    notes: string | null;
 }
 
 export interface Order {
@@ -180,7 +184,9 @@ export interface Order {
     qrExpiry?: string;
     createdByName?: string;
     createdById?: number;
+    salesRepresentative?: string;
     notes?: string;
+    location?: string;
     // Nested data from GET /api/Orders/{id}
     tasks?: Task[];
     items?: OrderItem[];
@@ -234,6 +240,35 @@ export interface Task {
 export interface VerifyQrDto {
     orderId: number;
     token: string;
+}
+
+// ==================== TASK HISTORY ====================
+
+export interface TaskHistoryEntry {
+    id: number;
+    taskId: number;
+    action: string;
+    description?: string;
+    userName?: string;
+    userId?: number;
+    timestamp: string;
+    imagePath?: string;
+    imageUrl?: string;
+    notes?: string;
+}
+
+export interface TaskStatistics {
+    total?: number;
+    active?: number;
+    completed?: number;
+    assigned?: number;
+    accepted?: number;
+    enroute?: number;
+    onsite?: number;
+    inProgress?: number;
+    returned?: number;
+    onHold?: number;
+    urgent?: number;
 }
 
 // ==================== HISTORY / EVIDENCE ====================
