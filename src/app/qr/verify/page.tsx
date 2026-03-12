@@ -68,16 +68,29 @@ export default function QRVerifyPage() {
                     try {
                         // Try as absolute URL
                         const url = new URL(decodedText);
+                        // Format 1: ?orderId=X&token=Y
                         scannedOrderId = url.searchParams.get('orderId') || '';
                         scannedToken = url.searchParams.get('token') || '';
+                        // Format 2: /verify/X?token=Y (orderId in path)
+                        if (!scannedOrderId) {
+                            const segments = url.pathname.split('/').filter(Boolean);
+                            const last = segments[segments.length - 1];
+                            if (last && !isNaN(Number(last))) scannedOrderId = last;
+                        }
                     } catch {
-                        // Try extracting query params from relative URL or bare query string
+                        // Try extracting from relative URL or query string
                         try {
                             const qIndex = decodedText.indexOf('?');
                             const qs = qIndex !== -1 ? decodedText.slice(qIndex + 1) : decodedText;
                             const params = new URLSearchParams(qs);
                             scannedOrderId = params.get('orderId') || '';
                             scannedToken = params.get('token') || '';
+                            // Also try path-based orderId for relative URLs
+                            if (!scannedOrderId && qIndex > 0) {
+                                const pathParts = decodedText.slice(0, qIndex).split('/').filter(Boolean);
+                                const last = pathParts[pathParts.length - 1];
+                                if (last && !isNaN(Number(last))) scannedOrderId = last;
+                            }
                         } catch {
                             scannedToken = decodedText;
                         }
