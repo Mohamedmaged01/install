@@ -278,6 +278,10 @@ export async function rejectOrder(id: number, reason: string): Promise<void> {
     });
 }
 
+export async function acceptFromOutside(id: number): Promise<void> {
+    return api<void>(`/api/Orders/${id}/accept-outside`, { method: 'POST' });
+}
+
 export async function verifyQr(dto: VerifyQrDto): Promise<unknown> {
     return api('/api/Orders/verify-qr', { method: 'POST', body: dto });
 }

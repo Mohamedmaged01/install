@@ -98,22 +98,26 @@ export default function DashboardPage() {
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
-          <input
-            type="date"
-            className="form-input"
-            value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-            style={{ minWidth: 150 }}
-            placeholder={t('From', 'من')}
-          />
-          <input
-            type="date"
-            className="form-input"
-            value={dateTo}
-            onChange={e => setDateTo(e.target.value)}
-            style={{ minWidth: 150 }}
-            placeholder={t('To', 'إلى')}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
+            <input
+              type="date"
+              className="form-input"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              style={{ minWidth: 150 }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
+            <input
+              type="date"
+              className="form-input"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              style={{ minWidth: 150 }}
+            />
+          </div>
           {(branchFilter || dateFrom || dateTo) && (
             <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDateFrom(''); setDateTo(''); }}>
               {t('Clear', 'مسح')}

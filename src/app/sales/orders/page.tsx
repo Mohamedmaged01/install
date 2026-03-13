@@ -139,22 +139,26 @@ export default function SalesOrdersPage() {
                                 <option key={s} value={s}>{getOrderStatusLabel(s, lang)}</option>
                             ))}
                         </select>
-                        <input
-                            type="date"
-                            className="form-input"
-                            value={dateFrom}
-                            onChange={e => setDateFrom(e.target.value)}
-                            style={{ minWidth: 150 }}
-                            title={t('From date', 'من تاريخ')}
-                        />
-                        <input
-                            type="date"
-                            className="form-input"
-                            value={dateTo}
-                            onChange={e => setDateTo(e.target.value)}
-                            style={{ minWidth: 150 }}
-                            title={t('To date', 'إلى تاريخ')}
-                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
+                            <input
+                                type="date"
+                                className="form-input"
+                                value={dateFrom}
+                                onChange={e => setDateFrom(e.target.value)}
+                                style={{ minWidth: 150 }}
+                            />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
+                            <input
+                                type="date"
+                                className="form-input"
+                                value={dateTo}
+                                onChange={e => setDateTo(e.target.value)}
+                                style={{ minWidth: 150 }}
+                            />
+                        </div>
                     </div>
                 </div>
 

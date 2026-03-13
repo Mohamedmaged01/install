@@ -127,8 +127,14 @@ export default function TasksPage() {
                         <option value="">{t('All Statuses', 'جميع الحالات')}</option>
                         {allStatuses.map(s => <option key={s} value={s}>{taskLabel(s)}</option>)}
                     </select>
-                    <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ minWidth: 150 }} title={t('From', 'من')} />
-                    <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} title={t('To', 'إلى')} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
+                        <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ minWidth: 150 }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
+                        <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} />
+                    </div>
                     {(branchFilter || statusFilter || search || dateFrom || dateTo) && (
                         <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setStatusFilter(''); setSearch(''); setDateFrom(''); setDateTo(''); }}>
                             {t('Clear', 'مسح')}

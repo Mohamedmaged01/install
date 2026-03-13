@@ -7,7 +7,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
     getOrderById, getOrderHistory, getOrderEvidence, uploadEvidence, deleteOrder, deleteTask,
     getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
-    getApexInvoices, getApexOffers, updateOrder
+    getApexInvoices, getApexOffers, updateOrder, acceptFromOutside,
+    approveSalesManager, approveSupervisor, getBranchTechnicians
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
 import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto } from '@/types';
@@ -44,6 +45,7 @@ export default function OrderDetailPage() {
     const [assignNotes, setAssignNotes] = useState('');
     const [assignLoading, setAssignLoading] = useState(false);
     const [techsLoading, setTechsLoading] = useState(false);
+    const [isApproveWorkflow, setIsApproveWorkflow] = useState(false);
     const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
     const [origin, setOrigin] = useState('');
     const [itemsPage, setItemsPage] = useState(1);
@@ -134,15 +136,19 @@ export default function OrderDetailPage() {
         }
     };
 
-    const openAssignModal = async () => {
+    const openAssignModal = async (forApprove = false) => {
         if (!order) return;
+        setIsApproveWorkflow(forApprove);
         setShowAssignModal(true);
         setSelectedTechs(new Set());
         setAssignNotes('');
         setTechsLoading(true);
         try {
+            const techsPromise = forApprove && order.branchId
+                ? getBranchTechnicians(order.branchId)
+                : getDepartmentUsers(undefined, order.departmentId);
             const [users, allRoles] = await Promise.all([
-                getDepartmentUsers(undefined, order.departmentId),
+                techsPromise,
                 getRoles().catch(() => [])
             ]);
             setTechnicians(Array.isArray(users) ? users : []);
@@ -163,19 +169,26 @@ export default function OrderDetailPage() {
         if (!order || selectedTechs.size === 0) return;
         setAssignLoading(true);
         try {
-            await Promise.all(
-                Array.from(selectedTechs).map(techId => {
-                    const dto: AssignTaskDto = {
-                        orderId: order.id,
-                        technicianId: techId,
-                        notes: assignNotes || null,
-                    };
-                    return assignTask(dto);
-                })
-            );
-            showToast('success', t(`${selectedTechs.size} technician(s) assigned!`, `تم تعيين ${selectedTechs.size} فني!`));
+            if (isApproveWorkflow) {
+                const techIds = Array.from(selectedTechs);
+                const whatsappUrl = await approveSupervisor(order.id, techIds, assignNotes || null);
+                if (whatsappUrl) window.open(whatsappUrl, '_blank');
+                showToast('success', t('Order approved and technicians assigned', 'تم الموافقة على الطلب وتعيين الفنيين'));
+            } else {
+                await Promise.all(
+                    Array.from(selectedTechs).map(techId => {
+                        const dto: AssignTaskDto = {
+                            orderId: order.id,
+                            technicianId: techId,
+                            notes: assignNotes || null,
+                        };
+                        return assignTask(dto);
+                    })
+                );
+                showToast('success', t(`${selectedTechs.size} technician(s) assigned!`, `تم تعيين ${selectedTechs.size} فني!`));
+            }
             setShowAssignModal(false);
-            await loadOrder(); // refresh tasks list
+            await loadOrder();
         } catch (err) {
             showToast('error', err instanceof Error ? err.message : t('Failed to assign', 'فشل التعيين'));
         } finally {
@@ -222,6 +235,31 @@ export default function OrderDetailPage() {
             window.location.href = '/sales/orders';
         } catch (err) {
             showToast('error', err instanceof Error ? err.message : t('Failed to delete order', 'فشل حذف الطلب'));
+        }
+    };
+
+    const handleAccept = async () => {
+        if (!order) return;
+        if (order.status === 'PendingSalesApproval') {
+            if (!confirm(t('Approve this order?', 'هل تريد اعتماد هذا الطلب؟'))) return;
+            try {
+                await approveSalesManager(id);
+                showToast('success', t('Order approved successfully!', 'تم اعتماد الطلب بنجاح!'));
+                await loadOrder();
+            } catch (err) {
+                showToast('error', err instanceof Error ? err.message : t('Approval failed', 'فشل الاعتماد'));
+            }
+        } else if (order.status === 'PendingSupervisorApproval') {
+            await openAssignModal(true);
+        } else {
+            if (!confirm(t('Accept this order from outside? This will mark it as accepted by an external party.', 'هل تريد قبول هذا الطلب من الخارج؟ سيتم تسجيله كمقبول من جهة خارجية.'))) return;
+            try {
+                await acceptFromOutside(id);
+                showToast('success', t('Order accepted from outside', 'تم قبول الطلب من الخارج'));
+                await loadOrder();
+            } catch (err) {
+                showToast('error', err instanceof Error ? err.message : t('Failed to accept from outside', 'فشل القبول من الخارج'));
+            }
         }
     };
 
@@ -304,6 +342,13 @@ export default function OrderDetailPage() {
                         </p>
                     </div>
                     <div className="btn-group">
+                        <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {order.status === 'PendingSalesApproval'
+                                ? `✅ ${t('Approve', 'اعتماد')}`
+                                : order.status === 'PendingSupervisorApproval'
+                                    ? `✅ ${t('Approve & Assign', 'اعتماد وتعيين')}`
+                                    : `🌐 ${t('Accept', 'قبول')}`}
+                        </button>
                         <button className="btn btn-secondary" onClick={() => {
                             setEditForm({
                                 status: order.status,
@@ -680,7 +725,7 @@ export default function OrderDetailPage() {
                     <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
                         <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
                             <div className="modal-header">
-                                <h2>👤 {t('Assign Technicians', 'تعيين فنيين')}</h2>
+                                <h2>👤 {isApproveWorkflow ? t('Approve & Assign Technicians', 'اعتماد وتعيين فنيين') : t('Assign Technicians', 'تعيين فنيين')}</h2>
                                 <button className="modal-close" onClick={() => setShowAssignModal(false)}>×</button>
                             </div>
                             <div className="modal-body">
@@ -769,7 +814,9 @@ export default function OrderDetailPage() {
                                 >
                                     {assignLoading
                                         ? `⏳ ${t('Assigning...', 'جارٍ التعيين...')}`
-                                        : `✅ ${t('Assign', 'تعيين')} (${selectedTechs.size})`
+                                        : isApproveWorkflow
+                                            ? `✅ ${t('Approve & Assign', 'اعتماد وتعيين')} (${selectedTechs.size})`
+                                            : `✅ ${t('Assign', 'تعيين')} (${selectedTechs.size})`
                                     }
                                 </button>
                             </div>
