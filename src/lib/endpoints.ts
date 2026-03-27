@@ -132,6 +132,10 @@ export async function createBranch(dto: { name: string; email?: string; phone?: 
     return api<Branch>('/api/Branches', { method: 'POST', body: dto });
 }
 
+export async function updateBranch(id: number, dto: { name: string; email?: string; phone?: string }): Promise<Branch> {
+    return api<Branch>(`/api/Branches/${id}`, { method: 'PUT', body: dto });
+}
+
 export async function deleteBranch(id: number): Promise<void> {
     return api<void>(`/api/Branches/${id}`, { method: 'DELETE' });
 }
@@ -191,8 +195,16 @@ export async function createDepartmentUser(formData: FormData): Promise<Departme
     });
 }
 
+export async function updateDepartment(id: number, dto: { name: string; branchId: number }): Promise<Department> {
+    return api<Department>(`/api/Departments/${id}`, { method: 'PUT', body: dto });
+}
+
 export async function deleteDepartment(id: number): Promise<void> {
     return api<void>(`/api/Departments/${id}`, { method: 'DELETE' });
+}
+
+export async function removeUserFromRole(userId: number): Promise<void> {
+    return api<void>(`/api/Departments/user/${userId}/remove-role`, { method: 'PUT' });
 }
 
 export async function deleteDepartmentUser(id: number): Promise<void> {

@@ -260,7 +260,9 @@ export interface TaskNote {
 }
 
 export interface TaskStatistics {
+    total?: number;
     totalTasks?: number;
+    active?: number;
     assigned?: number;
     hold?: number;
     enroute?: number;

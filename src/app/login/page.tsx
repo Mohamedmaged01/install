@@ -45,16 +45,7 @@ export default function LoginPage() {
             }}>
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 40 }}>
-                    <h1 style={{
-                        fontSize: 32,
-                        fontWeight: 800,
-                        background: 'var(--accent-gradient)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        marginBottom: 8,
-                    }}>
-                        ⚡ InstallFlow
-                    </h1>
+                    <img src="/logo.jpeg" alt="Logo" style={{ maxWidth: 180, maxHeight: 80, objectFit: 'contain', marginBottom: 12 }} />
                     <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
                         Installation Order Management System
                     </p>

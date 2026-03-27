@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import {
-    getBranches, createBranch, deleteBranch,
-    getDepartments, createDepartment, deleteDepartment,
+    getBranches, createBranch, updateBranch, deleteBranch,
+    getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
@@ -28,6 +28,8 @@ export default function AdminPage() {
     // Forms
     const [newBranch, setNewBranch] = useState({ name: '', email: '', phone: '' });
     const [newDept, setNewDept] = useState({ branchId: 0, name: '' });
+    const [editBranch, setEditBranch] = useState<{ id: number; name: string; email: string; phone: string } | null>(null);
+    const [editDept, setEditDept] = useState<{ id: number; name: string; branchId: number } | null>(null);
     const [newRoleName, setNewRoleName] = useState('');
     const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
     const [rolePerms, setRolePerms] = useState<number[]>([]);
@@ -69,12 +71,31 @@ export default function AdminPage() {
 
     // ── Branch ──
     const handleCreateBranch = async () => {
-        if (!newBranch.name) return;
+        if (!newBranch.name || !newBranch.email || !newBranch.phone) {
+            alert(t('Branch name, email, and phone are required.', 'اسم الفرع والبريد الإلكتروني والهاتف مطلوبة.'));
+            return;
+        }
         setActionLoading(true);
         try {
             await createBranch(newBranch);
             setNewBranch({ name: '', email: '', phone: '' });
             setBranches(await getBranches().catch(() => []));
+            alert(t('Branch was added!', 'تم إضافة الفرع!'));
+        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        finally { setActionLoading(false); }
+    };
+
+    const handleUpdateBranch = async () => {
+        if (!editBranch) return;
+        if (!editBranch.name || !editBranch.email || !editBranch.phone) {
+            alert(t('Branch name, email, and phone are required.', 'اسم الفرع والبريد الإلكتروني والهاتف مطلوبة.'));
+            return;
+        }
+        setActionLoading(true);
+        try {
+            await updateBranch(editBranch.id, { name: editBranch.name, email: editBranch.email, phone: editBranch.phone });
+            setBranches(await getBranches().catch(() => []));
+            setEditBranch(null);
         } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
         finally { setActionLoading(false); }
     };
@@ -105,6 +126,21 @@ export default function AdminPage() {
             await deleteDepartment(id);
             setDepartments(prev => prev.filter(d => d.id !== id));
         } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+    };
+
+    const handleUpdateDept = async () => {
+        if (!editDept) return;
+        if (!editDept.name || !editDept.branchId) {
+            alert(t('Department name and branch are required.', 'اسم القسم والفرع مطلوبان.'));
+            return;
+        }
+        setActionLoading(true);
+        try {
+            await updateDepartment(editDept.id, { name: editDept.name, branchId: editDept.branchId });
+            setDepartments(await getDepartments().catch(() => []));
+            setEditDept(null);
+        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        finally { setActionLoading(false); }
     };
 
     // ── Role ──
@@ -234,15 +270,30 @@ export default function AdminPage() {
                                 <input className="form-input" placeholder={t('Branch name', 'اسم الفرع')} value={newBranch.name} onChange={e => setNewBranch({ ...newBranch, name: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
                                 <input className="form-input" placeholder={t('Email', 'البريد')} value={newBranch.email} onChange={e => setNewBranch({ ...newBranch, email: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
                                 <input className="form-input" placeholder={t('Phone', 'الهاتف')} value={newBranch.phone} onChange={e => setNewBranch({ ...newBranch, phone: e.target.value })} style={{ flex: 1, minWidth: 120 }} />
-                                <button className="btn btn-primary btn-sm" disabled={actionLoading || !newBranch.name} onClick={handleCreateBranch}>+ {t('Add', 'إضافة')}</button>
+                                <button className="btn btn-primary btn-sm" disabled={actionLoading || !newBranch.name || !newBranch.email || !newBranch.phone} onClick={handleCreateBranch}>+ {t('Add', 'إضافة')}</button>
                             </div>
                             {branches.map(b => (
-                                <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600 }}>{b.name}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.email || '—'} • {b.phone || '—'}</div>
-                                    </div>
-                                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteBranch(b.id)}>🗑️</button>
+                                <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
+                                    {editBranch?.id === b.id ? (
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                            <input className="form-input" value={editBranch.name} onChange={e => setEditBranch({ ...editBranch, name: e.target.value })} placeholder={t('Name', 'الاسم')} style={{ flex: 1, minWidth: 120 }} />
+                                            <input className="form-input" value={editBranch.email} onChange={e => setEditBranch({ ...editBranch, email: e.target.value })} placeholder={t('Email', 'البريد')} style={{ flex: 1, minWidth: 140 }} />
+                                            <input className="form-input" value={editBranch.phone} onChange={e => setEditBranch({ ...editBranch, phone: e.target.value })} placeholder={t('Phone', 'الهاتف')} style={{ flex: 1, minWidth: 100 }} />
+                                            <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleUpdateBranch}>💾</button>
+                                            <button className="btn btn-secondary btn-sm" onClick={() => setEditBranch(null)}>✕</button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontWeight: 600 }}>{b.name}</div>
+                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.email || '—'} • {b.phone || '—'}</div>
+                                            </div>
+                                            <div className="btn-group">
+                                                <button className="btn btn-secondary btn-sm" onClick={() => setEditBranch({ id: b.id, name: b.name, email: b.email || '', phone: b.phone || '' })}>✏️</button>
+                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteBranch(b.id)}>🗑️</button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                             {branches.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No branches yet.', 'لا توجد فروع بعد.')}</p>}
@@ -262,12 +313,29 @@ export default function AdminPage() {
                                 <button className="btn btn-primary btn-sm" disabled={actionLoading || !newDept.name || !newDept.branchId} onClick={handleCreateDept}>+ {t('Add', 'إضافة')}</button>
                             </div>
                             {departments.map(d => (
-                                <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600 }}>{d.name}</div>
-                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—'}</div>
-                                    </div>
-                                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteDept(d.id)}>🗑️</button>
+                                <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
+                                    {editDept?.id === d.id ? (
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                            <select className="form-select" value={editDept.branchId} onChange={e => setEditDept({ ...editDept, branchId: Number(e.target.value) })} style={{ minWidth: 140 }}>
+                                                <option value={0}>— {t('Branch', 'الفرع')} —</option>
+                                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                            </select>
+                                            <input className="form-input" value={editDept.name} onChange={e => setEditDept({ ...editDept, name: e.target.value })} placeholder={t('Department name', 'اسم القسم')} style={{ flex: 1, minWidth: 140 }} />
+                                            <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleUpdateDept}>💾</button>
+                                            <button className="btn btn-secondary btn-sm" onClick={() => setEditDept(null)}>✕</button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <div style={{ fontWeight: 600 }}>{d.name}</div>
+                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—'}</div>
+                                            </div>
+                                            <div className="btn-group">
+                                                <button className="btn btn-secondary btn-sm" onClick={() => setEditDept({ id: d.id, name: d.name, branchId: d.branchId })}>✏️</button>
+                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteDept(d.id)}>🗑️</button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                             {departments.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No departments yet.', 'لا توجد أقسام بعد.')}</p>}
@@ -372,7 +440,7 @@ export default function AdminPage() {
                                 <div key={role.id} style={{ padding: '12px 16px', background: selectedRoleId === role.id ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)', border: selectedRoleId === role.id ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => handleSelectRole(role.id)}>
                                     <div style={{ fontWeight: 600, fontSize: 15 }}>{role.name}</div>
                                     <div className="btn-group">
-                                        <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); handleSelectRole(role.id); }}>{t('Edit Permissions', 'تعديل الصلاحيات')}</button>
+                                        <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); handleSelectRole(role.id); setActiveTab('permissions'); }}>{t('Edit Permissions', 'تعديل الصلاحيات')}</button>
                                         <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDeleteRole(role.id); }}>{t('Delete', 'حذف')}</button>
                                     </div>
                                 </div>

@@ -5,7 +5,7 @@ import {
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
-    getDepartments, getBranches,
+    getDepartments, getBranches, removeUserFromRole,
 } from '@/lib/endpoints';
 import { Role, Permission, DepartmentUser, Department, Branch } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
@@ -155,6 +155,15 @@ export default function AdminUsersPage() {
             setRoleUsers(prev => prev.filter(u => u.id !== id));
             await loadAll();
         } catch (err) { alert(err instanceof Error ? err.message : 'Failed to delete user'); }
+    };
+
+    const handleRemoveFromRole = async (id: number, name: string) => {
+        if (!confirm(`Remove "${name}" from this role?`)) return;
+        try {
+            await removeUserFromRole(id);
+            setRoleUsers(prev => prev.filter(u => u.id !== id));
+            await loadAll();
+        } catch (err) { alert(err instanceof Error ? err.message : 'Failed to remove user from role'); }
     };
 
     /* ── filter ── */
@@ -400,7 +409,10 @@ export default function AdminUsersPage() {
                                                 <td style={{ color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
                                                 <td>{u.departmentName || `Dept #${u.departmentId}`}</td>
                                                 <td>
-                                                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
+                                                    <div className="btn-group">
+                                                        <button className="btn btn-secondary btn-sm" title="Remove from role" onClick={() => handleRemoveFromRole(u.id, u.name)}>⛔</button>
+                                                        <button className="btn btn-danger btn-sm" title="Delete user" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))

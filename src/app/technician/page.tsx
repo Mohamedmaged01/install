@@ -83,7 +83,7 @@ export default function TechnicianPage() {
             to: dateTo || undefined,
         }).then(s => {
             setFilteredStats({
-                total: s.total ?? 0,
+                total: s.total ?? s.totalTasks ?? 0,
                 active: s.active ?? s.assigned ?? 0,
                 completed: s.completed ?? 0,
             });

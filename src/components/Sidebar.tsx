@@ -90,7 +90,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
             <div className="sidebar-brand">
                 <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src="/apex-erp.png" alt="Apex ERP" style={{ maxWidth: '100%', maxHeight: 64, objectFit: 'contain' }} />
+                    <img src="/logo.jpeg" alt="Logo" style={{ maxWidth: '100%', maxHeight: 64, objectFit: 'contain' }} />
                 </Link>
             </div>
 
