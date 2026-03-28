@@ -10,6 +10,7 @@ import {
 import { Role, Permission, DepartmentUser, Department, Branch } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
+import { useLang } from '@/context/LanguageContext';
 
 /* ─── types ─── */
 interface NewUserForm {
@@ -28,6 +29,8 @@ type ModalType = 'addRole' | 'addUser' | 'permissions' | 'viewUsers' | null;
    PAGE
 ════════════════════════════════════════════════════════ */
 export default function AdminUsersPage() {
+    const { t } = useLang();
+
     /* data */
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -128,7 +131,11 @@ export default function AdminUsersPage() {
     const openRoleUsers = async (role: Role) => {
         setActiveRole(role);
         setModal('viewUsers');
-        setRoleUsers(role.users || []);
+        setRoleUsers([]);
+        try {
+            const all = await getDepartmentUsers();
+            setRoleUsers((Array.isArray(all) ? all : []).filter(u => u.roleId === role.id));
+        } catch { setRoleUsers([]); }
     };
 
     /* ── create user ── */
@@ -179,24 +186,24 @@ export default function AdminUsersPage() {
                 {/* ── Page Header ── */}
                 <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                     <div>
-                        <h1>🔑 Roles &amp; Users</h1>
-                        <p>Manage roles, assign permissions, and create users</p>
+                        <h1>🔑 {t('Roles & Users', 'الأدوار والمستخدمون')}</h1>
+                        <p>{t('Manage roles, assign permissions, and create users', 'إدارة الأدوار وتعيين الصلاحيات وإنشاء المستخدمين')}</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                         <button className="btn btn-secondary" onClick={() => setModal('addRole')}>
-                            + Add Role
+                            + {t('Add Role', 'إضافة دور')}
                         </button>
                         <button className="btn btn-primary" onClick={() => setModal('addUser')}>
-                            + Add User
+                            + {t('Add User', 'إضافة مستخدم')}
                         </button>
                     </div>
                 </div>
 
                 {/* ── Stats row ── */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px,1fr))', gap: 12, marginBottom: 24 }}>
-                    <StatPill icon="🔑" label="Total Roles" value={roles.length} color="#6366f1" />
-                    <StatPill icon="🛡️" label="Permissions" value={permissions.length} color="#8b5cf6" />
-                    <StatPill icon="👥" label="Total Users" value={roles.reduce((acc, r) => acc + (r.usersCount || 0), 0)} color="#10b981" />
+                    <StatPill icon="🔑" label={t('Total Roles', 'إجمالي الأدوار')} value={roles.length} color="#6366f1" />
+                    <StatPill icon="🛡️" label={t('Permissions', 'الصلاحيات')} value={permissions.length} color="#8b5cf6" />
+                    <StatPill icon="👥" label={t('Total Users', 'إجمالي المستخدمين')} value={roles.reduce((acc, r) => acc + (r.usersCount || 0), 0)} color="#10b981" />
                 </div>
 
                 {/* ── Search ── */}
@@ -204,7 +211,7 @@ export default function AdminUsersPage() {
                     <div className="table-search">
                         <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
                         <input
-                            placeholder="Search roles..."
+                            placeholder={t('Search roles...', 'ابحث عن الأدوار...')}
                             value={searchQ}
                             onChange={e => setSearchQ(e.target.value)}
                         />
@@ -217,22 +224,22 @@ export default function AdminUsersPage() {
                         <thead>
                             <tr>
                                 <th style={{ width: 40 }}>#</th>
-                                <th>Role Name</th>
-                                <th>Permissions</th>
-                                <th>Users</th>
-                                <th style={{ width: 140 }}>Actions</th>
+                                <th>{t('Role Name', 'اسم الدور')}</th>
+                                <th>{t('Permissions', 'الصلاحيات')}</th>
+                                <th>{t('Users', 'المستخدمون')}</th>
+                                <th style={{ width: 140 }}>{t('Actions', 'الإجراءات')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>Loading...</td>
+                                    <td colSpan={5} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading...', 'جارٍ التحميل...')}</td>
                                 </tr>
                             ) : filteredRoles.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} style={{ textAlign: 'center', padding: 48 }}>
                                         <div style={{ fontSize: 32, marginBottom: 8 }}>🎭</div>
-                                        <div style={{ fontWeight: 600 }}>No roles found</div>
+                                        <div style={{ fontWeight: 600 }}>{t('No roles found', 'لا توجد أدوار')}</div>
                                     </td>
                                 </tr>
                             ) : (
@@ -248,7 +255,7 @@ export default function AdminUsersPage() {
                                                 onClick={() => openPerms(role)}
                                                 style={{ cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}
                                             >
-                                                🛡️ Permissions
+                                                🛡️ {t('Permissions', 'الصلاحيات')}
                                             </button>
                                         </td>
                                         <td>
@@ -257,12 +264,12 @@ export default function AdminUsersPage() {
                                                 onClick={() => openRoleUsers(role)}
                                                 style={{ cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}
                                             >
-                                                👥 {role.usersCount ?? 0} Users
+                                                👥 {role.usersCount ?? 0} {t('Users', 'مستخدم')}
                                             </button>
                                         </td>
                                         <td>
                                             <div className="btn-group">
-                                                <button className="btn btn-secondary btn-sm" onClick={() => openPerms(role)}>✏️ Edit</button>
+                                                <button className="btn btn-secondary btn-sm" onClick={() => openPerms(role)}>✏️ {t('Edit', 'تعديل')}</button>
                                                 <button className="btn btn-danger btn-sm" onClick={() => handleDeleteRole(role.id, role.name)}>🗑️</button>
                                             </div>
                                         </td>
@@ -277,12 +284,12 @@ export default function AdminUsersPage() {
 
                 {/* Add Role Modal */}
                 {modal === 'addRole' && (
-                    <ModalShell title="➕ Add Role" onClose={() => setModal(null)}>
+                    <ModalShell title={`➕ ${t('Add Role', 'إضافة دور')}`} onClose={() => setModal(null)}>
                         <div className="form-group">
-                            <label className="form-label">Role Name *</label>
+                            <label className="form-label">{t('Role Name', 'اسم الدور')} *</label>
                             <input
                                 className="form-input"
-                                placeholder="e.g. Installation Supervisor"
+                                placeholder={t('e.g. Installation Supervisor', 'مثال: مشرف تركيب')}
                                 value={newRoleName}
                                 onChange={e => setNewRoleName(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleCreateRole()}
@@ -290,9 +297,9 @@ export default function AdminUsersPage() {
                             />
                         </div>
                         <div className="modal-footer" style={{ paddingTop: 16 }}>
-                            <button className="btn btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+                            <button className="btn btn-secondary" onClick={() => setModal(null)}>{t('Cancel', 'إلغاء')}</button>
                             <button className="btn btn-primary" disabled={actionLoading || !newRoleName.trim()} onClick={handleCreateRole}>
-                                {actionLoading ? '⏳ Creating...' : 'Create Role'}
+                                {actionLoading ? `⏳ ${t('Creating...', 'جارٍ الإنشاء...')}` : t('Create Role', 'إنشاء دور')}
                             </button>
                         </div>
                     </ModalShell>
@@ -300,21 +307,21 @@ export default function AdminUsersPage() {
 
                 {/* Permissions Modal */}
                 {modal === 'permissions' && activeRole && (
-                    <ModalShell title={`🛡️ Permissions — ${activeRole.name}`} onClose={() => setModal(null)} wide>
+                    <ModalShell title={`🛡️ ${t('Permissions', 'الصلاحيات')} — ${activeRole.name}`} onClose={() => setModal(null)} wide>
                         <div className="form-group" style={{ marginBottom: 12 }}>
                             <input
                                 className="form-input"
-                                placeholder="🔍 Search permissions..."
+                                placeholder={`🔍 ${t('Search permissions...', 'ابحث عن الصلاحيات...')}`}
                                 value={permSearch}
                                 onChange={e => setPermSearch(e.target.value)}
                             />
                         </div>
 
                         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                            <button className="btn btn-secondary btn-sm" onClick={() => setRolePerms(filteredPerms.map(p => p.id))}>Select All</button>
-                            <button className="btn btn-secondary btn-sm" onClick={() => setRolePerms([])}>Clear All</button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => setRolePerms(filteredPerms.map(p => p.id))}>{t('Select All', 'تحديد الكل')}</button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => setRolePerms([])}>{t('Clear All', 'مسح الكل')}</button>
                             <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--text-muted)', alignSelf: 'center' }}>
-                                {rolePerms.length} / {permissions.length} selected
+                                {rolePerms.length} / {permissions.length} {t('selected', 'محدد')}
                             </span>
                         </div>
 
@@ -357,9 +364,9 @@ export default function AdminUsersPage() {
                         </div>
 
                         <div className="modal-footer" style={{ paddingTop: 20, borderTop: '1px solid var(--border)', marginTop: 16 }}>
-                            <button className="btn btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+                            <button className="btn btn-secondary" onClick={() => setModal(null)}>{t('Cancel', 'إلغاء')}</button>
                             <button className="btn btn-primary" disabled={actionLoading} onClick={handleSavePerms}>
-                                {actionLoading ? '⏳ Saving...' : '💾 Save Permissions'}
+                                {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `💾 ${t('Save Permissions', 'حفظ الصلاحيات')}`}
                             </button>
                         </div>
                     </ModalShell>
@@ -367,31 +374,31 @@ export default function AdminUsersPage() {
 
                 {/* View Users in Role Modal */}
                 {modal === 'viewUsers' && activeRole && (
-                    <ModalShell title={`👥 Users in — ${activeRole.name}`} onClose={() => setModal(null)} wide>
+                    <ModalShell title={`👥 ${t('Users in', 'المستخدمون في')} — ${activeRole.name}`} onClose={() => setModal(null)} wide>
                         <div style={{ marginBottom: 12 }}>
                             <button
                                 className="btn btn-primary btn-sm"
                                 onClick={() => { setModal('addUser'); setUserForm(prev => ({ ...prev, RoleId: activeRole.id })); }}
                             >
-                                + Add User to this Role
+                                + {t('Add User to this Role', 'إضافة مستخدم لهذا الدور')}
                             </button>
                         </div>
                         <div className="table-container" style={{ border: 'none' }}>
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Phone</th>
-                                        <th>Department</th>
-                                        <th style={{ width: 50 }}>Actions</th>
+                                        <th>{t('Name', 'الاسم')}</th>
+                                        <th>{t('Email', 'البريد')}</th>
+                                        <th>{t('Phone', 'الهاتف')}</th>
+                                        <th>{t('Department', 'القسم')}</th>
+                                        <th style={{ width: 50 }}>{t('Actions', 'الإجراءات')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {roleUsers.length === 0 ? (
                                         <tr>
                                             <td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
-                                                No users assigned to this role yet
+                                                {t('No users assigned to this role yet', 'لا يوجد مستخدمون مُعيَّنون لهذا الدور بعد')}
                                             </td>
                                         </tr>
                                     ) : (
@@ -425,39 +432,39 @@ export default function AdminUsersPage() {
 
                 {/* Add User Modal */}
                 {modal === 'addUser' && (
-                    <ModalShell title="👤 Create New User" onClose={() => setModal(null)} wide>
+                    <ModalShell title={`👤 ${t('Create New User', 'إنشاء مستخدم جديد')}`} onClose={() => setModal(null)} wide>
                         <div className="form-row">
                             <div className="form-group">
-                                <label className="form-label">Full Name *</label>
-                                <input className="form-input" placeholder="Ahmed Al-Farsi" value={userForm.Name} onChange={e => setUserForm(p => ({ ...p, Name: e.target.value }))} />
+                                <label className="form-label">{t('Full Name', 'الاسم الكامل')} *</label>
+                                <input className="form-input" placeholder={t('Ahmed Al-Farsi', 'أحمد الفارسي')} value={userForm.Name} onChange={e => setUserForm(p => ({ ...p, Name: e.target.value }))} />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Email *</label>
+                                <label className="form-label">{t('Email', 'البريد الإلكتروني')} *</label>
                                 <input className="form-input" type="email" placeholder="ahmed@company.com" value={userForm.Email} onChange={e => setUserForm(p => ({ ...p, Email: e.target.value }))} />
                             </div>
                         </div>
                         <div className="form-row">
                             <div className="form-group">
-                                <label className="form-label">Phone</label>
+                                <label className="form-label">{t('Phone', 'الهاتف')}</label>
                                 <input className="form-input" placeholder="+966 5x xxx xxxx" value={userForm.Phone} onChange={e => setUserForm(p => ({ ...p, Phone: e.target.value }))} />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Password *</label>
-                                <input className="form-input" type="password" placeholder="Min 8 characters" value={userForm.Password} onChange={e => setUserForm(p => ({ ...p, Password: e.target.value }))} />
+                                <label className="form-label">{t('Password', 'كلمة المرور')} *</label>
+                                <input className="form-input" type="password" placeholder={t('Min 8 characters', 'الحد الأدنى 8 أحرف')} value={userForm.Password} onChange={e => setUserForm(p => ({ ...p, Password: e.target.value }))} />
                             </div>
                         </div>
                         <div className="form-row">
                             <div className="form-group">
-                                <label className="form-label">Role *</label>
+                                <label className="form-label">{t('Role', 'الدور')} *</label>
                                 <select className="form-select" value={userForm.RoleId} onChange={e => setUserForm(p => ({ ...p, RoleId: Number(e.target.value) }))}>
-                                    <option value={0}>— Select Role —</option>
+                                    <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
                                     {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Department</label>
+                                <label className="form-label">{t('Department', 'القسم')}</label>
                                 <select className="form-select" value={userForm.DepartmentId} onChange={e => setUserForm(p => ({ ...p, DepartmentId: Number(e.target.value) }))}>
-                                    <option value={0}>— Select Department —</option>
+                                    <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
                                     {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
                             </div>
@@ -467,15 +474,15 @@ export default function AdminUsersPage() {
                         <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: userForm.IsSuperAdmin ? 'rgba(239,68,68,0.08)' : 'var(--bg-tertiary)', border: `1px solid ${userForm.IsSuperAdmin ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', marginBottom: 20 }}>
                             <input type="checkbox" style={{ accentColor: '#ef4444', width: 16, height: 16 }} checked={userForm.IsSuperAdmin} onChange={e => setUserForm(p => ({ ...p, IsSuperAdmin: e.target.checked }))} />
                             <div>
-                                <div style={{ fontWeight: 600, fontSize: 14 }}>Super Admin</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Grants full access to all features</div>
+                                <div style={{ fontWeight: 600, fontSize: 14 }}>{t('Super Admin', 'مشرف عام')}</div>
+                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Grants full access to all features', 'يمنح وصولاً كاملاً لجميع الميزات')}</div>
                             </div>
                         </label>
 
                         <div className="modal-footer" style={{ paddingTop: 0 }}>
-                            <button className="btn btn-secondary" onClick={() => setModal(null)}>Cancel</button>
+                            <button className="btn btn-secondary" onClick={() => setModal(null)}>{t('Cancel', 'إلغاء')}</button>
                             <button className="btn btn-primary" disabled={actionLoading || !userForm.Name || !userForm.Email || !userForm.Password} onClick={handleCreateUser}>
-                                {actionLoading ? '⏳ Creating...' : '✅ Create User'}
+                                {actionLoading ? `⏳ ${t('Creating...', 'جارٍ الإنشاء...')}` : `✅ ${t('Create User', 'إنشاء مستخدم')}`}
                             </button>
                         </div>
                     </ModalShell>

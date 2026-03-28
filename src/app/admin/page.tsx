@@ -35,6 +35,7 @@ export default function AdminPage() {
     const [rolePerms, setRolePerms] = useState<number[]>([]);
     const [actionLoading, setActionLoading] = useState(false);
     const [permSearch, setPermSearch] = useState('');
+    const [showPermModal, setShowPermModal] = useState(false);
 
     const [userForm, setUserForm] = useState({
         DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '',
@@ -316,10 +317,6 @@ export default function AdminPage() {
                                 <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
                                     {editDept?.id === d.id ? (
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                            <select className="form-select" value={editDept.branchId} onChange={e => setEditDept({ ...editDept, branchId: Number(e.target.value) })} style={{ minWidth: 140 }}>
-                                                <option value={0}>— {t('Branch', 'الفرع')} —</option>
-                                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                            </select>
                                             <input className="form-input" value={editDept.name} onChange={e => setEditDept({ ...editDept, name: e.target.value })} placeholder={t('Department name', 'اسم القسم')} style={{ flex: 1, minWidth: 140 }} />
                                             <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleUpdateDept}>💾</button>
                                             <button className="btn btn-secondary btn-sm" onClick={() => setEditDept(null)}>✕</button>
@@ -440,7 +437,7 @@ export default function AdminPage() {
                                 <div key={role.id} style={{ padding: '12px 16px', background: selectedRoleId === role.id ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)', border: selectedRoleId === role.id ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => handleSelectRole(role.id)}>
                                     <div style={{ fontWeight: 600, fontSize: 15 }}>{role.name}</div>
                                     <div className="btn-group">
-                                        <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); handleSelectRole(role.id); setActiveTab('permissions'); }}>{t('Edit Permissions', 'تعديل الصلاحيات')}</button>
+                                        <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); handleSelectRole(role.id); setPermSearch(''); setShowPermModal(true); }}>{t('Edit Permissions', 'تعديل الصلاحيات')}</button>
                                         <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDeleteRole(role.id); }}>{t('Delete', 'حذف')}</button>
                                     </div>
                                 </div>
@@ -516,6 +513,56 @@ export default function AdminPage() {
                     )}
                 </>
             )}
+
+            {/* ══════════ PERMISSIONS MODAL ══════════ */}
+            {showPermModal && selectedRoleId && (
+            <div className="modal-overlay" onClick={() => setShowPermModal(false)}>
+                <div className="modal" style={{ maxWidth: 680 }} onClick={e => e.stopPropagation()}>
+                    <div className="modal-header">
+                        <h2 style={{ fontSize: 17 }}>🛡️ {t('Permissions', 'الصلاحيات')} — {selectedRole?.name}</h2>
+                        <button className="modal-close" onClick={() => setShowPermModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body">
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <input className="form-input" placeholder={`🔍 ${t('Search permissions...', 'ابحث عن الصلاحيات...')}`} value={permSearch} onChange={e => setPermSearch(e.target.value)} style={{ flex: 1 }} />
+                            <button className="btn btn-secondary btn-sm" onClick={() => setRolePerms(filteredPermsForRole.map(p => p.id))}>{t('Select All', 'تحديد الكل')}</button>
+                            <button className="btn btn-secondary btn-sm" onClick={() => setRolePerms([])}>{t('Clear All', 'مسح الكل')}</button>
+                        </div>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                            {rolePerms.length} / {permissions.length} {t('selected', 'محدد')}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 400, overflowY: 'auto', marginBottom: 20 }}>
+                            {Object.entries(groupPermissions(filteredPermsForRole)).map(([group, perms]) => (
+                                <div key={group}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>{group}</div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6 }}>
+                                        {perms.map(p => {
+                                            const checked = rolePerms.includes(p.id);
+                                            const shortName = p.name.split('.').pop() || p.name;
+                                            return (
+                                                <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: checked ? 'rgba(99,102,241,0.1)' : 'var(--bg-tertiary)', border: `1px solid ${checked ? 'rgba(99,102,241,0.35)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, transition: 'all 150ms' }}>
+                                                    <input type="checkbox" checked={checked} onChange={() => setRolePerms(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{ accentColor: '#6366f1' }} />
+                                                    <div>
+                                                        <div style={{ fontWeight: checked ? 600 : 400 }}>{shortName}</div>
+                                                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.name}</div>
+                                                    </div>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                            <button className="btn btn-secondary" onClick={() => setShowPermModal(false)}>{t('Cancel', 'إلغاء')}</button>
+                            <button className="btn btn-primary" disabled={actionLoading} onClick={async () => { await handleSaveRolePermissions(); setShowPermModal(false); }}>
+                                {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `💾 ${t('Save Permissions', 'حفظ الصلاحيات')}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
         </div>
     );
 }

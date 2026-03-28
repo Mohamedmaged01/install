@@ -6,9 +6,11 @@ import { createOrder, getBranches, getDepartments, getApexInvoices, getApexOffer
 import { Branch, Department, AddOrderDto, ApexInvoice, ApexOffer } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
+import { useLang } from '@/context/LanguageContext';
 
 export default function NewOrderPage() {
     const router = useRouter();
+    const { t } = useLang();
     const [branches, setBranches] = useState<Branch[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [invoices, setInvoices] = useState<ApexInvoice[]>([]);
@@ -74,7 +76,7 @@ export default function NewOrderPage() {
 
     const handleSubmit = async (asDraft: boolean) => {
         if (!branchId || !departmentId) {
-            setError('Please select branch and department');
+            setError(t('Please select branch and department', 'الرجاء اختيار الفرع والقسم'));
             return;
         }
 
@@ -101,7 +103,7 @@ export default function NewOrderPage() {
             const newOrder = await createOrder(dto);
             router.push(`/orders/${newOrder.id}`);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to create order');
+            setError(err instanceof Error ? err.message : t('Failed to create order', 'فشل إنشاء الطلب'));
         } finally {
             setLoading(false);
         }
@@ -124,8 +126,8 @@ export default function NewOrderPage() {
         <PermissionGuard requiredPerms={[PERMS.ORDERS_CREATE]}>
             <div className="animate-in">
                 <div className="page-header">
-                    <h1>Create Installation Order</h1>
-                    <p>Create a new installation order from a sales document</p>
+                    <h1>{t('Create Installation Order', 'إنشاء أمر تركيب')}</h1>
+                    <p>{t('Create a new installation order from a sales document', 'إنشاء أمر تركيب جديد من مستند مبيعات')}</p>
                 </div>
 
                 {error && (
@@ -147,27 +149,27 @@ export default function NewOrderPage() {
                     <div>
                         {/* Sales Document */}
                         <div className="card" style={{ marginBottom: 20 }}>
-                            <div className="card-title" style={{ marginBottom: 16 }}>📄 Sales Document</div>
+                            <div className="card-title" style={{ marginBottom: 16 }}>📄 {t('Sales Document', 'مستند المبيعات')}</div>
 
                             {apexError && (
                                 <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--radius-md)', color: '#f59e0b', fontSize: 12, marginBottom: 16 }}>
-                                    ⚠️ APEX connection issue — {apexError}. You can still enter document IDs manually.
+                                    ⚠️ {t('APEX connection issue', 'مشكلة اتصال APEX')} — {apexError}. {t('You can still enter document IDs manually.', 'لا يزال بإمكانك إدخال معرفات المستندات يدوياً.')}
                                 </div>
                             )}
 
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Document Type *</label>
+                                    <label className="form-label">{t('Document Type', 'نوع المستند')} *</label>
                                     <select className="form-select" value={docType} onChange={e => { setDocType(e.target.value as 'invoice' | 'quotation'); setSelectedDocId(''); setApexSearch(''); }}>
-                                        <option value="invoice">Invoice</option>
-                                        <option value="quotation">Quotation / Offer</option>
+                                        <option value="invoice">{t('Invoice', 'فاتورة')}</option>
+                                        <option value="quotation">{t('Quotation / Offer', 'عرض سعر')}</option>
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Search APEX Code</label>
+                                    <label className="form-label">{t('Search APEX Code', 'البحث برمز APEX')}</label>
                                     <input
                                         className="form-input"
-                                        placeholder="Search by code or customer..."
+                                        placeholder={t('Search by code or customer...', 'ابحث بالرمز أو العميل...')}
                                         value={apexSearch}
                                         onChange={e => setApexSearch(e.target.value)}
                                     />
@@ -178,12 +180,12 @@ export default function NewOrderPage() {
                                 const docs = docType === 'invoice'
                                     ? invoices.filter(inv => !q || inv.code.toLowerCase().includes(q) || (inv.customer?.latinName || inv.customer?.arabicName || '').toLowerCase().includes(q))
                                     : offers.filter(off => !q || off.code.toLowerCase().includes(q) || (off.customer?.latinName || off.customer?.arabicName || '').toLowerCase().includes(q));
-                                if (invoices.length === 0 && offers.length === 0) return <span className="form-hint">No APEX documents loaded — enter ID manually below</span>;
+                                if (invoices.length === 0 && offers.length === 0) return <span className="form-hint">{t('No APEX documents loaded — enter ID manually below', 'لم يتم تحميل مستندات APEX — أدخل المعرف يدوياً أدناه')}</span>;
                                 return (
                                     <div className="form-group">
-                                        <label className="form-label">Select from APEX {docs.length > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({docs.length})</span>}</label>
+                                        <label className="form-label">{t('Select from APEX', 'اختر من APEX')} {docs.length > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({docs.length})</span>}</label>
                                         <select className="form-select" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
-                                            <option value="">— Select —</option>
+                                            <option value="">— {t('Select', 'اختر')} —</option>
                                             {docType === 'invoice'
                                                 ? (docs as typeof invoices).map(inv => (
                                                     <option key={inv.code} value={inv.code}>
@@ -204,15 +206,15 @@ export default function NewOrderPage() {
                             {/* Selected doc preview */}
                             {selectedDoc && (
                                 <div style={{ padding: '12px 16px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 'var(--radius-md)', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', fontSize: 13 }}>
-                                    <div><span style={{ color: 'var(--text-muted)' }}>Customer: </span><strong>{selectedDoc.customer?.latinName || selectedDoc.customer?.arabicName}</strong></div>
-                                    <div><span style={{ color: 'var(--text-muted)' }}>Net Total: </span><strong>SAR {selectedDoc.net?.toLocaleString()}</strong></div>
-                                    <div><span style={{ color: 'var(--text-muted)' }}>VAT: </span>SAR {selectedDoc.totalVat?.toLocaleString()}</div>
-                                    <div><span style={{ color: 'var(--text-muted)' }}>Items: </span>{selectedDoc.items?.length ?? 0}</div>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>{t('Customer', 'العميل')}: </span><strong>{selectedDoc.customer?.latinName || selectedDoc.customer?.arabicName}</strong></div>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>{t('Net Total', 'الإجمالي الصافي')}: </span><strong>SAR {selectedDoc.net?.toLocaleString()}</strong></div>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>{t('VAT', 'الضريبة')}: </span>SAR {selectedDoc.totalVat?.toLocaleString()}</div>
+                                    <div><span style={{ color: 'var(--text-muted)' }}>{t('Items', 'العناصر')}: </span>{selectedDoc.items?.length ?? 0}</div>
                                 </div>
                             )}
 
                             <div className="form-group">
-                                <label className="form-label">Document ID (manual override)</label>
+                                <label className="form-label">{t('Document ID (manual override)', 'معرف المستند (إدخال يدوي)')}</label>
                                 <input
                                     className="form-input"
                                     placeholder={docType === 'invoice' ? 'e.g. INV-2026-001' : 'e.g. OP-2026-001'}
@@ -221,10 +223,10 @@ export default function NewOrderPage() {
                                 />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">Customer Code</label>
+                                <label className="form-label">{t('Customer Code', 'رمز العميل')}</label>
                                 <input
                                     className="form-input"
-                                    placeholder="Auto-filled from selection or enter manually"
+                                    placeholder={t('Auto-filled from selection or enter manually', 'يُملأ تلقائياً أو أدخل يدوياً')}
                                     value={customerId}
                                     onChange={e => setCustomerId(e.target.value)}
                                 />
@@ -233,21 +235,21 @@ export default function NewOrderPage() {
 
                         {/* Installation Details */}
                         <div className="card" style={{ marginBottom: 20 }}>
-                            <div className="card-title" style={{ marginBottom: 16 }}>🔧 Installation Details</div>
+                            <div className="card-title" style={{ marginBottom: 16 }}>🔧 {t('Installation Details', 'تفاصيل التركيب')}</div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Branch *</label>
+                                    <label className="form-label">{t('Branch', 'الفرع')} *</label>
                                     <select className="form-select" value={branchId} onChange={e => setBranchId(Number(e.target.value))}>
-                                        <option value={0}>— Select Branch —</option>
+                                        <option value={0}>— {t('Select Branch', 'اختر الفرع')} —</option>
                                         {branches.map(b => (
                                             <option key={b.id} value={b.id}>{b.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Department *</label>
+                                    <label className="form-label">{t('Department', 'القسم')} *</label>
                                     <select className="form-select" value={departmentId} onChange={e => setDepartmentId(Number(e.target.value))}>
-                                        <option value={0}>— Select Department —</option>
+                                        <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
                                         {filteredDepts.map(d => (
                                             <option key={d.id} value={d.id}>{d.name}</option>
                                         ))}
@@ -256,32 +258,32 @@ export default function NewOrderPage() {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">City</label>
-                                    <input className="form-input" placeholder="City" value={city} onChange={e => setCity(e.target.value)} />
+                                    <label className="form-label">{t('City', 'المدينة')}</label>
+                                    <input className="form-input" placeholder={t('City', 'المدينة')} value={city} onChange={e => setCity(e.target.value)} />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Address</label>
-                                    <input className="form-input" placeholder="Full address" value={address} onChange={e => setAddress(e.target.value)} />
+                                    <label className="form-label">{t('Address', 'العنوان')}</label>
+                                    <input className="form-input" placeholder={t('Full address', 'العنوان الكامل')} value={address} onChange={e => setAddress(e.target.value)} />
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">📍 Location Link</label>
+                                <label className="form-label">📍 {t('Location Link', 'رابط الموقع')}</label>
                                 <input className="form-input" placeholder="https://maps.google.com/..." value={location} onChange={e => setLocation(e.target.value)} />
                             </div>
                             <div className="form-group">
-                                <label className="form-label">📝 Notes</label>
-                                <textarea className="form-textarea" rows={3} placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} />
+                                <label className="form-label">📝 {t('Notes', 'ملاحظات')}</label>
+                                <textarea className="form-textarea" rows={3} placeholder={t('Additional notes...', 'ملاحظات إضافية...')} value={notes} onChange={e => setNotes(e.target.value)} />
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">Scheduled Date</label>
+                                    <label className="form-label">{t('Scheduled Date', 'التاريخ المجدول')}</label>
                                     <input className="form-input" type="datetime-local" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">Priority</label>
+                                    <label className="form-label">{t('Priority', 'الأولوية')}</label>
                                     <select className="form-select" value={priority} onChange={e => setPriority(e.target.value as 'Normal' | 'Urgent')}>
-                                        <option value="Normal">Normal</option>
-                                        <option value="Urgent">Urgent</option>
+                                        <option value="Normal">{t('Normal', 'عادي')}</option>
+                                        <option value="Urgent">{t('Urgent', 'عاجل')}</option>
                                     </select>
                                 </div>
                             </div>
@@ -291,31 +293,33 @@ export default function NewOrderPage() {
                     {/* Sidebar Summary */}
                     <div style={{ position: 'sticky', top: 24 }}>
                         <div className="card">
-                            <div className="card-title" style={{ marginBottom: 16 }}>📝 Summary</div>
+                            <div className="card-title" style={{ marginBottom: 16 }}>📝 {t('Summary', 'الملخص')}</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14, marginBottom: 20 }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Type</span>
-                                    <span>{docType === 'invoice' ? 'Invoice' : 'Quotation'}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Type', 'النوع')}</span>
+                                    <span>{docType === 'invoice' ? t('Invoice', 'فاتورة') : t('Quotation', 'عرض سعر')}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Doc ID</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Doc ID', 'معرف المستند')}</span>
                                     <span>{selectedDocId || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Branch</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}</span>
                                     <span>{branches.find(b => b.id === branchId)?.name || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Department</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}</span>
                                     <span>{filteredDepts.find(d => d.id === departmentId)?.name || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>City</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('City', 'المدينة')}</span>
                                     <span>{city || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>Priority</span>
-                                    <span style={{ color: priority === 'Urgent' ? '#ef4444' : '#10b981' }}>{priority}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Priority', 'الأولوية')}</span>
+                                    <span style={{ color: priority === 'Urgent' ? '#ef4444' : '#10b981' }}>
+                                        {priority === 'Urgent' ? t('Urgent', 'عاجل') : t('Normal', 'عادي')}
+                                    </span>
                                 </div>
                             </div>
 
@@ -326,7 +330,7 @@ export default function NewOrderPage() {
                                     onClick={() => handleSubmit(false)}
                                     style={{ width: '100%' }}
                                 >
-                                    {loading ? '⏳ Submitting...' : '📤 Submit for Approval'}
+                                    {loading ? `⏳ ${t('Submitting...', 'جارٍ الإرسال...')}` : `📤 ${t('Submit for Approval', 'إرسال للموافقة')}`}
                                 </button>
                                 <button
                                     className="btn btn-secondary"
@@ -334,7 +338,7 @@ export default function NewOrderPage() {
                                     onClick={() => handleSubmit(true)}
                                     style={{ width: '100%' }}
                                 >
-                                    💾 Save as Draft
+                                    💾 {t('Save as Draft', 'حفظ كمسودة')}
                                 </button>
                             </div>
                         </div>
