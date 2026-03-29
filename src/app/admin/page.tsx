@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
     getBranches, createBranch, updateBranch, deleteBranch,
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
-    getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
+    getDepartmentUsers, createDepartmentUser, deleteDepartmentUser, updateDepartmentUser,
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
     getUserTypes,
@@ -30,6 +30,8 @@ export default function AdminPage() {
     const [newDept, setNewDept] = useState({ branchId: 0, name: '' });
     const [editBranch, setEditBranch] = useState<{ id: number; name: string; email: string; phone: string } | null>(null);
     const [editDept, setEditDept] = useState<{ id: number; name: string; branchId: number } | null>(null);
+    const [editUser, setEditUser] = useState<{ id: number; name: string; email: string; phone: string; departmentId: number; roleId: number } | null>(null);
+    const [editUserImage, setEditUserImage] = useState<File | null>(null);
     const [newRoleName, setNewRoleName] = useState('');
     const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
     const [rolePerms, setRolePerms] = useState<number[]>([]);
@@ -131,13 +133,13 @@ export default function AdminPage() {
 
     const handleUpdateDept = async () => {
         if (!editDept) return;
-        if (!editDept.name || !editDept.branchId) {
-            alert(t('Department name and branch are required.', 'اسم القسم والفرع مطلوبان.'));
+        if (!editDept.name.trim()) {
+            alert(t('Department name is required.', 'اسم القسم مطلوب.'));
             return;
         }
         setActionLoading(true);
         try {
-            await updateDepartment(editDept.id, { name: editDept.name, branchId: editDept.branchId });
+            await updateDepartment(editDept.id, { name: editDept.name, branchId: editDept.branchId || undefined });
             setDepartments(await getDepartments().catch(() => []));
             setEditDept(null);
         } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
@@ -216,6 +218,23 @@ export default function AdminPage() {
         } catch (err) {
             alert(err instanceof Error ? err.message : t('Failed to delete user', 'فشل حذف المستخدم'));
         }
+    };
+
+    const handleUpdateUser = async () => {
+        if (!editUser) return;
+        setActionLoading(true);
+        try {
+            await updateDepartmentUser(
+                editUser.id,
+                { Name: editUser.name, Email: editUser.email, Phone: editUser.phone, DepartmentId: editUser.departmentId || undefined, RoleId: editUser.roleId || undefined },
+                editUserImage,
+            );
+            setEditUser(null);
+            setEditUserImage(null);
+            loadUsers();
+        } catch (err) {
+            alert(err instanceof Error ? err.message : t('Failed to update user', 'فشل تحديث المستخدم'));
+        } finally { setActionLoading(false); }
     };
 
     // ── Grouped permissions helper ──
@@ -395,9 +414,17 @@ export default function AdminPage() {
                                         <button key={d.id} className="btn btn-secondary btn-sm" onClick={() => loadUsers(undefined, d.id)}>{d.name}</button>
                                     ))}
                                 </div>
-                                <div className="table-container" style={{ border: 'none' }}>
-                                    <table>
-                                        <thead><tr><th>{t('Name', 'الاسم')}</th><th>{t('Email', 'البريد')}</th><th>{t('Phone', 'الهاتف')}</th><th>{t('Department', 'القسم')}</th><th>{t('Role', 'الدور')}</th><th>{t('Type', 'النوع')}</th><th style={{ width: 80 }}>{t('Actions', 'الإجراءات')}</th></tr></thead>
+                                <div className="table-container" style={{ border: 'none', overflowX: 'auto' }}>
+                                    <table style={{ minWidth: 700 }}>
+                                        <thead><tr>
+                                            <th>{t('Name', 'الاسم')}</th>
+                                            <th>{t('Email', 'البريد')}</th>
+                                            <th>{t('Phone', 'الهاتف')}</th>
+                                            <th>{t('Department', 'القسم')}</th>
+                                            <th>{t('Role', 'الدور')}</th>
+                                            <th>{t('Type', 'النوع')}</th>
+                                            <th style={{ width: 60, position: 'sticky', right: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>{t('Actions', 'الإجراءات')}</th>
+                                        </tr></thead>
                                         <tbody>
                                             {users.map(u => (
                                                 <tr key={u.id}>
@@ -412,8 +439,11 @@ export default function AdminPage() {
                                                         }
                                                     </td>
                                                     <td>{u.type || '—'}</td>
-                                                    <td>
-                                                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
+                                                    <td style={{ position: 'sticky', right: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>
+                                                        <div className="btn-group">
+                                                            <button className="btn btn-secondary btn-sm" onClick={() => { setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId }); setEditUserImage(null); }}>✏️</button>
+                                                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -512,6 +542,61 @@ export default function AdminPage() {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* ══════════ EDIT USER MODAL ══════════ */}
+            {editUser && (
+                <div className="modal-overlay" onClick={() => setEditUser(null)}>
+                    <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 style={{ fontSize: 17 }}>✏️ {t('Edit User', 'تعديل المستخدم')}</h2>
+                            <button className="modal-close" onClick={() => setEditUser(null)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">{t('Name', 'الاسم')}</label>
+                                    <input className="form-input" value={editUser.name} onChange={e => setEditUser({ ...editUser, name: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Email', 'البريد')}</label>
+                                    <input className="form-input" type="email" value={editUser.email} onChange={e => setEditUser({ ...editUser, email: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">{t('Phone', 'الهاتف')}</label>
+                                    <input className="form-input" value={editUser.phone} onChange={e => setEditUser({ ...editUser, phone: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Department', 'القسم')}</label>
+                                    <select className="form-select" value={editUser.departmentId} onChange={e => setEditUser({ ...editUser, departmentId: Number(e.target.value) })}>
+                                        <option value={0}>— {t('Select', 'اختر')} —</option>
+                                        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Role', 'الدور')}</label>
+                                <select className="form-select" value={editUser.roleId} onChange={e => setEditUser({ ...editUser, roleId: Number(e.target.value) })}>
+                                    <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
+                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Profile Image', 'الصورة الشخصية')}</label>
+                                <input className="form-input" type="file" accept="image/*" onChange={e => setEditUserImage(e.target.files?.[0] ?? null)} />
+                                {editUserImage && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>📎 {editUserImage.name}</div>}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                                <button className="btn btn-secondary" onClick={() => setEditUser(null)}>{t('Cancel', 'إلغاء')}</button>
+                                <button className="btn btn-primary" disabled={actionLoading} onClick={handleUpdateUser}>
+                                    {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `💾 ${t('Save Changes', 'حفظ التغييرات')}`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* ══════════ PERMISSIONS MODAL ══════════ */}

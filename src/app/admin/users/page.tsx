@@ -165,12 +165,12 @@ export default function AdminUsersPage() {
     };
 
     const handleRemoveFromRole = async (id: number, name: string) => {
-        if (!confirm(`Remove "${name}" from this role?`)) return;
+        if (!confirm(t(`Remove "${name}" from this role?`, `هل تريد إزالة "${name}" من هذا الدور؟`))) return;
         try {
             await removeUserFromRole(id);
             setRoleUsers(prev => prev.filter(u => u.id !== id));
             await loadAll();
-        } catch (err) { alert(err instanceof Error ? err.message : 'Failed to remove user from role'); }
+        } catch (err) { alert(err instanceof Error ? err.message : t('Failed to remove user from role', 'فشل إزالة المستخدم من الدور')); }
     };
 
     /* ── filter ── */

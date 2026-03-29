@@ -129,11 +129,11 @@ export async function getBranches(): Promise<Branch[]> {
 }
 
 export async function createBranch(dto: { name: string; email?: string; phone?: string }): Promise<Branch> {
-    return api<Branch>('/api/Branches', { method: 'POST', body: dto });
+    return api<Branch>('/api/Branches', { method: 'POST', params: { Name: dto.name, Email: dto.email, Phone: dto.phone } });
 }
 
 export async function updateBranch(id: number, dto: { name: string; email?: string; phone?: string }): Promise<Branch> {
-    return api<Branch>(`/api/Branches/${id}`, { method: 'PUT', body: dto });
+    return api<Branch>(`/api/Branches/${id}`, { method: 'PUT', params: { Name: dto.name, Email: dto.email, Phone: dto.phone } });
 }
 
 export async function deleteBranch(id: number): Promise<void> {
@@ -176,7 +176,7 @@ export async function getDepartments(branchId?: number): Promise<Department[]> {
 }
 
 export async function createDepartment(dto: { branchId: number; name: string }): Promise<Department> {
-    return api<Department>('/api/Departments', { method: 'POST', body: dto });
+    return api<Department>('/api/Departments', { method: 'POST', params: { BranchId: dto.branchId, Name: dto.name } });
 }
 
 export async function getDepartmentUsers(branchId?: number, departmentId?: number): Promise<DepartmentUser[]> {
@@ -195,8 +195,10 @@ export async function createDepartmentUser(formData: FormData): Promise<Departme
     });
 }
 
-export async function updateDepartment(id: number, dto: { name: string; branchId: number }): Promise<Department> {
-    return api<Department>(`/api/Departments/${id}`, { method: 'PUT', body: dto });
+export async function updateDepartment(id: number, dto: { name: string; branchId?: number }): Promise<Department> {
+    const params: Record<string, string | number | undefined | null> = { Name: dto.name };
+    if (dto.branchId) params.BranchId = dto.branchId;
+    return api<Department>(`/api/Departments/${id}`, { method: 'PUT', params });
 }
 
 export async function deleteDepartment(id: number): Promise<void> {
@@ -204,11 +206,34 @@ export async function deleteDepartment(id: number): Promise<void> {
 }
 
 export async function removeUserFromRole(userId: number): Promise<void> {
-    return api<void>(`/api/Departments/user/${userId}/remove-role`, { method: 'PUT' });
+    return api<void>(`/api/Users/${userId}/remove-role`, { method: 'PUT' });
 }
 
 export async function deleteDepartmentUser(id: number): Promise<void> {
     return api<void>(`/api/Departments/user/${id}`, { method: 'DELETE' });
+}
+
+export async function updateDepartmentUser(
+    id: number,
+    fields: { Name?: string; Email?: string; Phone?: string; DepartmentId?: number; RoleId?: number },
+    image?: File | null,
+): Promise<DepartmentUser> {
+    const params: Record<string, string | number | undefined | null> = {};
+    if (fields.Name)         params.Name         = fields.Name;
+    if (fields.Email)        params.Email        = fields.Email;
+    if (fields.Phone)        params.Phone        = fields.Phone;
+    if (fields.DepartmentId) params.DepartmentId = fields.DepartmentId;
+    if (fields.RoleId)       params.RoleId       = fields.RoleId;
+
+    const formData = new FormData();
+    if (image) formData.append('Image', image);
+
+    return api<DepartmentUser>(`/api/Users/${id}`, {
+        method: 'PUT',
+        params,
+        body: formData,
+        isFormData: true,
+    });
 }
 
 // ==================== ORDERS ====================
