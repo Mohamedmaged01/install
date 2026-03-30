@@ -129,11 +129,11 @@ export async function getBranches(): Promise<Branch[]> {
 }
 
 export async function createBranch(dto: { name: string; email?: string; phone?: string }): Promise<Branch> {
-    return api<Branch>('/api/Branches', { method: 'POST', params: { Name: dto.name, Email: dto.email, Phone: dto.phone } });
+    return api<Branch>('/api/Branches', { method: 'POST', body: { Name: dto.name, Email: dto.email, Phone: dto.phone } });
 }
 
 export async function updateBranch(id: number, dto: { name: string; email?: string; phone?: string }): Promise<Branch> {
-    return api<Branch>(`/api/Branches/${id}`, { method: 'PUT', params: { Name: dto.name, Email: dto.email, Phone: dto.phone } });
+    return api<Branch>(`/api/Branches/${id}`, { method: 'PUT', body: { Name: dto.name, Email: dto.email, Phone: dto.phone } });
 }
 
 export async function deleteBranch(id: number): Promise<void> {
@@ -176,7 +176,7 @@ export async function getDepartments(branchId?: number): Promise<Department[]> {
 }
 
 export async function createDepartment(dto: { branchId: number; name: string }): Promise<Department> {
-    return api<Department>('/api/Departments', { method: 'POST', params: { BranchId: dto.branchId, Name: dto.name } });
+    return api<Department>('/api/Departments', { method: 'POST', body: { BranchId: dto.branchId, Name: dto.name } });
 }
 
 export async function getDepartmentUsers(branchId?: number, departmentId?: number): Promise<DepartmentUser[]> {
@@ -196,9 +196,9 @@ export async function createDepartmentUser(formData: FormData): Promise<Departme
 }
 
 export async function updateDepartment(id: number, dto: { name: string; branchId?: number }): Promise<Department> {
-    const params: Record<string, string | number | undefined | null> = { Name: dto.name };
-    if (dto.branchId) params.BranchId = dto.branchId;
-    return api<Department>(`/api/Departments/${id}`, { method: 'PUT', params });
+    const body: Record<string, string | number | undefined | null> = { Name: dto.name };
+    if (dto.branchId) body.BranchId = dto.branchId;
+    return api<Department>(`/api/Departments/${id}`, { method: 'PUT', body });
 }
 
 export async function deleteDepartment(id: number): Promise<void> {
