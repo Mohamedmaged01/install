@@ -41,16 +41,17 @@ export default function TasksPage() {
     const [stats, setStats] = useState<import('@/types').TaskStatistics | null>(null);
 
     useEffect(() => {
-        getBranches().then(async (bs) => {
-            setBranches(bs);
-            const all = await Promise.all(bs.map(b => getDepartments(b.id).catch(() => [])));
-            setDepartments(all.flat());
-        }).catch(() => {});
+        getBranches().then(setBranches).catch(() => {});
     }, []);
 
-    const deptOptions = branchFilter.length > 0
-        ? departments.filter(d => branchFilter.includes(d.branchId))
-        : departments;
+    useEffect(() => {
+        getDepartments(branchFilter.length ? branchFilter : undefined)
+            .then(setDepartments)
+            .catch(() => setDepartments([]));
+        setDeptFilter([]);
+    }, [branchFilter]);
+
+    const deptOptions = departments;
 
     useEffect(() => {
         setLoading(true);
