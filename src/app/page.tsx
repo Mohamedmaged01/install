@@ -174,7 +174,7 @@ export default function DashboardPage() {
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number, name: string) => [value, name]} />
+                <Tooltip formatter={(value, name) => [value, name]} />
                 <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -188,7 +188,7 @@ export default function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip cursor={{ fill: 'var(--bg-tertiary)' }} formatter={(value: number) => [value, t('Orders', 'أوامر')]} />
+                <Tooltip cursor={{ fill: 'var(--bg-tertiary)' }} formatter={(value) => [value, t('Orders', 'أوامر')]} />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                   {barData.map((entry, i) => (
                     <Cell key={i} fill={entry.fill} />

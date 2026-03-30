@@ -77,7 +77,7 @@ export default function TechnicianPage() {
         }
         setStatsLoading(true);
         getTaskStatistics({
-            branchId: branchFilter || undefined,
+            branchIds: branchFilter ? [Number(branchFilter)] : undefined,
             departmentId: deptFilter || undefined,
             from: dateFrom || undefined,
             to: dateTo || undefined,
