@@ -5,7 +5,7 @@ import {
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
-    getDepartments, removeUserFromRole,updateRole,
+    getDepartments, updateDepartmentUser, updateRole,
 } from '@/lib/endpoints';
 import { Role, Permission, DepartmentUser, Department } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
@@ -23,7 +23,7 @@ interface NewUserForm {
     IsSuperAdmin: boolean;
 }
 
-type ModalType = 'addRole' | 'addUser' | 'permissions' | 'viewUsers' | null;
+type ModalType = 'addRole' | 'addUser' | 'permissions' | 'viewUsers' | 'editUser' | null;
 
 /* ════════════════════════════════════════════════════════
    PAGE
@@ -46,6 +46,8 @@ export default function AdminUsersPage() {
     /* forms */
     const [newRoleName, setNewRoleName] = useState('');
     const [userForm, setUserForm] = useState<NewUserForm>({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0, IsSuperAdmin: false });
+    const [editUserTarget, setEditUserTarget] = useState<DepartmentUser | null>(null);
+    const [editUserForm, setEditUserForm] = useState<{ Name: string; Email: string; Phone: string; DepartmentId: number; RoleId: number }>({ Name: '', Email: '', Phone: '', DepartmentId: 0, RoleId: 0 });
     const [searchQ, setSearchQ] = useState('');
 
     /* ui */
@@ -165,13 +167,21 @@ const handleSavePerms = async () => {
         } catch (err) { alert(err instanceof Error ? err.message : 'Failed to delete user'); }
     };
 
-    const handleRemoveFromRole = async (id: number, name: string) => {
-        if (!confirm(t(`Remove "${name}" from this role?`, `هل تريد إزالة "${name}" من هذا الدور؟`))) return;
+    const openEditUser = (u: DepartmentUser) => {
+        setEditUserTarget(u);
+        setEditUserForm({ Name: u.name, Email: u.email, Phone: u.phone || '', DepartmentId: u.departmentId, RoleId: u.roleId });
+        setModal('editUser');
+    };
+
+    const handleSaveEditUser = async () => {
+        if (!editUserTarget) return;
+        setActionLoading(true);
         try {
-            await removeUserFromRole(id);
-            setRoleUsers(prev => prev.filter(u => u.id !== id));
+            await updateDepartmentUser(editUserTarget.id, editUserForm);
             await loadAll();
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed to remove user from role', 'فشل إزالة المستخدم من الدور')); }
+            setModal('viewUsers');
+        } catch (err) { alert(err instanceof Error ? err.message : 'Failed to update user'); }
+        finally { setActionLoading(false); }
     };
 
     /* ── filter ── */
@@ -424,7 +434,7 @@ const handleSavePerms = async () => {
                                                 <td>{u.departmentName || `Dept #${u.departmentId}`}</td>
                                                 <td>
                                                     <div className="btn-group">
-                                                        <button className="btn btn-secondary btn-sm" title="Remove from role" onClick={() => handleRemoveFromRole(u.id, u.name)}>⛔</button>
+                                                        <button className="btn btn-secondary btn-sm" onClick={() => openEditUser(u)}>✏️ {t('Edit', 'تعديل')}</button>
                                                         <button className="btn btn-danger btn-sm" title="Delete user" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
                                                     </div>
                                                 </td>
@@ -433,6 +443,48 @@ const handleSavePerms = async () => {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                    </ModalShell>
+                )}
+
+                {/* Edit User Modal */}
+                {modal === 'editUser' && editUserTarget && (
+                    <ModalShell title={`✏️ ${t('Edit User', 'تعديل المستخدم')} — ${editUserTarget.name}`} onClose={() => setModal('viewUsers')} wide>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">{t('Full Name', 'الاسم الكامل')}</label>
+                                <input className="form-input" value={editUserForm.Name} onChange={e => setEditUserForm(p => ({ ...p, Name: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Email', 'البريد الإلكتروني')}</label>
+                                <input className="form-input" type="email" value={editUserForm.Email} onChange={e => setEditUserForm(p => ({ ...p, Email: e.target.value }))} />
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group">
+                                <label className="form-label">{t('Phone', 'الهاتف')}</label>
+                                <input className="form-input" value={editUserForm.Phone} onChange={e => setEditUserForm(p => ({ ...p, Phone: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Role', 'الدور')}</label>
+                                <select className="form-select" value={editUserForm.RoleId} onChange={e => setEditUserForm(p => ({ ...p, RoleId: Number(e.target.value) }))}>
+                                    <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
+                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">{t('Department', 'القسم')}</label>
+                            <select className="form-select" value={editUserForm.DepartmentId} onChange={e => setEditUserForm(p => ({ ...p, DepartmentId: Number(e.target.value) }))}>
+                                <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
+                                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="modal-footer" style={{ paddingTop: 16 }}>
+                            <button className="btn btn-secondary" onClick={() => setModal('viewUsers')}>{t('Cancel', 'إلغاء')}</button>
+                            <button className="btn btn-primary" disabled={actionLoading} onClick={handleSaveEditUser}>
+                                {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `💾 ${t('Save', 'حفظ')}`}
+                            </button>
                         </div>
                     </ModalShell>
                 )}
