@@ -5,7 +5,7 @@ import {
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
-    getDepartments, removeUserFromRole,
+    getDepartments, removeUserFromRole,updateRole,
 } from '@/lib/endpoints';
 import { Role, Permission, DepartmentUser, Department } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
@@ -107,19 +107,22 @@ export default function AdminUsersPage() {
         } catch { setRolePerms([]); }
     };
 
-    const handleSavePerms = async () => {
-        if (!activeRole) return;
-        setActionLoading(true);
-        try {
-            await updateRolePermissions(activeRole.id, rolePerms, editRoleName.trim() || undefined);
-            if (editRoleName.trim() && editRoleName.trim() !== activeRole.name) {
-                await loadAll();
-            }
-            setModal(null);
-        } catch (err) { alert(err instanceof Error ? err.message : 'Failed'); }
-        finally { setActionLoading(false); }
-    };
+const handleSavePerms = async () => {
+    if (!activeRole) return;
+    setActionLoading(true);
+    try {
+        const nameChanged = editRoleName.trim() && editRoleName.trim() !== activeRole.name;
 
+        await Promise.all([
+            nameChanged ? updateRole(activeRole.id, editRoleName.trim()) : Promise.resolve(),
+            updateRolePermissions(activeRole.id, rolePerms),
+        ]);
+
+        await loadAll();
+        setModal(null);
+    } catch (err) { alert(err instanceof Error ? err.message : 'Failed'); }
+    finally { setActionLoading(false); }
+};
     /* ── view users in role ── */
     const openRoleUsers = async (role: Role) => {
         setActiveRole(role);

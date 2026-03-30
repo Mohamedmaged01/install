@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getStatistics, getBranches } from '@/lib/endpoints';
-import { Statistics, Order, Branch } from '@/types';
+import { getStatistics, getBranches, getDepartments } from '@/lib/endpoints';
+import { Statistics, Order, Branch, Department } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
+import MultiSelect from '@/components/MultiSelect';
 import { useLang } from '@/context/LanguageContext';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
@@ -17,20 +18,29 @@ export default function DashboardPage() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchFilter, setBranchFilter] = useState<number | ''>('');
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [branchFilter, setBranchFilter] = useState<number[]>([]);
+  const [deptFilter, setDeptFilter] = useState<number[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     getBranches().then(setBranches).catch(() => {});
+    getDepartments().then(setDepartments).catch(() => {});
   }, []);
+
+  // Filter department options to only show departments from selected branches
+  const deptOptions = branchFilter.length > 0
+    ? departments.filter(d => branchFilter.includes(d.branchId))
+    : departments;
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
         const statsData = await getStatistics({
-          branchIds: branchFilter ? [Number(branchFilter)] : undefined,
+          branchIds: branchFilter.length ? branchFilter : undefined,
+          departmentIds: deptFilter.length ? deptFilter : undefined,
           from: dateFrom || undefined,
           to: dateTo || undefined,
         });
@@ -47,7 +57,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, [branchFilter, dateFrom, dateTo]);
+  }, [branchFilter, deptFilter, dateFrom, dateTo]);
 
   if (loading) {
     return (
@@ -110,18 +120,27 @@ export default function DashboardPage() {
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: 24, padding: '14px 20px' }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          <select
-            className="form-select"
-            value={branchFilter}
-            onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}
-            style={{ minWidth: 140 }}
-          >
-            <option value="">{t('All Branches', 'جميع الفروع')}</option>
-            {branches.map(b => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('Branch', 'الفرع')}</label>
+            <MultiSelect
+              options={branches}
+              value={branchFilter}
+              onChange={ids => { setBranchFilter(ids); setDeptFilter([]); }}
+              placeholder={t('All Branches', 'جميع الفروع')}
+              style={{ minWidth: 160 }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('Department', 'القسم')}</label>
+            <MultiSelect
+              options={deptOptions}
+              value={deptFilter}
+              onChange={setDeptFilter}
+              placeholder={t('All Departments', 'جميع الأقسام')}
+              style={{ minWidth: 180 }}
+            />
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
             <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ minWidth: 150 }} />
@@ -130,8 +149,8 @@ export default function DashboardPage() {
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
             <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} />
           </div>
-          {(branchFilter || dateFrom || dateTo) && (
-            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDateFrom(''); setDateTo(''); }}>
+          {(branchFilter.length > 0 || deptFilter.length > 0 || dateFrom || dateTo) && (
+            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setDateFrom(''); setDateTo(''); }}>
               {t('Clear', 'مسح')}
             </button>
           )}

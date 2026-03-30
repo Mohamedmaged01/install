@@ -375,8 +375,13 @@ export async function updateTaskStatus(id: number, dto: { newStatus: TaskStatus;
     return api<void>(`/api/Tasks/${id}/status`, { method: 'POST', body: formData, isFormData: true });
 }
 
-export async function getMyTasks(params?: { technicianId?: number; branchId?: number; technicianName?: string }): Promise<Task[]> {
-    const raw = await api<unknown>('/api/Tasks/tasks', { params: params as Record<string, string | number> });
+export async function getMyTasks(params?: { technicianId?: number; branchIds?: number[]; departmentIds?: number[]; technicianName?: string }): Promise<Task[]> {
+    const p: Record<string, string | number | number[] | undefined> = {};
+    if (params?.technicianId) p.technicianId = params.technicianId;
+    if (params?.branchIds?.length) p.branchIds = params.branchIds;
+    if (params?.departmentIds?.length) p.departmentIds = params.departmentIds;
+    if (params?.technicianName) p.technicianName = params.technicianName;
+    const raw = await api<unknown>('/api/Tasks/tasks', { params: p });
     if (Array.isArray(raw)) return raw as Task[];
     const obj = raw as Record<string, unknown>;
     if (obj && Array.isArray(obj.data)) return obj.data as Task[];
@@ -414,13 +419,13 @@ export async function getTaskNotes(id: number): Promise<TaskNote[]> {
 
 export async function getTaskStatistics(params?: {
     branchIds?: number[];
-    departmentId?: number;
+    departmentIds?: number[];
     from?: string;
     to?: string;
 }): Promise<TaskStatistics> {
     const p: Record<string, string | number | number[] | undefined> = {};
     if (params?.branchIds?.length) p.branchIds = params.branchIds;
-    if (params?.departmentId) p.departmentId = params.departmentId;
+    if (params?.departmentIds?.length) p.departmentIds = params.departmentIds;
     if (params?.from) p.from = params.from;
     if (params?.to) p.to = params.to;
     const raw = await api<unknown>('/api/Tasks/statistics', { params: p });
@@ -432,13 +437,13 @@ export async function getTaskStatistics(params?: {
 
 export async function getStatistics(params?: {
     branchIds?: number[];
-    departmentId?: number;
+    departmentIds?: number[];
     from?: string;
     to?: string;
 }): Promise<Statistics> {
     const p: Record<string, string | number | number[] | undefined> = {};
     if (params?.branchIds?.length) p.branchIds = params.branchIds;
-    if (params?.departmentId) p.departmentId = params.departmentId;
+    if (params?.departmentIds?.length) p.departmentIds = params.departmentIds;
     if (params?.from) p.from = params.from;
     if (params?.to) p.to = params.to;
     const raw = await api<Record<string, unknown>>('/api/Statistics', { params: p });
@@ -481,6 +486,10 @@ export async function createRole(name: string): Promise<Role> {
     return api<Role>('/api/Roles', { method: 'POST', body: name });
 }
 
+export async function updateRole(id: number, name: string): Promise<void> {
+    await api<string>(`/api/Roles/${id}`, { method: 'PUT', body: name });
+}
+
 export async function deleteRole(id: number): Promise<void> {
     return api<void>(`/api/Roles/${id}`, { method: 'DELETE' });
 }
@@ -498,11 +507,10 @@ export async function setRolePermissions(id: number, permissionIds: number[]): P
     return api<void>(`/api/Roles/${id}/permissions`, { method: 'POST', body: permissionIds });
 }
 
-export async function updateRolePermissions(id: number, permissionIds: number[], name?: string): Promise<void> {
+export async function updateRolePermissions(id: number, permissionIds: number[]): Promise<void> {
     return api<void>(`/api/Roles/${id}/permissions`, {
         method: 'PUT',
         body: permissionIds,
-        params: name ? { name } : undefined,
     });
 }
 
