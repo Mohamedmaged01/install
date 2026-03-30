@@ -379,7 +379,7 @@ export async function getMyTasks(params?: { technicianId?: number; branchIds?: n
     const p: Record<string, string | number | number[] | undefined> = {};
     if (params?.technicianId) p.technicianId = params.technicianId;
     if (params?.branchIds?.length) p.branchIds = params.branchIds;
-    if (params?.departmentIds?.length) p.departmentIds = params.departmentIds;
+    if (params?.departmentIds?.length) p.departmentId = params.departmentIds;
     if (params?.technicianName) p.technicianName = params.technicianName;
     const raw = await api<unknown>('/api/Tasks/tasks', { params: p });
     if (Array.isArray(raw)) return raw as Task[];
@@ -425,7 +425,7 @@ export async function getTaskStatistics(params?: {
 }): Promise<TaskStatistics> {
     const p: Record<string, string | number | number[] | undefined> = {};
     if (params?.branchIds?.length) p.branchIds = params.branchIds;
-    if (params?.departmentIds?.length) p.departmentIds = params.departmentIds;
+    if (params?.departmentIds?.length) p.departmentId = params.departmentIds;
     if (params?.from) p.from = params.from;
     if (params?.to) p.to = params.to;
     const raw = await api<unknown>('/api/Tasks/statistics', { params: p });
@@ -443,7 +443,7 @@ export async function getStatistics(params?: {
 }): Promise<Statistics> {
     const p: Record<string, string | number | number[] | undefined> = {};
     if (params?.branchIds?.length) p.branchIds = params.branchIds;
-    if (params?.departmentIds?.length) p.departmentIds = params.departmentIds;
+    if (params?.departmentIds?.length) p.departmentId = params.departmentIds;
     if (params?.from) p.from = params.from;
     if (params?.to) p.to = params.to;
     const raw = await api<Record<string, unknown>>('/api/Statistics', { params: p });

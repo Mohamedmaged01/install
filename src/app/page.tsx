@@ -25,8 +25,12 @@ export default function DashboardPage() {
   const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
-    getBranches().then(setBranches).catch(() => {});
-    getDepartments().then(setDepartments).catch(() => {});
+    getBranches().then(async (bs) => {
+      setBranches(bs);
+      // Fetch departments for every branch so branchId is always populated
+      const all = await Promise.all(bs.map(b => getDepartments(b.id).catch(() => [])));
+      setDepartments(all.flat());
+    }).catch(() => {});
   }, []);
 
   // Filter department options to only show departments from selected branches

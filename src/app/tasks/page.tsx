@@ -41,8 +41,11 @@ export default function TasksPage() {
     const [stats, setStats] = useState<import('@/types').TaskStatistics | null>(null);
 
     useEffect(() => {
-        getBranches().then(setBranches).catch(() => {});
-        getDepartments().then(setDepartments).catch(() => {});
+        getBranches().then(async (bs) => {
+            setBranches(bs);
+            const all = await Promise.all(bs.map(b => getDepartments(b.id).catch(() => [])));
+            setDepartments(all.flat());
+        }).catch(() => {});
     }, []);
 
     const deptOptions = branchFilter.length > 0
