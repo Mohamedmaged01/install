@@ -94,31 +94,20 @@ export default function SupervisorPage() {
         setAssignNotes('');
         setSelectedTechs(new Set());
         try {
-            // Failsafe: if the list view payload doesn't include the branchId,
-            // fetch the full order details or resolve by name.
-            let bId = order.branchId;
+            // Failsafe: if the list view payload doesn't include the branches,
+            // fetch the full order details.
+            let branchIds = order.branches?.map(b => b.id) || [];
             let dId = order.departmentId;
 
-            if (isApprove && !bId) {
-                // First try matching branch name against loaded branches
-                if (order.branchName) {
-                    const matchedBranch = branches.find(b => b.name === order.branchName);
-                    if (matchedBranch) bId = matchedBranch.id;
-                }
-
-                // If still missing, fetch full order
-                if (!bId) {
-                    const fullOrder = await getOrderById(order.id);
-                    bId = fullOrder.branchId;
-                    if (!bId && fullOrder.branchName) {
-                        const matchedBranch = branches.find(b => b.name === fullOrder.branchName);
-                        if (matchedBranch) bId = matchedBranch.id;
-                    }
-                    dId = fullOrder.departmentId;
-                }
+            if (isApprove && branchIds.length === 0) {
+                const fullOrder = await getOrderById(order.id);
+                branchIds = fullOrder.branches?.map(b => b.id) || [];
+                dId = fullOrder.departmentId;
             }
 
-            const branchTechsPromise = bId ? getBranchTechnicians(bId) : Promise.resolve([]);
+            const branchTechsPromise = branchIds.length > 0 
+                ? Promise.all(branchIds.map(id => getBranchTechnicians(id))).then(res => res.flat()) 
+                : Promise.resolve([]);
             const deptTechsPromise = getDepartmentUsers(undefined, dId);
 
             const [users, allRoles] = await Promise.all([

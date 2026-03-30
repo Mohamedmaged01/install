@@ -54,7 +54,7 @@ export default function OrderDetailPage() {
     // Edit Order state
     const [showEditModal, setShowEditModal] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
-    const [editForm, setEditForm] = useState<Partial<UpdateOrderDto & { location: string; notes: string }>>({});
+    const [editForm, setEditForm] = useState<Partial<Omit<UpdateOrderDto, 'branchIds'> & { branchIds: number[], location: string; notes: string }>>({});
 
     const showToast = (type: 'error' | 'success', msg: string) => {
         setToast({ type, msg });
@@ -144,8 +144,8 @@ export default function OrderDetailPage() {
         setAssignNotes('');
         setTechsLoading(true);
         try {
-            const techsPromise = forApprove && order.branchId
-                ? getBranchTechnicians(order.branchId)
+            const techsPromise = forApprove && order.branches && order.branches.length > 0
+                ? Promise.all(order.branches.map(b => getBranchTechnicians(b.id))).then(res => res.flat())
                 : getDepartmentUsers(undefined, order.departmentId);
             const [users, allRoles] = await Promise.all([
                 techsPromise,
@@ -212,7 +212,7 @@ export default function OrderDetailPage() {
                 createdAt: order.createdAt,
                 salesApprovalDate: editForm.salesApprovalDate || null,
                 priority: editForm.priority || order.priority,
-                branchId: editForm.branchId || order.branchId,
+                branchIds: editForm.branchIds ? editForm.branchIds.map(id => ({ id })) : (order.branches ? order.branches.map(b => ({ id: b.id })) : []),
                 departmentId: editForm.departmentId || order.departmentId,
                 notes: editForm.notes ?? order.notes ?? null,
             };
@@ -362,7 +362,7 @@ export default function OrderDetailPage() {
                                 customerId: order.customerId || '',
                                 salesApprovalDate: (order as any).salesApprovalDate || '',
                                 priority: order.priority,
-                                branchId: order.branchId,
+                                branchIds: order.branches ? order.branches.map(b => b.id) : [],
                                 departmentId: order.departmentId,
                             });
                             setShowEditModal(true);
@@ -622,8 +622,8 @@ export default function OrderDetailPage() {
                     <div className="card">
                         <div className="card-title" style={{ marginBottom: 16 }}>📋 {t('Details', 'التفاصيل')}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14 }}>
-                            {(order.branchName || order.branchId) && (
-                                <div><span style={{ color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}:</span> {order.branchName || `#${order.branchId}`}</div>
+                            {(order.branches && order.branches.length > 0) && (
+                                <div><span style={{ color: 'var(--text-muted)' }}>{t('Branches', 'الفروع')}:</span> {order.branches.map(b => b.name).join(', ')}</div>
                             )}
                             {(order.departmentName && order.departmentName !== 'string' || order.departmentId) && (
                                 <div><span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}:</span> {order.departmentName && order.departmentName !== 'string' ? order.departmentName : `#${order.departmentId}`}</div>
@@ -843,8 +843,8 @@ export default function OrderDetailPage() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                                 <div className="form-group">
-                                    <label className="form-label">{t('Branch ID', 'معرف الفرع')}</label>
-                                    <input type="number" className="form-input" value={editForm.branchId || ''} onChange={e => setEditForm(prev => ({ ...prev, branchId: Number(e.target.value) }))} />
+                                    <label className="form-label">{t('Branch IDs', 'معرفات الفروع')} (comma separated)</label>
+                                    <input type="text" className="form-input" value={editForm.branchIds?.join(', ') || ''} onChange={e => setEditForm(prev => ({ ...prev, branchIds: e.target.value.split(',').map(n => Number(n.trim())).filter(n => !isNaN(n) && n > 0) }))} />
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">{t('Department ID', 'معرف القسم')}</label>

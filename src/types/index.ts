@@ -138,7 +138,7 @@ export interface AddOrderDto {
     customerId: string | null;
     createdAt: string;
     priority: Priority;
-    branchId: number;
+    branchIds: { id: number }[];
     departmentId: number;
     notes: string | null;
 }
@@ -155,7 +155,7 @@ export interface UpdateOrderDto {
     createdAt: string;
     salesApprovalDate: string | null;
     priority: Priority;
-    branchId: number;
+    branchIds: { id: number }[];
     departmentId: number;
     notes: string | null;
 }
@@ -176,8 +176,7 @@ export interface Order {
     createdAt: string;
     updatedAt?: string;
     priority: Priority;
-    branchId: number;
-    branchName?: string;
+    branches?: { id: number; name: string }[];
     departmentId: number;
     departmentName?: string;
     qrToken?: string;

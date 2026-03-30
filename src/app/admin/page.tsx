@@ -74,8 +74,8 @@ export default function AdminPage() {
 
     // ── Branch ──
     const handleCreateBranch = async () => {
-        if (!newBranch.name || !newBranch.email || !newBranch.phone) {
-            alert(t('Branch name, email, and phone are required.', 'اسم الفرع والبريد الإلكتروني والهاتف مطلوبة.'));
+        if (!newBranch.name) {
+            alert(t('Branch name is required.', 'اسم الفرع مطلوب.'));
             return;
         }
         setActionLoading(true);
@@ -90,8 +90,8 @@ export default function AdminPage() {
 
     const handleUpdateBranch = async () => {
         if (!editBranch) return;
-        if (!editBranch.name || !editBranch.email || !editBranch.phone) {
-            alert(t('Branch name, email, and phone are required.', 'اسم الفرع والبريد الإلكتروني والهاتف مطلوبة.'));
+        if (!editBranch.name) {
+            alert(t('Branch name is required.', 'اسم الفرع مطلوب.'));
             return;
         }
         setActionLoading(true);
@@ -113,7 +113,10 @@ export default function AdminPage() {
 
     // ── Department ──
     const handleCreateDept = async () => {
-        if (!newDept.name || !newDept.branchId) return;
+        if (!newDept.branchId || !newDept.name) {
+            alert(t('Please select a branch and enter a department name.', 'الرجاء اختيار الفرع وإدخال اسم القسم.'));
+            return;
+        }
         setActionLoading(true);
         try {
             await createDepartment(newDept);
@@ -290,7 +293,7 @@ export default function AdminPage() {
                                 <input className="form-input" placeholder={t('Branch name', 'اسم الفرع')} value={newBranch.name} onChange={e => setNewBranch({ ...newBranch, name: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
                                 <input className="form-input" placeholder={t('Email', 'البريد')} value={newBranch.email} onChange={e => setNewBranch({ ...newBranch, email: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
                                 <input className="form-input" placeholder={t('Phone', 'الهاتف')} value={newBranch.phone} onChange={e => setNewBranch({ ...newBranch, phone: e.target.value })} style={{ flex: 1, minWidth: 120 }} />
-                                <button className="btn btn-primary btn-sm" disabled={actionLoading || !newBranch.name || !newBranch.email || !newBranch.phone} onClick={handleCreateBranch}>+ {t('Add', 'إضافة')}</button>
+                                <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateBranch}>+ {t('Add', 'إضافة')}</button>
                             </div>
                             {branches.map(b => (
                                 <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
@@ -330,7 +333,7 @@ export default function AdminPage() {
                                     {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                 </select>
                                 <input className="form-input" placeholder={t('Department name', 'اسم القسم')} value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
-                                <button className="btn btn-primary btn-sm" disabled={actionLoading || !newDept.name || !newDept.branchId} onClick={handleCreateDept}>+ {t('Add', 'إضافة')}</button>
+                                <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateDept}>+ {t('Add', 'إضافة')}</button>
                             </div>
                             {departments.map(d => (
                                 <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
