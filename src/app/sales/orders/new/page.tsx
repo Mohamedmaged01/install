@@ -26,12 +26,9 @@ export default function NewOrderPage() {
     const [customerId, setCustomerId] = useState('');
     const [city, setCity] = useState('');
     const [address, setAddress] = useState('');
-    const [location, setLocation] = useState('');
-    const [notes, setNotes] = useState('');
-    const [scheduledDate, setScheduledDate] = useState('');
     const [priority, setPriority] = useState<'Normal' | 'Urgent'>('Normal');
     const [branchId, setBranchId] = useState<number>(0);
-    const [departmentId, setDepartmentId] = useState<number>(0);
+    const [departmentIds, setDepartmentIds] = useState<number[]>([]);
 
     useEffect(() => {
         async function load() {
@@ -40,7 +37,7 @@ export default function NewOrderPage() {
                 setBranches(b);
                 setDepartments(d);
                 if (b.length > 0) setBranchId(b[0].id);
-                if (d.length > 0) setDepartmentId(d[0].id);
+                if (d.length > 0) setDepartmentIds([d[0].id]);
             } catch (err) {
                 console.error('Failed to load form data:', err);
             }
@@ -63,19 +60,19 @@ export default function NewOrderPage() {
     useEffect(() => {
         if (branchId) {
             setDepartments([]);
-            setDepartmentId(0);
+            setDepartmentIds([]);
             getDepartments(branchId)
                 .then(d => {
                     const list = Array.isArray(d) ? d : [];
                     setDepartments(list);
-                    if (list.length > 0) setDepartmentId(list[0].id);
+                    if (list.length > 0) setDepartmentIds([list[0].id]);
                 })
                 .catch(() => { });
         }
     }, [branchId]);
 
     const handleSubmit = async (asDraft: boolean) => {
-        if (!branchId || !departmentId) {
+        if (!branchId || departmentIds.length === 0) {
             setError(t('Please select branch and department', 'الرجاء اختيار الفرع والقسم'));
             return;
         }
@@ -88,16 +85,16 @@ export default function NewOrderPage() {
                 status: asDraft ? 'Draft' : 'PendingSalesApproval',
                 city: city || null,
                 address: address || null,
-                location: location || null,
-                scheduledDate: scheduledDate ? new Date(scheduledDate).toISOString() : null,
+                location: null,
+                scheduledDate: null,
                 quotationId: docType === 'quotation' ? selectedDocId || null : null,
                 invoiceId: docType === 'invoice' ? selectedDocId || null : null,
                 customerId: customerId || null,
                 createdAt: new Date().toISOString(),
                 priority,
                 branchIds: branchId ? [{ id: branchId }] : [],
-                departmentId,
-                notes: notes || null,
+                departmentIds: departmentIds.map(id => ({ idd: id })),
+                notes: null,
             };
 
             const newOrder = await createOrder(dto);
@@ -248,12 +245,21 @@ export default function NewOrderPage() {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">{t('Department', 'القسم')} *</label>
-                                    <select className="form-select" value={departmentId} onChange={e => setDepartmentId(Number(e.target.value))}>
-                                        <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
-                                        {filteredDepts.map(d => (
-                                            <option key={d.id} value={d.id}>{d.name}</option>
-                                        ))}
-                                    </select>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', padding: '10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
+                                        {filteredDepts.map(d => {
+                                            const checked = departmentIds.includes(d.id);
+                                            return (
+                                                <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={() => setDepartmentIds(prev => checked ? prev.filter(id => id !== d.id) : [...prev, d.id])}
+                                                    />
+                                                    <span style={{ fontSize: 13, userSelect: 'none' }}>{d.name}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                             <div className="form-row">
@@ -267,25 +273,11 @@ export default function NewOrderPage() {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">📍 {t('Location Link', 'رابط الموقع')}</label>
-                                <input className="form-input" placeholder="https://maps.google.com/..." value={location} onChange={e => setLocation(e.target.value)} />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">📝 {t('Notes', 'ملاحظات')}</label>
-                                <textarea className="form-textarea" rows={3} placeholder={t('Additional notes...', 'ملاحظات إضافية...')} value={notes} onChange={e => setNotes(e.target.value)} />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label className="form-label">{t('Scheduled Date', 'التاريخ المجدول')}</label>
-                                    <input className="form-input" type="datetime-local" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">{t('Priority', 'الأولوية')}</label>
-                                    <select className="form-select" value={priority} onChange={e => setPriority(e.target.value as 'Normal' | 'Urgent')}>
-                                        <option value="Normal">{t('Normal', 'عادي')}</option>
-                                        <option value="Urgent">{t('Urgent', 'عاجل')}</option>
-                                    </select>
-                                </div>
+                                <label className="form-label">{t('Priority', 'الأولوية')}</label>
+                                <select className="form-select" value={priority} onChange={e => setPriority(e.target.value as 'Normal' | 'Urgent')}>
+                                    <option value="Normal">{t('Normal', 'عادي')}</option>
+                                    <option value="Urgent">{t('Urgent', 'عاجل')}</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -309,7 +301,7 @@ export default function NewOrderPage() {
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}</span>
-                                    <span>{filteredDepts.find(d => d.id === departmentId)?.name || '—'}</span>
+                                    <span>{filteredDepts.filter(d => departmentIds.includes(d.id)).map(d => d.name).join(', ') || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>{t('City', 'المدينة')}</span>

@@ -139,7 +139,7 @@ export interface AddOrderDto {
     createdAt: string;
     priority: Priority;
     branchIds: { id: number }[];
-    departmentId: number;
+    departmentIds: { idd: number }[];
     notes: string | null;
 }
 
