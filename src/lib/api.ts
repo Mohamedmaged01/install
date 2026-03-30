@@ -97,12 +97,20 @@ export async function api<T = unknown>(
     if (!response.ok) {
         let errorMessage = `API Error: ${response.status}`;
         try {
-            if (contentType.includes('application/json')) {
+            const isJson = contentType.includes('application/json') || contentType.includes('application/problem+json');
+            if (isJson) {
                 const errorData = await response.json();
-                if (errorData && typeof errorData === 'object' && 'succeeded' in errorData) {
-                    errorMessage = errorData.message || errorMessage;
-                } else {
-                    errorMessage = errorData.message || errorData.title || JSON.stringify(errorData);
+                if (errorData && typeof errorData === 'object') {
+                    if ('succeeded' in errorData) {
+                        errorMessage = errorData.message || errorMessage;
+                    } else if (errorData.errors && typeof errorData.errors === 'object' && !Array.isArray(errorData.errors)) {
+                        // ASP.NET validation errors: { errors: { Field: ["msg1"] } }
+                        const msgs = Object.entries(errorData.errors as Record<string, string[]>)
+                            .flatMap(([, msgs]) => msgs);
+                        errorMessage = msgs.join('\n');
+                    } else {
+                        errorMessage = errorData.message || errorData.title || JSON.stringify(errorData);
+                    }
                 }
             } else {
                 errorMessage = await response.text();

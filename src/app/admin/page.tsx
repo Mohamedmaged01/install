@@ -36,6 +36,7 @@ export default function AdminPage() {
     const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
     const [rolePerms, setRolePerms] = useState<number[]>([]);
     const [actionLoading, setActionLoading] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
     const [permSearch, setPermSearch] = useState('');
     const [showPermModal, setShowPermModal] = useState(false);
 
@@ -74,8 +75,9 @@ export default function AdminPage() {
 
     // ── Branch ──
     const handleCreateBranch = async () => {
+        setActionError(null);
         if (!newBranch.name) {
-            alert(t('Branch name is required.', 'اسم الفرع مطلوب.'));
+            setActionError(t('Branch name is required.', 'اسم الفرع مطلوب.'));
             return;
         }
         setActionLoading(true);
@@ -83,15 +85,15 @@ export default function AdminPage() {
             await createBranch(newBranch);
             setNewBranch({ name: '', email: '', phone: '' });
             setBranches(await getBranches().catch(() => []));
-            alert(t('Branch was added!', 'تم إضافة الفرع!'));
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
         finally { setActionLoading(false); }
     };
 
     const handleUpdateBranch = async () => {
+        setActionError(null);
         if (!editBranch) return;
         if (!editBranch.name) {
-            alert(t('Branch name is required.', 'اسم الفرع مطلوب.'));
+            setActionError(t('Branch name is required.', 'اسم الفرع مطلوب.'));
             return;
         }
         setActionLoading(true);
@@ -99,7 +101,7 @@ export default function AdminPage() {
             await updateBranch(editBranch.id, { name: editBranch.name, email: editBranch.email, phone: editBranch.phone });
             setBranches(await getBranches().catch(() => []));
             setEditBranch(null);
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
         finally { setActionLoading(false); }
     };
 
@@ -108,13 +110,14 @@ export default function AdminPage() {
         try {
             await deleteBranch(id);
             setBranches(prev => prev.filter(b => b.id !== id));
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
     };
 
     // ── Department ──
     const handleCreateDept = async () => {
+        setActionError(null);
         if (!newDept.branchId || !newDept.name) {
-            alert(t('Please select a branch and enter a department name.', 'الرجاء اختيار الفرع وإدخال اسم القسم.'));
+            setActionError(t('Please select a branch and enter a department name.', 'الرجاء اختيار الفرع وإدخال اسم القسم.'));
             return;
         }
         setActionLoading(true);
@@ -122,7 +125,7 @@ export default function AdminPage() {
             await createDepartment(newDept);
             setNewDept({ branchId: 0, name: '' });
             setDepartments(await getDepartments().catch(() => []));
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
         finally { setActionLoading(false); }
     };
 
@@ -131,13 +134,14 @@ export default function AdminPage() {
         try {
             await deleteDepartment(id);
             setDepartments(prev => prev.filter(d => d.id !== id));
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
     };
 
     const handleUpdateDept = async () => {
+        setActionError(null);
         if (!editDept) return;
         if (!editDept.name.trim()) {
-            alert(t('Department name is required.', 'اسم القسم مطلوب.'));
+            setActionError(t('Department name is required.', 'اسم القسم مطلوب.'));
             return;
         }
         setActionLoading(true);
@@ -145,7 +149,7 @@ export default function AdminPage() {
             await updateDepartment(editDept.id, { name: editDept.name, branchId: editDept.branchId || undefined });
             setDepartments(await getDepartments().catch(() => []));
             setEditDept(null);
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
         finally { setActionLoading(false); }
     };
 
@@ -295,6 +299,11 @@ export default function AdminPage() {
                                 <input className="form-input" placeholder={t('Phone', 'الهاتف')} value={newBranch.phone} onChange={e => setNewBranch({ ...newBranch, phone: e.target.value })} style={{ flex: 1, minWidth: 120 }} />
                                 <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateBranch}>+ {t('Add', 'إضافة')}</button>
                             </div>
+                            {actionError && activeTab === 'branches' && (
+                                <div style={{ background: 'var(--danger-bg, #fee)', color: 'var(--danger, #c00)', border: '1px solid var(--danger, #c00)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 12, whiteSpace: 'pre-line', fontSize: 14 }}>
+                                    {actionError}
+                                </div>
+                            )}
                             {branches.map(b => (
                                 <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
                                     {editBranch?.id === b.id ? (
@@ -335,6 +344,11 @@ export default function AdminPage() {
                                 <input className="form-input" placeholder={t('Department name', 'اسم القسم')} value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
                                 <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateDept}>+ {t('Add', 'إضافة')}</button>
                             </div>
+                            {actionError && activeTab === 'departments' && (
+                                <div style={{ background: 'var(--danger-bg, #fee)', color: 'var(--danger, #c00)', border: '1px solid var(--danger, #c00)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 12, whiteSpace: 'pre-line', fontSize: 14 }}>
+                                    {actionError}
+                                </div>
+                            )}
                             {departments.map(d => (
                                 <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
                                     {editDept?.id === d.id ? (

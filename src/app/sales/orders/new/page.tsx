@@ -30,7 +30,7 @@ export default function NewOrderPage() {
     const [notes, setNotes] = useState('');
     const [scheduledDate, setScheduledDate] = useState('');
     const [priority, setPriority] = useState<'Normal' | 'Urgent'>('Normal');
-    const [branchIds, setBranchIds] = useState<number[]>([]);
+    const [branchId, setBranchId] = useState<number>(0);
     const [departmentId, setDepartmentId] = useState<number>(0);
 
     useEffect(() => {
@@ -39,7 +39,7 @@ export default function NewOrderPage() {
                 const [b, d] = await Promise.all([getBranches(), getDepartments()]);
                 setBranches(b);
                 setDepartments(d);
-                if (b.length > 0) setBranchIds([b[0].id]);
+                if (b.length > 0) setBranchId(b[0].id);
                 if (d.length > 0) setDepartmentId(d[0].id);
             } catch (err) {
                 console.error('Failed to load form data:', err);
@@ -59,26 +59,23 @@ export default function NewOrderPage() {
         load();
     }, []);
 
-    // Reload departments when branches change
+    // Reload departments when branch changes
     useEffect(() => {
-        if (branchIds.length > 0) {
+        if (branchId) {
             setDepartments([]);
             setDepartmentId(0);
-            getDepartments(branchIds[0])
+            getDepartments(branchId)
                 .then(d => {
                     const list = Array.isArray(d) ? d : [];
                     setDepartments(list);
                     if (list.length > 0) setDepartmentId(list[0].id);
                 })
                 .catch(() => { });
-        } else {
-            setDepartments([]);
-            setDepartmentId(0);
         }
-    }, [branchIds]);
+    }, [branchId]);
 
     const handleSubmit = async (asDraft: boolean) => {
-        if (branchIds.length === 0 || !departmentId) {
+        if (!branchId || !departmentId) {
             setError(t('Please select branch and department', 'الرجاء اختيار الفرع والقسم'));
             return;
         }
@@ -98,7 +95,7 @@ export default function NewOrderPage() {
                 customerId: customerId || null,
                 createdAt: new Date().toISOString(),
                 priority,
-                branchIds: branchIds.map(id => ({ id })),
+                branchIds: branchId ? [{ id: branchId }] : [],
                 departmentId,
                 notes: notes || null,
             };
@@ -241,24 +238,13 @@ export default function NewOrderPage() {
                             <div className="card-title" style={{ marginBottom: 16 }}>🔧 {t('Installation Details', 'تفاصيل التركيب')}</div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">{t('Branches', 'الفروع')} *</label>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', padding: '10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
-                                        {branches.map(b => {
-                                            const checked = branchIds.includes(b.id);
-                                            return (
-                                                <label key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={() => {
-                                                            setBranchIds(prev => checked ? prev.filter(id => id !== b.id) : [...prev, b.id]);
-                                                        }}
-                                                    />
-                                                    <span style={{ fontSize: 13, userSelect: 'none' }}>{b.name}</span>
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
+                                    <label className="form-label">{t('Branch', 'الفرع')} *</label>
+                                    <select className="form-select" value={branchId} onChange={e => setBranchId(Number(e.target.value))}>
+                                        <option value={0}>— {t('Select Branch', 'اختر الفرع')} —</option>
+                                        {branches.map(b => (
+                                            <option key={b.id} value={b.id}>{b.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">{t('Department', 'القسم')} *</label>
@@ -318,8 +304,8 @@ export default function NewOrderPage() {
                                     <span>{selectedDocId || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>{t('Branches', 'الفروع')}</span>
-                                    <span>{branches.filter(b => branchIds.includes(b.id)).map(b => b.name).join(', ') || '—'}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}</span>
+                                    <span>{branches.find(b => b.id === branchId)?.name || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}</span>

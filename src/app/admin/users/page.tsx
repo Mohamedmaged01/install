@@ -34,7 +34,6 @@ export default function AdminUsersPage() {
     /* data */
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);
-    const [roleUserCounts, setRoleUserCounts] = useState<Record<number, number>>({});
     const [departments, setDepartments] = useState<Department[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
 
@@ -69,13 +68,6 @@ export default function AdminUsersPage() {
             setPermissions(Array.isArray(p) ? p : []);
             setDepartments(Array.isArray(d) ? d : []);
             setBranches(Array.isArray(b) ? b : []);
-
-            /* count users per role */
-            const counts: Record<number, number> = {};
-            (Array.isArray(allUsers) ? allUsers : []).forEach((u: DepartmentUser) => {
-                counts[u.roleId] = (counts[u.roleId] || 0) + 1;
-            });
-            setRoleUserCounts(counts);
         } catch (err) {
             console.error(err);
         } finally {
@@ -134,7 +126,12 @@ export default function AdminUsersPage() {
         setRoleUsers([]);
         try {
             const all = await getDepartmentUsers();
-            setRoleUsers((Array.isArray(all) ? all : []).filter(u => u.roleId === role.id));
+            setRoleUsers((Array.isArray(all) ? all : []).filter(u => 
+                u.roleId === role.id || 
+                u.roleName === role.name || 
+                u.role === role.name || 
+                (Array.isArray((u as any).roles) && (u as any).roles.includes(role.name))
+            ));
         } catch { setRoleUsers([]); }
     };
 
