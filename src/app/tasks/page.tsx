@@ -50,7 +50,7 @@ export default function TasksPage() {
 
     useEffect(() => {
         getTaskStatistics({
-            branchId: branchFilter || undefined,
+            branchIds: branchFilter ? [Number(branchFilter)] : undefined,
             from: dateFrom || undefined,
             to: dateTo || undefined,
         }).then(s => setStats(s)).catch(() => {});

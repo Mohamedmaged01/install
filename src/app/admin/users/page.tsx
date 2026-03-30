@@ -5,9 +5,9 @@ import {
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
-    getDepartments, getBranches, removeUserFromRole,
+    getDepartments, removeUserFromRole,
 } from '@/lib/endpoints';
-import { Role, Permission, DepartmentUser, Department, Branch } from '@/types';
+import { Role, Permission, DepartmentUser, Department } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
 import { useLang } from '@/context/LanguageContext';
@@ -35,12 +35,12 @@ export default function AdminUsersPage() {
     const [roles, setRoles] = useState<Role[]>([]);
     const [permissions, setPermissions] = useState<Permission[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
-    const [branches, setBranches] = useState<Branch[]>([]);
 
     /* modal state */
     const [modal, setModal] = useState<ModalType>(null);
     const [activeRole, setActiveRole] = useState<Role | null>(null);
     const [rolePerms, setRolePerms] = useState<number[]>([]);
+    const [editRoleName, setEditRoleName] = useState('');
     const [roleUsers, setRoleUsers] = useState<DepartmentUser[]>([]);
 
     /* forms */
@@ -57,17 +57,14 @@ export default function AdminUsersPage() {
     const loadAll = useCallback(async () => {
         setLoading(true);
         try {
-            const [r, p, d, b, allUsers] = await Promise.all([
+            const [r, p, d] = await Promise.all([
                 getRoles().catch(() => []),
                 getPermissions().catch(() => []),
                 getDepartments().catch(() => []),
-                getBranches().catch(() => []),
-                getDepartmentUsers().catch(() => []),
             ]);
             setRoles(Array.isArray(r) ? r : []);
             setPermissions(Array.isArray(p) ? p : []);
             setDepartments(Array.isArray(d) ? d : []);
-            setBranches(Array.isArray(b) ? b : []);
         } catch (err) {
             console.error(err);
         } finally {
@@ -101,6 +98,7 @@ export default function AdminUsersPage() {
     /* ── permission actions ── */
     const openPerms = async (role: Role) => {
         setActiveRole(role);
+        setEditRoleName(role.name);
         setPermSearch('');
         setModal('permissions');
         try {
@@ -113,7 +111,10 @@ export default function AdminUsersPage() {
         if (!activeRole) return;
         setActionLoading(true);
         try {
-            await updateRolePermissions(activeRole.id, rolePerms);
+            await updateRolePermissions(activeRole.id, rolePerms, editRoleName.trim() || undefined);
+            if (editRoleName.trim() && editRoleName.trim() !== activeRole.name) {
+                await loadAll();
+            }
             setModal(null);
         } catch (err) { alert(err instanceof Error ? err.message : 'Failed'); }
         finally { setActionLoading(false); }
@@ -217,24 +218,29 @@ export default function AdminUsersPage() {
 
                 {/* ── Roles Table ── */}
                 <div className="table-container">
-                    <table>
+                    <table style={{ width: '100%', tableLayout: 'fixed' }}>
+                        <colgroup>
+                            <col style={{ width: 48 }} />
+                            <col />
+                            <col style={{ width: 160 }} />
+                            <col style={{ width: 160 }} />
+                        </colgroup>
                         <thead>
                             <tr>
-                                <th style={{ width: 40 }}>#</th>
+                                <th>#</th>
                                 <th>{t('Role Name', 'اسم الدور')}</th>
-                                <th>{t('Permissions', 'الصلاحيات')}</th>
                                 <th>{t('Users', 'المستخدمون')}</th>
-                                <th style={{ width: 140 }}>{t('Actions', 'الإجراءات')}</th>
+                                <th>{t('Actions', 'الإجراءات')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading...', 'جارٍ التحميل...')}</td>
+                                    <td colSpan={4} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading...', 'جارٍ التحميل...')}</td>
                                 </tr>
                             ) : filteredRoles.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} style={{ textAlign: 'center', padding: 48 }}>
+                                    <td colSpan={4} style={{ textAlign: 'center', padding: 48 }}>
                                         <div style={{ fontSize: 32, marginBottom: 8 }}>🎭</div>
                                         <div style={{ fontWeight: 600 }}>{t('No roles found', 'لا توجد أدوار')}</div>
                                     </td>
@@ -244,16 +250,7 @@ export default function AdminUsersPage() {
                                     <tr key={role.id}>
                                         <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{idx + 1}</td>
                                         <td>
-                                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14 }}>{role.name}</div>
-                                        </td>
-                                        <td>
-                                            <button
-                                                className="chip chip-purple"
-                                                onClick={() => openPerms(role)}
-                                                style={{ cursor: 'pointer', border: 'none', fontFamily: 'inherit' }}
-                                            >
-                                                🛡️ {t('Permissions', 'الصلاحيات')}
-                                            </button>
+                                            <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{role.name}</div>
                                         </td>
                                         <td>
                                             <button
@@ -304,8 +301,18 @@ export default function AdminUsersPage() {
 
                 {/* Permissions Modal */}
                 {modal === 'permissions' && activeRole && (
-                    <ModalShell title={`🛡️ ${t('Permissions', 'الصلاحيات')} — ${activeRole.name}`} onClose={() => setModal(null)} wide>
+                    <ModalShell title={`✏️ ${t('Edit Role', 'تعديل الدور')} — ${activeRole.name}`} onClose={() => setModal(null)} wide>
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label className="form-label">{t('Role Name', 'اسم الدور')}</label>
+                            <input
+                                className="form-input"
+                                value={editRoleName}
+                                onChange={e => setEditRoleName(e.target.value)}
+                                placeholder={t('Role name', 'اسم الدور')}
+                            />
+                        </div>
                         <div className="form-group" style={{ marginBottom: 12 }}>
+                            <label className="form-label">{t('Permissions', 'الصلاحيات')}</label>
                             <input
                                 className="form-input"
                                 placeholder={`🔍 ${t('Search permissions...', 'ابحث عن الصلاحيات...')}`}
@@ -380,21 +387,21 @@ export default function AdminUsersPage() {
                                 + {t('Add User to this Role', 'إضافة مستخدم لهذا الدور')}
                             </button>
                         </div>
-                        <div className="table-container" style={{ border: 'none' }}>
-                            <table>
+                        <div className="table-container" style={{ border: 'none', overflowX: 'auto' }}>
+                            <table style={{ minWidth: 600 }}>
                                 <thead>
                                     <tr>
                                         <th>{t('Name', 'الاسم')}</th>
                                         <th>{t('Email', 'البريد')}</th>
                                         <th>{t('Phone', 'الهاتف')}</th>
                                         <th>{t('Department', 'القسم')}</th>
-                                        <th style={{ width: 50 }}>{t('Actions', 'الإجراءات')}</th>
+                                        <th style={{ width: 100 }}>{t('Actions', 'الإجراءات')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {roleUsers.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                                            <td colSpan={4} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
                                                 {t('No users assigned to this role yet', 'لا يوجد مستخدمون مُعيَّنون لهذا الدور بعد')}
                                             </td>
                                         </tr>

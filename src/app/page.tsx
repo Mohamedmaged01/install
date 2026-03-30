@@ -6,6 +6,10 @@ import { getStatistics, getBranches } from '@/lib/endpoints';
 import { Statistics, Order, Branch } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import { useLang } from '@/context/LanguageContext';
+import {
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+} from 'recharts';
 
 export default function DashboardPage() {
   const { lang, t } = useLang();
@@ -25,13 +29,12 @@ export default function DashboardPage() {
     async function load() {
       setLoading(true);
       try {
-        const statsData = await getStatistics(
-          branchFilter || undefined,
-          dateFrom || undefined,
-          dateTo || undefined,
-        );
+        const statsData = await getStatistics({
+          branchIds: branchFilter ? [Number(branchFilter)] : undefined,
+          from: dateFrom || undefined,
+          to: dateTo || undefined,
+        });
         setStats(statsData);
-        // Use orders embedded in the statistics response
         const orders = Array.isArray(statsData?.orders) ? statsData.orders : [];
         const sorted = orders
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -57,7 +60,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Normalize stats — handle the actual API field naming
   const totalOrders = stats?.total ?? stats?.totalOrders ?? 0;
   const pendingSales = stats?.pendingSalesApproval ?? stats?.pendingSalesManager ?? 0;
   const pendingSupervisor = stats?.pendingSupervisiorApproval ?? stats?.pendingSupervisorApproval ?? stats?.pendingSupervisor ?? 0;
@@ -65,6 +67,7 @@ export default function DashboardPage() {
   const complete = stats?.completed ?? stats?.complete ?? 0;
   const urgent = stats?.urgent ?? 0;
   const draft = stats?.draft ?? 0;
+  const canceled = stats?.canceled ?? stats?.cancelled ?? 0;
   const returned = stats?.returnedToDraft ?? stats?.returnedToSales ?? stats?.returned ?? 0;
 
   const statCards = [
@@ -75,6 +78,27 @@ export default function DashboardPage() {
     { label: t('In Progress', 'قيد التنفيذ'), value: readyForInst, icon: '🔧', color: '#06b6d4' },
     { label: t('Complete', 'مكتمل'), value: complete, icon: '✅', color: '#10b981' },
     { label: t('Urgent', 'عاجل'), value: urgent, icon: '🚨', color: '#ef4444' },
+  ];
+
+  // Chart data
+  const pieData = [
+    { name: t('Draft', 'مسودة'), value: draft, color: '#94a3b8' },
+    { name: t('Pending Sales', 'بانتظار المبيعات'), value: pendingSales, color: '#f59e0b' },
+    { name: t('Pending Supervisor', 'بانتظار المشرف'), value: pendingSupervisor, color: '#8b5cf6' },
+    { name: t('In Progress', 'قيد التنفيذ'), value: readyForInst, color: '#06b6d4' },
+    { name: t('Complete', 'مكتمل'), value: complete, color: '#10b981' },
+    { name: t('Returned', 'مُرتجع'), value: returned, color: '#f97316' },
+    { name: t('Canceled', 'ملغي'), value: canceled, color: '#ef4444' },
+  ].filter(d => d.value > 0);
+
+  const barData = [
+    { name: t('Draft', 'مسودة'), value: draft, fill: '#94a3b8' },
+    { name: t('Pend. Sales', 'مبيعات'), value: pendingSales, fill: '#f59e0b' },
+    { name: t('Pend. Sup.', 'مشرف'), value: pendingSupervisor, fill: '#8b5cf6' },
+    { name: t('In Progress', 'تنفيذ'), value: readyForInst, fill: '#06b6d4' },
+    { name: t('Complete', 'مكتمل'), value: complete, fill: '#10b981' },
+    { name: t('Returned', 'مُرتجع'), value: returned, fill: '#f97316' },
+    { name: t('Canceled', 'ملغي'), value: canceled, fill: '#ef4444' },
   ];
 
   return (
@@ -100,23 +124,11 @@ export default function DashboardPage() {
           </select>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
-            <input
-              type="date"
-              className="form-input"
-              value={dateFrom}
-              onChange={e => setDateFrom(e.target.value)}
-              style={{ minWidth: 150 }}
-            />
+            <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ minWidth: 150 }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
-            <input
-              type="date"
-              className="form-input"
-              value={dateTo}
-              onChange={e => setDateTo(e.target.value)}
-              style={{ minWidth: 150 }}
-            />
+            <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} />
           </div>
           {(branchFilter || dateFrom || dateTo) && (
             <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDateFrom(''); setDateTo(''); }}>
@@ -127,7 +139,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 32 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 24 }}>
         {statCards.map(card => (
           <div key={card.label} className="stat-card">
             <div className="stat-icon" style={{ background: `${card.color}20`, color: card.color }}>
@@ -140,6 +152,53 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Charts */}
+      {totalOrders > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 24 }}>
+          {/* Donut chart */}
+          <div className="card" style={{ padding: '20px 16px' }}>
+            <div className="card-title" style={{ marginBottom: 16 }}>{t('Order Status Breakdown', 'توزيع حالات الأوامر')}</div>
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={65}
+                  outerRadius={100}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {pieData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: number, name: string) => [value, name]} />
+                <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Bar chart */}
+          <div className="card" style={{ padding: '20px 16px' }}>
+            <div className="card-title" style={{ marginBottom: 16 }}>{t('Orders by Status', 'الأوامر حسب الحالة')}</div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={barData} barSize={28} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip cursor={{ fill: 'var(--bg-tertiary)' }} formatter={(value: number) => [value, t('Orders', 'أوامر')]} />
+                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                  {barData.map((entry, i) => (
+                    <Cell key={i} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Recent Orders */}
       <div className="card">

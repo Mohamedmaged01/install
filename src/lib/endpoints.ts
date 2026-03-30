@@ -413,20 +413,35 @@ export async function getTaskNotes(id: number): Promise<TaskNote[]> {
 }
 
 export async function getTaskStatistics(params?: {
-    branchId?: number;
+    branchIds?: number[];
     departmentId?: number;
     from?: string;
     to?: string;
 }): Promise<TaskStatistics> {
-    const raw = await api<unknown>('/api/Tasks/statistics', { params: params as Record<string, string | number> });
+    const p: Record<string, string | number | number[] | undefined> = {};
+    if (params?.branchIds?.length) p.branchIds = params.branchIds;
+    if (params?.departmentId) p.departmentId = params.departmentId;
+    if (params?.from) p.from = params.from;
+    if (params?.to) p.to = params.to;
+    const raw = await api<unknown>('/api/Tasks/statistics', { params: p });
     if (raw && typeof raw === 'object') return raw as TaskStatistics;
     return {};
 }
 
 // ==================== STATISTICS ====================
 
-export async function getStatistics(branchId?: number, dateFrom?: string, dateTo?: string): Promise<Statistics> {
-    const raw = await api<Record<string, unknown>>('/api/Statistics', { params: { branchId, dateFrom, dateTo } });
+export async function getStatistics(params?: {
+    branchIds?: number[];
+    departmentId?: number;
+    from?: string;
+    to?: string;
+}): Promise<Statistics> {
+    const p: Record<string, string | number | number[] | undefined> = {};
+    if (params?.branchIds?.length) p.branchIds = params.branchIds;
+    if (params?.departmentId) p.departmentId = params.departmentId;
+    if (params?.from) p.from = params.from;
+    if (params?.to) p.to = params.to;
+    const raw = await api<Record<string, unknown>>('/api/Statistics', { params: p });
 
     // api<T> already unwraps `data` from `{ succeeded: true, data: { ... } }`,
     // so `raw` is `{ total: 2, pendingSalesApproval: 1, orders: [...] }`.
@@ -483,8 +498,12 @@ export async function setRolePermissions(id: number, permissionIds: number[]): P
     return api<void>(`/api/Roles/${id}/permissions`, { method: 'POST', body: permissionIds });
 }
 
-export async function updateRolePermissions(id: number, permissionIds: number[]): Promise<void> {
-    return api<void>(`/api/Roles/${id}/permissions`, { method: 'PUT', body: permissionIds });
+export async function updateRolePermissions(id: number, permissionIds: number[], name?: string): Promise<void> {
+    return api<void>(`/api/Roles/${id}/permissions`, {
+        method: 'PUT',
+        body: permissionIds,
+        params: name ? { name } : undefined,
+    });
 }
 
 // ==================== PERMISSIONS ====================
