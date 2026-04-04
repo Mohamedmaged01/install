@@ -9,6 +9,7 @@ import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
+import Pagination from '@/components/Pagination';
 
 const allStatuses: OrderStatus[] = [
     'Draft', 'PendingSalesApproval', 'PendingSupervisorApproval',
@@ -27,6 +28,8 @@ export default function SalesOrdersPage() {
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
         async function load() {
@@ -196,7 +199,7 @@ export default function SalesOrdersPage() {
                                     </td>
                                 </tr>
                             ) : (
-                                filtered.map(order => (
+                                filtered.slice((page - 1) * pageSize, page * pageSize).map(order => (
                                     <tr key={order.id}>
                                         <td>
                                             <Link href={`/orders/${order.id}`} className="table-cell-main" style={{ color: 'var(--accent-primary-hover)' }}>
@@ -228,6 +231,15 @@ export default function SalesOrdersPage() {
                         </tbody>
                     </table>
                 </div>
+                {filtered.length > 0 && (
+                    <Pagination
+                        currentPage={page}
+                        totalItems={filtered.length}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={setPageSize}
+                    />
+                )}
             </div>
         </PermissionGuard>
     );

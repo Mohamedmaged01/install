@@ -9,6 +9,7 @@ import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
+import Pagination from '@/components/Pagination';
 
 export default function ManagerPage() {
     const { lang, t } = useLang();
@@ -22,6 +23,8 @@ export default function ManagerPage() {
     const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const showToast = (type: 'error' | 'success', msg: string) => {
         setToast({ type, msg });
@@ -153,8 +156,9 @@ export default function ManagerPage() {
                             <p>{t('All orders have been processed', 'تمت معالجة جميع الأوامر')}</p>
                         </div>
                     ) : (
+                        <>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            {orders.map(order => (
+                            {orders.slice((page - 1) * pageSize, page * pageSize).map(order => (
                                 <div key={order.id} className="card">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                                         <div>
@@ -200,6 +204,16 @@ export default function ManagerPage() {
                                 </div>
                             ))}
                         </div>
+                        {orders.length > 0 && (
+                            <Pagination
+                                currentPage={page}
+                                totalItems={orders.length}
+                                pageSize={pageSize}
+                                onPageChange={setPage}
+                                onPageSizeChange={setPageSize}
+                            />
+                        )}
+                        </>
                     )
                 }
 

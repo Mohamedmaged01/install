@@ -6,6 +6,7 @@ import { getMyTasks, getBranches, getDepartments, getTaskStatistics } from '@/li
 import { Task, TaskStatus, Branch, Department } from '@/types';
 import MultiSelect from '@/components/MultiSelect';
 import { useLang } from '@/context/LanguageContext';
+import Pagination from '@/components/Pagination';
 
 const TASK_LABELS: Record<TaskStatus, { en: string; ar: string }> = {
     Assigned: { en: 'Assigned', ar: 'مُعيَّن' },
@@ -39,6 +40,8 @@ export default function TasksPage() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [stats, setStats] = useState<import('@/types').TaskStatistics | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
         getBranches().then(setBranches).catch(() => {});
@@ -205,7 +208,7 @@ export default function TasksPage() {
                                 </td>
                             </tr>
                         ) : (
-                            filtered.map(task => {
+                            filtered.slice((page - 1) * pageSize, page * pageSize).map(task => {
                                 const orderId = task.installationOrderId || task.orderId;
                                 const statusColor = STATUS_COLORS[task.status] || '#94a3b8';
                                 return (
@@ -252,6 +255,15 @@ export default function TasksPage() {
                     </tbody>
                 </table>
             </div>
+            {filtered.length > 0 && (
+                <Pagination
+                    currentPage={page}
+                    totalItems={filtered.length}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={setPageSize}
+                />
+            )}
         </div>
     );
 }

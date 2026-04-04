@@ -9,6 +9,7 @@ import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
+import Pagination from '@/components/Pagination';
 
 export default function SupervisorPage() {
     const { lang, t } = useLang();
@@ -29,6 +30,8 @@ export default function SupervisorPage() {
     const [rejectModal, setRejectModal] = useState<Order | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const showToast = (type: 'error' | 'success', msg: string) => {
         setToast({ type, msg });
@@ -253,7 +256,7 @@ export default function SupervisorPage() {
                                     <div style={{ fontWeight: 600 }}>{t('No orders found', 'لا توجد أوامر')}</div>
                                 </td></tr>
                             ) : (
-                                orders.map(order => (
+                                orders.slice((page - 1) * pageSize, page * pageSize).map(order => (
                                     <tr key={order.id}>
                                         <td>
                                             <Link href={`/orders/${order.id}`} className="table-cell-main" style={{ color: 'var(--accent-primary-hover)' }}>
@@ -286,6 +289,15 @@ export default function SupervisorPage() {
                         </tbody>
                     </table>
                 </div>
+                {orders.length > 0 && (
+                    <Pagination
+                        currentPage={page}
+                        totalItems={orders.length}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={setPageSize}
+                    />
+                )}
 
                 {/* Assign Modal */}
                 {assignModal && (

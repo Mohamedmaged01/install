@@ -11,6 +11,7 @@ import {
 } from '@/lib/endpoints';
 import { Branch, Department, DepartmentUser, Role, Permission } from '@/types';
 import { useLang } from '@/context/LanguageContext';
+import Pagination from '@/components/Pagination';
 
 type AdminTab = 'branches' | 'departments' | 'users' | 'roles' | 'permissions';
 
@@ -39,6 +40,16 @@ export default function AdminPage() {
     const [actionError, setActionError] = useState<string | null>(null);
     const [permSearch, setPermSearch] = useState('');
     const [showPermModal, setShowPermModal] = useState(false);
+
+    // Pagination
+    const [usersPage, setUsersPage] = useState(1);
+    const [usersPageSize, setUsersPageSize] = useState(10);
+    const [branchesPage, setBranchesPage] = useState(1);
+    const [branchesPageSize, setBranchesPageSize] = useState(10);
+    const [deptsPage, setDeptsPage] = useState(1);
+    const [deptsPageSize, setDeptsPageSize] = useState(10);
+    const [rolesPage, setRolesPage] = useState(1);
+    const [rolesPageSize, setRolesPageSize] = useState(10);
 
     const [userForm, setUserForm] = useState({
         DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '',
@@ -304,7 +315,7 @@ export default function AdminPage() {
                                     {actionError}
                                 </div>
                             )}
-                            {branches.map(b => (
+                            {branches.slice((branchesPage - 1) * branchesPageSize, branchesPage * branchesPageSize).map(b => (
                                 <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
                                     {editBranch?.id === b.id ? (
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -329,6 +340,15 @@ export default function AdminPage() {
                                 </div>
                             ))}
                             {branches.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No branches yet.', 'لا توجد فروع بعد.')}</p>}
+                            {branches.length > 0 && (
+                                <Pagination
+                                    currentPage={branchesPage}
+                                    totalItems={branches.length}
+                                    pageSize={branchesPageSize}
+                                    onPageChange={setBranchesPage}
+                                    onPageSizeChange={setBranchesPageSize}
+                                />
+                            )}
                         </div>
                     )}
 
@@ -349,7 +369,7 @@ export default function AdminPage() {
                                     {actionError}
                                 </div>
                             )}
-                            {departments.map(d => (
+                            {departments.slice((deptsPage - 1) * deptsPageSize, deptsPage * deptsPageSize).map(d => (
                                 <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
                                     {editDept?.id === d.id ? (
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -372,6 +392,15 @@ export default function AdminPage() {
                                 </div>
                             ))}
                             {departments.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No departments yet.', 'لا توجد أقسام بعد.')}</p>}
+                            {departments.length > 0 && (
+                                <Pagination
+                                    currentPage={deptsPage}
+                                    totalItems={departments.length}
+                                    pageSize={deptsPageSize}
+                                    onPageChange={setDeptsPage}
+                                    onPageSizeChange={setDeptsPageSize}
+                                />
+                            )}
                         </div>
                     )}
 
@@ -424,15 +453,26 @@ export default function AdminPage() {
 
                             {/* ── Users List ── */}
                             <div className="card">
-                                <div className="card-title" style={{ marginBottom: 16 }}>{t('All Users', 'جميع المستخدمين')}</div>
-                                <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                                    <button className="btn btn-secondary btn-sm" onClick={() => loadUsers()}>{t('Load All', 'تحميل الكل')}</button>
-                                    {departments.slice(0, 5).map(d => (
-                                        <button key={d.id} className="btn btn-secondary btn-sm" onClick={() => loadUsers(undefined, d.id)}>{d.name}</button>
-                                    ))}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+                                    <div className="card-title">{t('All Users', 'جميع المستخدمين')}</div>
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                        <button className="btn btn-secondary btn-sm" onClick={() => { loadUsers(); setUsersPage(1); }}>{t('Load All', 'تحميل الكل')}</button>
+                                        {departments.slice(0, 5).map(d => (
+                                            <button key={d.id} className="btn btn-secondary btn-sm" onClick={() => { loadUsers(undefined, d.id); setUsersPage(1); }}>{d.name}</button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="table-container" style={{ border: 'none', overflowX: 'auto' }}>
-                                    <table style={{ minWidth: 700 }}>
+                                <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+                                    <table>
+                                        <colgroup>
+                                            <col style={{ width: '18%' }} />
+                                            <col style={{ width: '22%' }} />
+                                            <col style={{ width: '14%' }} />
+                                            <col style={{ width: '16%' }} />
+                                            <col style={{ width: '12%' }} />
+                                            <col style={{ width: '10%' }} />
+                                            <col style={{ width: '8%' }} />
+                                        </colgroup>
                                         <thead><tr>
                                             <th>{t('Name', 'الاسم')}</th>
                                             <th>{t('Email', 'البريد')}</th>
@@ -440,34 +480,46 @@ export default function AdminPage() {
                                             <th>{t('Department', 'القسم')}</th>
                                             <th>{t('Role', 'الدور')}</th>
                                             <th>{t('Type', 'النوع')}</th>
-                                            <th style={{ width: 60, position: 'sticky', right: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>{t('Actions', 'الإجراءات')}</th>
+                                            <th>{t('Actions', 'الإجراءات')}</th>
                                         </tr></thead>
                                         <tbody>
-                                            {users.map(u => (
-                                                <tr key={u.id}>
-                                                    <td className="table-cell-main">{u.name}</td>
-                                                    <td style={{ color: 'var(--text-muted)' }}>{u.email}</td>
-                                                    <td style={{ color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
-                                                    <td>{u.departmentName || `#${u.departmentId}`}</td>
-                                                    <td>
-                                                        {roles.find(r => r.id === u.roleId)?.name || u.roleName || u.role
-                                                            ? <span style={{ fontWeight: 600, color: 'var(--accent-primary-hover)' }}>{roles.find(r => r.id === u.roleId)?.name || u.roleName || u.role}</span>
-                                                            : <span style={{ color: 'var(--text-muted)' }}>—</span>
-                                                        }
-                                                    </td>
-                                                    <td>{u.type || '—'}</td>
-                                                    <td style={{ position: 'sticky', right: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>
-                                                        <div className="btn-group">
-                                                            <button className="btn btn-secondary btn-sm" onClick={() => { setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId }); setEditUserImage(null); }}>✏️</button>
-                                                            <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {users.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>}
+                                            {users.length === 0 ? (
+                                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>
+                                            ) : (
+                                                users.slice((usersPage - 1) * usersPageSize, usersPage * usersPageSize).map(u => (
+                                                    <tr key={u.id}>
+                                                        <td className="table-cell-main" title={u.name}>{u.name}</td>
+                                                        <td style={{ color: 'var(--text-muted)' }} title={u.email}>{u.email}</td>
+                                                        <td style={{ color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
+                                                        <td title={u.departmentName || ''}>{u.departmentName || `#${u.departmentId}`}</td>
+                                                        <td>
+                                                            {roles.find(r => r.id === u.roleId)?.name || u.roleName || u.role
+                                                                ? <span style={{ fontWeight: 600, color: 'var(--accent-primary-hover)' }}>{roles.find(r => r.id === u.roleId)?.name || u.roleName || u.role}</span>
+                                                                : <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                                            }
+                                                        </td>
+                                                        <td>{u.type || '—'}</td>
+                                                        <td>
+                                                            <div className="btn-group">
+                                                                <button className="btn btn-secondary btn-sm" onClick={() => { setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId }); setEditUserImage(null); }}>✏️</button>
+                                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
+                                {users.length > 0 && (
+                                    <Pagination
+                                        currentPage={usersPage}
+                                        totalItems={users.length}
+                                        pageSize={usersPageSize}
+                                        onPageChange={setUsersPage}
+                                        onPageSizeChange={setUsersPageSize}
+                                    />
+                                )}
                             </div>
                         </div>
                     )}
@@ -480,7 +532,7 @@ export default function AdminPage() {
                                 <input className="form-input" placeholder={t('New role name', 'اسم الدور الجديد')} value={newRoleName} onChange={e => setNewRoleName(e.target.value)} style={{ flex: 1 }} onKeyDown={e => e.key === 'Enter' && handleCreateRole()} />
                                 <button className="btn btn-primary btn-sm" disabled={actionLoading || !newRoleName} onClick={handleCreateRole}>+ {t('Add', 'إضافة')}</button>
                             </div>
-                            {roles.map(role => (
+                            {roles.slice((rolesPage - 1) * rolesPageSize, rolesPage * rolesPageSize).map(role => (
                                 <div key={role.id} style={{ padding: '12px 16px', background: selectedRoleId === role.id ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)', border: selectedRoleId === role.id ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => handleSelectRole(role.id)}>
                                     <div style={{ fontWeight: 600, fontSize: 15 }}>{role.name}</div>
                                     <div className="btn-group">
@@ -490,6 +542,15 @@ export default function AdminPage() {
                                 </div>
                             ))}
                             {roles.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No roles yet.', 'لا توجد أدوار بعد.')}</p>}
+                            {roles.length > 0 && (
+                                <Pagination
+                                    currentPage={rolesPage}
+                                    totalItems={roles.length}
+                                    pageSize={rolesPageSize}
+                                    onPageChange={setRolesPage}
+                                    onPageSizeChange={setRolesPageSize}
+                                />
+                            )}
                         </div>
                     )}
 

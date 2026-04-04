@@ -11,6 +11,7 @@ import { Role, Permission, DepartmentUser, Department } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
 import { useLang } from '@/context/LanguageContext';
+import Pagination from '@/components/Pagination';
 
 /* ─── types ─── */
 interface NewUserForm {
@@ -54,6 +55,8 @@ export default function AdminUsersPage() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [permSearch, setPermSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     /* ── load all data ── */
     const loadAll = useCallback(async () => {
@@ -259,9 +262,9 @@ const handleSavePerms = async () => {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredRoles.map((role, idx) => (
+                                filteredRoles.slice((page - 1) * pageSize, page * pageSize).map((role, idx) => (
                                     <tr key={role.id}>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{idx + 1}</td>
+                                        <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{(page - 1) * pageSize + idx + 1}</td>
                                         <td>
                                             <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{role.name}</div>
                                         </td>
@@ -286,6 +289,15 @@ const handleSavePerms = async () => {
                         </tbody>
                     </table>
                 </div>
+                {filteredRoles.length > 0 && (
+                    <Pagination
+                        currentPage={page}
+                        totalItems={filteredRoles.length}
+                        pageSize={pageSize}
+                        onPageChange={setPage}
+                        onPageSizeChange={setPageSize}
+                    />
+                )}
 
                 {/* ════════════════════ MODALS ════════════════════ */}
 
