@@ -165,13 +165,13 @@ export async function getBranchTechnicians(branchId: number): Promise<Department
 
 // ==================== DEPARTMENTS ====================
 
-export async function getDepartments(branchIds?: number | number[]): Promise<Department[]> {
-    const ids = branchIds === undefined ? undefined
-        : Array.isArray(branchIds) ? branchIds
-        : [branchIds];
-    const p: Record<string, number[] | undefined> = {};
-    if (ids?.length) p.branchIds = ids;
-    const raw = await api<unknown>('/api/Departments/departments', { params: p });
+export async function getDepartments(branchId?: number | number[]): Promise<Department[]> {
+    const id = branchId === undefined ? undefined
+        : Array.isArray(branchId) ? branchId[0]
+        : branchId;
+    const p: Record<string, number | undefined> = {};
+    if (id) p.branchId = id;
+    const raw = await api<unknown>('/api/Departments', { params: p });
     if (Array.isArray(raw)) return raw as Department[];
     const obj = raw as Record<string, unknown>;
     if (obj && Array.isArray(obj.data)) return obj.data as Department[];
