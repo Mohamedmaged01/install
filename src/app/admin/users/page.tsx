@@ -48,8 +48,9 @@ export default function AdminUsersPage() {
     const [newRoleName, setNewRoleName] = useState('');
     const [userForm, setUserForm] = useState<NewUserForm>({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0, IsSuperAdmin: false });
     const [editUserTarget, setEditUserTarget] = useState<DepartmentUser | null>(null);
-    const [editUserForm, setEditUserForm] = useState<{ Name: string; Email: string; Phone: string; DepartmentId: number; RoleId: number }>({ Name: '', Email: '', Phone: '', DepartmentId: 0, RoleId: 0 });
+    const [editUserForm, setEditUserForm] = useState<{ Name: string; Email: string; Phone: string; Password: string; DepartmentId: number; RoleId: number }>({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0 });
     const [searchQ, setSearchQ] = useState('');
+    const [userSearch, setUserSearch] = useState('');
 
     /* ui */
     const [loading, setLoading] = useState(true);
@@ -133,6 +134,7 @@ const handleSavePerms = async () => {
         setActiveRole(role);
         setModal('viewUsers');
         setRoleUsers([]);
+        setUserSearch('');
         try {
             const all = await getDepartmentUsers();
             setRoleUsers((Array.isArray(all) ? all : []).filter(u => 
@@ -172,7 +174,7 @@ const handleSavePerms = async () => {
 
     const openEditUser = (u: DepartmentUser) => {
         setEditUserTarget(u);
-        setEditUserForm({ Name: u.name, Email: u.email, Phone: u.phone || '', DepartmentId: u.departmentId, RoleId: u.roleId });
+        setEditUserForm({ Name: u.name, Email: u.email, Phone: u.phone || '', Password: '', DepartmentId: u.departmentId, RoleId: u.roleId });
         setModal('editUser');
     };
 
@@ -404,13 +406,21 @@ const handleSavePerms = async () => {
                 {/* View Users in Role Modal */}
                 {modal === 'viewUsers' && activeRole && (
                     <ModalShell title={`👥 ${t('Users in', 'المستخدمون في')} — ${activeRole.name}`} onClose={() => setModal(null)} wide>
-                        <div style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                             <button
                                 className="btn btn-primary btn-sm"
                                 onClick={() => { setModal('addUser'); setUserForm(prev => ({ ...prev, RoleId: activeRole.id })); }}
                             >
                                 + {t('Add User to this Role', 'إضافة مستخدم لهذا الدور')}
                             </button>
+                            <div className="table-search" style={{ flex: 1, minWidth: 180 }}>
+                                <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
+                                <input
+                                    placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
+                                    value={userSearch}
+                                    onChange={e => setUserSearch(e.target.value)}
+                                />
+                            </div>
                         </div>
                         <div className="table-container" style={{ border: 'none', overflowX: 'auto' }}>
                             <table style={{ minWidth: 600 }}>
@@ -431,7 +441,10 @@ const handleSavePerms = async () => {
                                             </td>
                                         </tr>
                                     ) : (
-                                        roleUsers.map(u => (
+                                        roleUsers.filter(u => {
+                                            const q = userSearch.toLowerCase();
+                                            return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
+                                        }).map(u => (
                                             <tr key={u.id}>
                                                 <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -478,19 +491,25 @@ const handleSavePerms = async () => {
                                 <input className="form-input" value={editUserForm.Phone} onChange={e => setEditUserForm(p => ({ ...p, Phone: e.target.value }))} />
                             </div>
                             <div className="form-group">
+                                <label className="form-label">{t('Password', 'كلمة المرور')} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>({t('leave blank to keep current', 'اتركه فارغاً للإبقاء على الحالية')})</span></label>
+                                <input className="form-input" type="password" placeholder="••••••••" value={editUserForm.Password} onChange={e => setEditUserForm(p => ({ ...p, Password: e.target.value }))} />
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group">
                                 <label className="form-label">{t('Role', 'الدور')}</label>
                                 <select className="form-select" value={editUserForm.RoleId} onChange={e => setEditUserForm(p => ({ ...p, RoleId: Number(e.target.value) }))}>
                                     <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
                                     {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                 </select>
                             </div>
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">{t('Department', 'القسم')}</label>
-                            <select className="form-select" value={editUserForm.DepartmentId} onChange={e => setEditUserForm(p => ({ ...p, DepartmentId: Number(e.target.value) }))}>
-                                <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
-                                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                            </select>
+                            <div className="form-group">
+                                <label className="form-label">{t('Department', 'القسم')}</label>
+                                <select className="form-select" value={editUserForm.DepartmentId} onChange={e => setEditUserForm(p => ({ ...p, DepartmentId: Number(e.target.value) }))}>
+                                    <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
+                                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                </select>
+                            </div>
                         </div>
                         <div className="modal-footer" style={{ paddingTop: 16 }}>
                             <button className="btn btn-secondary" onClick={() => setModal('viewUsers')}>{t('Cancel', 'إلغاء')}</button>

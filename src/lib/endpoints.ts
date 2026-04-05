@@ -219,13 +219,14 @@ export async function deleteDepartmentUser(id: number): Promise<void> {
 
 export async function updateDepartmentUser(
     id: number,
-    fields: { Name?: string; Email?: string; Phone?: string; DepartmentId?: number; RoleId?: number },
+    fields: { Name?: string; Email?: string; Phone?: string; Password?: string; DepartmentId?: number; RoleId?: number },
     image?: File | null,
 ): Promise<DepartmentUser> {
     const params: Record<string, string | number | undefined | null> = {};
     if (fields.Name)         params.Name         = fields.Name;
     if (fields.Email)        params.Email        = fields.Email;
     if (fields.Phone)        params.Phone        = fields.Phone;
+    if (fields.Password)     params.Password     = fields.Password;
     if (fields.DepartmentId) params.DepartmentId = fields.DepartmentId;
     if (fields.RoleId)       params.RoleId       = fields.RoleId;
 
