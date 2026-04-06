@@ -41,6 +41,7 @@ export default function AdminPage() {
     const [permSearch, setPermSearch] = useState('');
     const [showPermModal, setShowPermModal] = useState(false);
     const [userSearch, setUserSearch] = useState('');
+    const [showAddUser, setShowAddUser] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [deptsList, setDeptsList] = useState<Department[]>([]);
 
@@ -239,6 +240,7 @@ export default function AdminPage() {
             await createDepartmentUser(fd);
             setUserForm({ DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '', RoleId: 0, IsSuperAdmin: false, Type: '' });
             alert(t('User created!', 'تم إنشاء المستخدم!'));
+            setShowAddUser(false);
             loadUsers();
         } catch (err) {
             alert(err instanceof Error ? err.message : t('Failed to create user', 'فشل إنشاء المستخدم'));
@@ -441,7 +443,12 @@ export default function AdminPage() {
                     {activeTab === 'users' && (
                         <div>
                             {/* ── Add User Form ── */}
-                            <div className="card" style={{ marginBottom: 16 }}>
+                            <div style={{ marginBottom: 16 }}>
+                                <button className="btn btn-primary" onClick={() => setShowAddUser(v => !v)}>
+                                    {showAddUser ? `➖ ${t('Cancel', 'إلغاء')}` : `➕ ${t('Add User', 'إضافة مستخدم')}`}
+                                </button>
+                            </div>
+                            {showAddUser && <div className="card" style={{ marginBottom: 16 }}>
                                 <div className="card-title" style={{ marginBottom: 16 }}>{t('Add New User', 'إضافة مستخدم جديد')}</div>
                                 <div className="form-row">
                                     <div className="form-group"><label className="form-label">{t('Name', 'الاسم')} *</label><input className="form-input" value={userForm.Name} onChange={e => setUserForm({ ...userForm, Name: e.target.value })} /></div>
@@ -482,7 +489,7 @@ export default function AdminPage() {
                                         {actionLoading ? `⏳ ${t('Creating...', 'إنشاء...')}` : `✅ ${t('Create User', 'إنشاء مستخدم')}`}
                                     </button>
                                 </div>
-                            </div>
+                            </div>}
 
                             {/* ── Users List ── */}
                             <div className="card">
