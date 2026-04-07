@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [deptFilter, setDeptFilter] = useState<number[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number[]; deptFilter: number[]; dateFrom: string; dateTo: string }>({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' });
 
   useEffect(() => {
     getBranches().then(setBranches).catch(() => {});
@@ -42,10 +43,10 @@ export default function DashboardPage() {
       setLoading(true);
       try {
         const statsData = await getStatistics({
-          branchIds: branchFilter.length ? branchFilter : undefined,
-          departmentIds: deptFilter.length ? deptFilter : undefined,
-          from: dateFrom || undefined,
-          to: dateTo || undefined,
+          branchIds: appliedFilters.branchFilter.length ? appliedFilters.branchFilter : undefined,
+          departmentIds: appliedFilters.deptFilter.length ? appliedFilters.deptFilter : undefined,
+          from: appliedFilters.dateFrom || undefined,
+          to: appliedFilters.dateTo || undefined,
         });
         setStats(statsData);
         const orders = Array.isArray(statsData?.orders) ? statsData.orders : [];
@@ -60,7 +61,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, [branchFilter, deptFilter, dateFrom, dateTo]);
+  }, [appliedFilters]);
 
   if (loading) {
     return (
@@ -152,8 +153,11 @@ export default function DashboardPage() {
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
             <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} />
           </div>
-          {(branchFilter.length > 0 || deptFilter.length > 0 || dateFrom || dateTo) && (
-            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setDateFrom(''); setDateTo(''); }}>
+          <button className="btn btn-primary btn-sm" onClick={() => setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo })}>
+            {t('Apply', 'تطبيق')}
+          </button>
+          {(appliedFilters.branchFilter.length > 0 || appliedFilters.deptFilter.length > 0 || appliedFilters.dateFrom || appliedFilters.dateTo || branchFilter.length > 0 || deptFilter.length > 0 || dateFrom || dateTo) && (
+            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' }); }}>
               {t('Clear', 'مسح')}
             </button>
           )}

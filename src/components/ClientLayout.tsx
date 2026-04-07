@@ -3,6 +3,7 @@
 import { AuthProvider, useAuth } from '@/context/RoleContext';
 import { LanguageProvider, useLang } from '@/context/LanguageContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { ToastProvider } from '@/context/ToastContext';
 import Sidebar from '@/components/Sidebar';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -102,7 +103,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <AuthProvider>
             <LanguageProvider>
                 <ThemeProvider>
-                    <ProtectedLayout>{children}</ProtectedLayout>
+                    <ToastProvider>
+                        <ProtectedLayout>{children}</ProtectedLayout>
+                    </ToastProvider>
                 </ThemeProvider>
             </LanguageProvider>
         </AuthProvider>

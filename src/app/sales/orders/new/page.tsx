@@ -2,22 +2,24 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createOrder, getBranches, getDepartments, getApexInvoices, getApexOffers } from '@/lib/endpoints';
 import { Branch, Department, AddOrderDto, ApexInvoice, ApexOffer } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
 import { useLang } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 
 export default function NewOrderPage() {
     const router = useRouter();
     const { t } = useLang();
+    const toast = useToast();
     const [branches, setBranches] = useState<Branch[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [invoices, setInvoices] = useState<ApexInvoice[]>([]);
     const [offers, setOffers] = useState<ApexOffer[]>([]);
     const [apexError, setApexError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
 
     // Form state
     const [docType, setDocType] = useState<'invoice' | 'quotation'>('invoice');
@@ -29,6 +31,9 @@ export default function NewOrderPage() {
     const [priority, setPriority] = useState<'Normal' | 'Urgent'>('Normal');
     const [branchId, setBranchId] = useState<number>(0);
     const [departmentIds, setDepartmentIds] = useState<number[]>([]);
+    const [locationLink, setLocationLink] = useState('');
+    const [notes, setNotes] = useState('');
+    const [scheduledDate, setScheduledDate] = useState('');
 
     useEffect(() => {
         async function load() {
@@ -73,34 +78,33 @@ export default function NewOrderPage() {
 
     const handleSubmit = async (asDraft: boolean) => {
         if (!branchId || departmentIds.length === 0) {
-            setError(t('Please select branch and department', 'الرجاء اختيار الفرع والقسم'));
+            toast.error(t('Please select branch and department', 'الرجاء اختيار الفرع والقسم'));
             return;
         }
 
         setLoading(true);
-        setError('');
 
         try {
             const dto: AddOrderDto = {
                 status: asDraft ? 'Draft' : 'PendingSalesApproval',
                 city: city || null,
                 address: address || null,
-                location: null,
-                scheduledDate: null,
+                location: locationLink || null,
+                scheduledDate: scheduledDate || null,
                 quotationId: docType === 'quotation' ? selectedDocId || null : null,
                 invoiceId: docType === 'invoice' ? selectedDocId || null : null,
                 customerId: customerId || null,
                 createdAt: new Date().toISOString(),
                 priority,
-                branchIds: branchId ? [{ id: branchId }] : [],
+                branchId,
                 departmentIds: departmentIds.map(id => ({ idd: id })),
-                notes: null,
+                notes: notes || null,
             };
 
             const newOrder = await createOrder(dto);
             router.push(`/orders/${newOrder.id}`);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : t('Failed to create order', 'فشل إنشاء الطلب'));
+            toast.error(err instanceof Error ? err.message : t('Failed to create order', 'فشل إنشاء الطلب'));
         } finally {
             setLoading(false);
         }
@@ -123,23 +127,15 @@ export default function NewOrderPage() {
         <PermissionGuard requiredPerms={[PERMS.ORDERS_CREATE]}>
             <div className="animate-in">
                 <div className="page-header">
-                    <h1>{t('Create Installation Order', 'إنشاء أمر تركيب')}</h1>
-                    <p>{t('Create a new installation order from a sales document', 'إنشاء أمر تركيب جديد من مستند مبيعات')}</p>
+                    <div>
+                        <Link href="/sales/orders" style={{ fontSize: 13, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 8, textDecoration: 'none' }}>
+                            ← {t('Back to Orders', 'العودة للطلبات')}
+                        </Link>
+                        <h1>{t('Create Installation Order', 'إنشاء أمر تركيب')}</h1>
+                        <p>{t('Create a new installation order from a sales document', 'إنشاء أمر تركيب جديد من مستند مبيعات')}</p>
+                    </div>
                 </div>
 
-                {error && (
-                    <div style={{
-                        padding: '12px 16px',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        borderRadius: 'var(--radius-md)',
-                        color: '#ef4444',
-                        fontSize: 13,
-                        marginBottom: 20,
-                    }}>
-                        {error}
-                    </div>
-                )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
                     {/* Form */}
@@ -273,11 +269,25 @@ export default function NewOrderPage() {
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">{t('Priority', 'الأولوية')}</label>
-                                <select className="form-select" value={priority} onChange={e => setPriority(e.target.value as 'Normal' | 'Urgent')}>
-                                    <option value="Normal">{t('Normal', 'عادي')}</option>
-                                    <option value="Urgent">{t('Urgent', 'عاجل')}</option>
-                                </select>
+                                <label className="form-label">📍 {t('Location Link', 'رابط الموقع')}</label>
+                                <input className="form-input" placeholder="https://maps.google.com/..." value={locationLink} onChange={e => setLocationLink(e.target.value)} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">📝 {t('Notes', 'الملاحظات')}</label>
+                                <textarea className="form-input" rows={3} placeholder={t('Additional notes...', 'ملاحظات إضافية...')} value={notes} onChange={e => setNotes(e.target.value)} style={{ resize: 'vertical' }} />
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">{t('Scheduled Date', 'التاريخ المجدول')}</label>
+                                    <input className="form-input" type="datetime-local" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Priority', 'الأولوية')}</label>
+                                    <select className="form-select" value={priority} onChange={e => setPriority(e.target.value as 'Normal' | 'Urgent')}>
+                                        <option value="Normal">{t('Normal', 'عادي')}</option>
+                                        <option value="Urgent">{t('Urgent', 'عاجل')}</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>

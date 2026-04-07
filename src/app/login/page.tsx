@@ -3,19 +3,21 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/RoleContext';
+import { useToast } from '@/context/ToastContext';
+import { useLang } from '@/context/LanguageContext';
 import { login } from '@/lib/endpoints';
 
 export default function LoginPage() {
     const router = useRouter();
     const { loginUser } = useAuth();
+    const toast = useToast();
+    const { lang, toggleLang } = useLang();
     const [phoneOrEmail, setPhoneOrEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
         setLoading(true);
 
         try {
@@ -23,7 +25,7 @@ export default function LoginPage() {
             loginUser(authUser);
             router.push('/');
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
+            toast.error(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
         } finally {
             setLoading(false);
         }
@@ -43,45 +45,93 @@ export default function LoginPage() {
                 maxWidth: 420,
                 animation: 'slideUp var(--transition-base)',
             }}>
+                {/* Language toggle */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                    <div
+                        style={{
+                            background: 'var(--bg-secondary)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 28,
+                            padding: 4,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 0,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        }}
+                    >
+                        <button
+                            onClick={() => lang !== 'en' && toggleLang()}
+                            style={{
+                                padding: '7px 18px',
+                                borderRadius: 24,
+                                border: 'none',
+                                background: lang === 'en' ? 'var(--primary)' : 'transparent',
+                                color: lang === 'en' ? '#fff' : 'var(--text-muted)',
+                                fontWeight: 600,
+                                fontSize: 13,
+                                cursor: lang === 'en' ? 'default' : 'pointer',
+                                transition: 'all 0.25s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                boxShadow: lang === 'en' ? '0 2px 6px rgba(var(--primary-rgb, 59,130,246), 0.35)' : 'none',
+                            }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                            </svg>
+                            English
+                        </button>
+                        <button
+                            onClick={() => lang !== 'ar' && toggleLang()}
+                            style={{
+                                padding: '7px 18px',
+                                borderRadius: 24,
+                                border: 'none',
+                                background: lang === 'ar' ? 'var(--primary)' : 'transparent',
+                                color: lang === 'ar' ? '#fff' : 'var(--text-muted)',
+                                fontWeight: 600,
+                                fontSize: 13,
+                                cursor: lang === 'ar' ? 'default' : 'pointer',
+                                transition: 'all 0.25s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                boxShadow: lang === 'ar' ? '0 2px 6px rgba(var(--primary-rgb, 59,130,246), 0.35)' : 'none',
+                            }}
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10" /><path d="M2 12h20" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                            </svg>
+                            العربية
+                        </button>
+                    </div>
+                </div>
+
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 40 }}>
                     <img src="/logo.jpeg" alt="Logo" style={{ maxWidth: 180, maxHeight: 80, objectFit: 'contain', marginBottom: 12 }} />
                     <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>
-                        Installation Order Management System
+                        {lang === 'ar' ? 'نظام إدارة أوامر التركيب' : 'Installation Order Management System'}
                     </p>
                 </div>
 
                 {/* Login Card */}
                 <div className="card" style={{ padding: 32 }}>
                     <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 4, textAlign: 'center' }}>
-                        Welcome Back
+                        {lang === 'ar' ? 'أهلاً بعودتك' : 'Welcome Back'}
                     </h2>
                     <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 28, textAlign: 'center' }}>
-                        Sign in to your account
+                        {lang === 'ar' ? 'تسجيل الدخول إلى حسابك' : 'Sign in to your account'}
                     </p>
-
-                    {error && (
-                        <div style={{
-                            padding: '12px 16px',
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            borderRadius: 'var(--radius-md)',
-                            color: '#ef4444',
-                            fontSize: 13,
-                            marginBottom: 20,
-                            textAlign: 'center',
-                        }}>
-                            {error}
-                        </div>
-                    )}
 
                     <form onSubmit={handleLogin}>
                         <div className="form-group">
-                            <label className="form-label">Phone or Email</label>
+                            <label className="form-label">{lang === 'ar' ? 'الهاتف أو البريد' : 'Phone or Email'}</label>
                             <input
                                 className="form-input"
                                 type="text"
-                                placeholder="Enter your phone or email"
+                                placeholder={lang === 'ar' ? 'أدخل هاتفك أو بريدك' : 'Enter your phone or email'}
                                 value={phoneOrEmail}
                                 onChange={e => setPhoneOrEmail(e.target.value)}
                                 required
@@ -90,11 +140,11 @@ export default function LoginPage() {
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Password</label>
+                            <label className="form-label">{lang === 'ar' ? 'كلمة المرور' : 'Password'}</label>
                             <input
                                 className="form-input"
                                 type="password"
-                                placeholder="Enter your password"
+                                placeholder={lang === 'ar' ? 'أدخل كلمة المرور' : 'Enter your password'}
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
                                 required
@@ -114,7 +164,7 @@ export default function LoginPage() {
                                 opacity: loading ? 0.7 : 1,
                             }}
                         >
-                            {loading ? '⏳ Signing in...' : 'Sign In'}
+                            {loading ? `⏳ ${lang === 'ar' ? 'جارٍ تسجيل الدخول...' : 'Signing in...'}` : (lang === 'ar' ? 'تسجيل الدخول' : 'Sign In')}
                         </button>
                     </form>
                 </div>

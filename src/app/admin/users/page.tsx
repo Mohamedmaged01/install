@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import {
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
@@ -11,6 +12,7 @@ import { Role, Permission, DepartmentUser, Department } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
 import { useLang } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 import Pagination from '@/components/Pagination';
 
 /* ─── types ─── */
@@ -31,6 +33,7 @@ type ModalType = 'addRole' | 'addUser' | 'permissions' | 'viewUsers' | 'editUser
 ════════════════════════════════════════════════════════ */
 export default function AdminUsersPage() {
     const { t } = useLang();
+    const toast = useToast();
 
     /* data */
     const [roles, setRoles] = useState<Role[]>([]);
@@ -89,7 +92,7 @@ export default function AdminUsersPage() {
             setNewRoleName('');
             setModal(null);
             await loadAll();
-        } catch (err) { alert(err instanceof Error ? err.message : 'Failed'); }
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to create role', 'فشل إنشاء الدور')); }
         finally { setActionLoading(false); }
     };
 
@@ -98,7 +101,8 @@ export default function AdminUsersPage() {
         try {
             await deleteRole(id);
             await loadAll();
-        } catch (err) { alert(err instanceof Error ? err.message : 'Failed'); }
+            toast.success(t('Role deleted.', 'تم حذف الدور.'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete role', 'فشل حذف الدور')); }
     };
 
     /* ── permission actions ── */
@@ -126,7 +130,8 @@ const handleSavePerms = async () => {
 
         await loadAll();
         setModal(null);
-    } catch (err) { alert(err instanceof Error ? err.message : 'Failed'); }
+        toast.success(t('Permissions saved!', 'تم حفظ الصلاحيات!'));
+    } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to save permissions', 'فشل حفظ الصلاحيات')); }
     finally { setActionLoading(false); }
 };
     /* ── view users in role ── */
@@ -149,7 +154,7 @@ const handleSavePerms = async () => {
     /* ── create user ── */
     const handleCreateUser = async () => {
         if (!userForm.Name || !userForm.Email || !userForm.Password) {
-            alert('Name, email, and password are required.'); return;
+            toast.error(t('Name, email, and password are required.', 'الاسم والبريد وكلمة المرور مطلوبة.')); return;
         }
         setActionLoading(true);
         try {
@@ -159,7 +164,8 @@ const handleSavePerms = async () => {
             setModal(null);
             setUserForm({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0, IsSuperAdmin: false });
             await loadAll();
-        } catch (err) { alert(err instanceof Error ? err.message : 'Failed to create user'); }
+            toast.success(t('User created successfully!', 'تم إنشاء المستخدم بنجاح!'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to create user', 'فشل إنشاء المستخدم')); }
         finally { setActionLoading(false); }
     };
 
@@ -169,7 +175,8 @@ const handleSavePerms = async () => {
             await deleteDepartmentUser(id);
             setRoleUsers(prev => prev.filter(u => u.id !== id));
             await loadAll();
-        } catch (err) { alert(err instanceof Error ? err.message : 'Failed to delete user'); }
+            toast.success(t('User deleted.', 'تم حذف المستخدم.'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete user', 'فشل حذف المستخدم')); }
     };
 
     const openEditUser = (u: DepartmentUser) => {
@@ -185,7 +192,8 @@ const handleSavePerms = async () => {
             await updateDepartmentUser(editUserTarget.id, editUserForm);
             await loadAll();
             setModal('viewUsers');
-        } catch (err) { alert(err instanceof Error ? err.message : 'Failed to update user'); }
+            toast.success(t('User updated successfully!', 'تم تحديث المستخدم بنجاح!'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to update user', 'فشل تحديث المستخدم')); }
         finally { setActionLoading(false); }
     };
 
@@ -202,6 +210,9 @@ const handleSavePerms = async () => {
                 {/* ── Page Header ── */}
                 <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
                     <div>
+                        <Link href="/admin" style={{ fontSize: 13, color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 8, textDecoration: 'none' }}>
+                            ← {t('Back to Admin', 'العودة للإدارة')}
+                        </Link>
                         <h1>🔑 {t('Roles & Users', 'الأدوار والمستخدمون')}</h1>
                         <p>{t('Manage roles, assign permissions, and create users', 'إدارة الأدوار وتعيين الصلاحيات وإنشاء المستخدمين')}</p>
                     </div>

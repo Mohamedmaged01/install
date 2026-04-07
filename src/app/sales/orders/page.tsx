@@ -7,6 +7,7 @@ import { Order, OrderStatus, Department, Branch, getOrderStatusLabel } from '@/t
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
 import Pagination from '@/components/Pagination';
@@ -18,6 +19,7 @@ const allStatuses: OrderStatus[] = [
 
 export default function SalesOrdersPage() {
     const { lang, t } = useLang();
+    const toast = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -28,6 +30,7 @@ export default function SalesOrdersPage() {
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: OrderStatus | ''; deptFilter: number | ''; branchFilter: number | ''; dateFrom: string; dateTo: string }>({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
@@ -49,11 +52,11 @@ export default function SalesOrdersPage() {
             setLoading(true);
             try {
                 const data = await getOrders({
-                    branchId: branchFilter || undefined,
-                    departmentId: deptFilter || undefined,
-                    status: statusFilter || undefined,
-                    dateFrom: dateFrom || undefined,
-                    dateTo: dateTo || undefined,
+                    branchId: appliedFilters.branchFilter || undefined,
+                    departmentId: appliedFilters.deptFilter || undefined,
+                    status: appliedFilters.statusFilter || undefined,
+                    dateFrom: appliedFilters.dateFrom || undefined,
+                    dateTo: appliedFilters.dateTo || undefined,
                 });
                 setOrders(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -64,15 +67,16 @@ export default function SalesOrdersPage() {
             }
         }
         loadOrders();
-    }, [statusFilter, deptFilter, branchFilter, dateFrom, dateTo]);
+    }, [appliedFilters]);
 
     const handleDeleteOrder = async (id: number, orderNum: string) => {
         if (!confirm(t(`Are you sure you want to delete order ${orderNum}?`, `هل أنت متأكد من حذف الطلب ${orderNum}؟`))) return;
         try {
             await deleteOrder(id);
             setOrders(prev => prev.filter(o => o.id !== id));
+            toast.success(t('Order deleted.', 'تم حذف الطلب.'));
         } catch (err) {
-            alert(err instanceof Error ? err.message : t('Failed to delete order', 'فشل حذف الطلب'));
+            toast.error(err instanceof Error ? err.message : t('Failed to delete order', 'فشل حذف الطلب'));
         }
     };
 
@@ -101,7 +105,7 @@ export default function SalesOrdersPage() {
 
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 24, padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                         <input
                             className="form-input"
                             placeholder={`🔍 ${t('Search orders...', 'ابحث عن الأوامر...')}`}
@@ -162,6 +166,14 @@ export default function SalesOrdersPage() {
                                 style={{ minWidth: 150 }}
                             />
                         </div>
+                        <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter, dateFrom, dateTo }); setPage(1); }}>
+                            {t('Apply', 'تطبيق')}
+                        </button>
+                        {(appliedFilters.statusFilter || appliedFilters.deptFilter || appliedFilters.branchFilter || appliedFilters.dateFrom || appliedFilters.dateTo || statusFilter || deptFilter || branchFilter || dateFrom || dateTo) && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => { setStatusFilter(''); setDeptFilter(''); setBranchFilter(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '' }); setPage(1); }}>
+                                {t('Clear', 'مسح')}
+                            </button>
+                        )}
                     </div>
                 </div>
 

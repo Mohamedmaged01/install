@@ -39,6 +39,7 @@ export default function TasksPage() {
     const [search, setSearch] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number[]; deptFilter: number[]; dateFrom: string; dateTo: string }>({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' });
     const [stats, setStats] = useState<import('@/types').TaskStatistics | null>(null);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -59,21 +60,21 @@ export default function TasksPage() {
     useEffect(() => {
         setLoading(true);
         getMyTasks({
-            branchIds: branchFilter.length ? branchFilter : undefined,
-            departmentIds: deptFilter.length ? deptFilter : undefined,
+            branchIds: appliedFilters.branchFilter.length ? appliedFilters.branchFilter : undefined,
+            departmentIds: appliedFilters.deptFilter.length ? appliedFilters.deptFilter : undefined,
         }).then(data => {
             setTasks(Array.isArray(data) ? data : []);
         }).catch(() => setTasks([])).finally(() => setLoading(false));
-    }, [branchFilter, deptFilter]);
+    }, [appliedFilters]);
 
     useEffect(() => {
         getTaskStatistics({
-            branchIds: branchFilter.length ? branchFilter : undefined,
-            departmentIds: deptFilter.length ? deptFilter : undefined,
-            from: dateFrom || undefined,
-            to: dateTo || undefined,
+            branchIds: appliedFilters.branchFilter.length ? appliedFilters.branchFilter : undefined,
+            departmentIds: appliedFilters.deptFilter.length ? appliedFilters.deptFilter : undefined,
+            from: appliedFilters.dateFrom || undefined,
+            to: appliedFilters.dateTo || undefined,
         }).then(s => setStats(s)).catch(() => {});
-    }, [branchFilter, deptFilter, dateFrom, dateTo]);
+    }, [appliedFilters]);
 
     const taskLabel = (s: TaskStatus) => lang === 'ar' ? TASK_LABELS[s].ar : TASK_LABELS[s].en;
 
@@ -175,8 +176,11 @@ export default function TasksPage() {
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
                         <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} />
                     </div>
-                    {(branchFilter.length > 0 || deptFilter.length > 0 || statusFilter || search || dateFrom || dateTo) && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setStatusFilter(''); setSearch(''); setDateFrom(''); setDateTo(''); }}>
+                    <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo }); setPage(1); }}>
+                        {t('Apply', 'تطبيق')}
+                    </button>
+                    {(appliedFilters.branchFilter.length > 0 || appliedFilters.deptFilter.length > 0 || appliedFilters.dateFrom || appliedFilters.dateTo || branchFilter.length > 0 || deptFilter.length > 0 || statusFilter || search || dateFrom || dateTo) && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setStatusFilter(''); setSearch(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' }); setPage(1); }}>
                             {t('Clear', 'مسح')}
                         </button>
                     )}

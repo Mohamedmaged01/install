@@ -15,11 +15,13 @@ import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, Apex
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 
 type TabType = 'timeline' | 'items' | 'evidence';
 
 export default function OrderDetailPage() {
     const { lang, t } = useLang();
+    const toast = useToast();
     const params = useParams();
     const id = Number(params.id);
     const [order, setOrder] = useState<Order | null>(null);
@@ -46,7 +48,6 @@ export default function OrderDetailPage() {
     const [assignLoading, setAssignLoading] = useState(false);
     const [techsLoading, setTechsLoading] = useState(false);
     const [isApproveWorkflow, setIsApproveWorkflow] = useState(false);
-    const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
     const [origin, setOrigin] = useState('');
     const [itemsPage, setItemsPage] = useState(1);
     const ITEMS_PER_PAGE = 10;
@@ -55,11 +56,6 @@ export default function OrderDetailPage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
     const [editForm, setEditForm] = useState<Partial<Omit<UpdateOrderDto, 'branchIds'> & { branchIds: number[], location: string; notes: string }>>({});
-
-    const showToast = (type: 'error' | 'success', msg: string) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 6000);
-    };
 
     const loadOrder = async () => {
         try {
@@ -128,9 +124,9 @@ export default function OrderDetailPage() {
             setUploadFiles([]);
             setUploadNote('');
             if (fileInputRef.current) fileInputRef.current.value = '';
-            showToast('success', t('Evidence uploaded!', 'تم رفع الدليل!'));
+            toast.success( t('Evidence uploaded!', 'تم رفع الدليل!'));
         } catch (err) {
-            showToast('error', err instanceof Error ? err.message : t('Upload failed', 'فشل الرفع'));
+            toast.error( err instanceof Error ? err.message : t('Upload failed', 'فشل الرفع'));
         } finally {
             setUploading(false);
         }
@@ -173,7 +169,7 @@ export default function OrderDetailPage() {
                 const techIds = Array.from(selectedTechs);
                 const whatsappUrl = await approveSupervisor(order.id, techIds, assignNotes || null);
                 if (whatsappUrl) window.open(whatsappUrl, '_blank');
-                showToast('success', t('Order approved and technicians assigned', 'تم الموافقة على الطلب وتعيين الفنيين'));
+                toast.success( t('Order approved and technicians assigned', 'تم الموافقة على الطلب وتعيين الفنيين'));
             } else {
                 await Promise.all(
                     Array.from(selectedTechs).map(techId => {
@@ -185,12 +181,12 @@ export default function OrderDetailPage() {
                         return assignTask(dto);
                     })
                 );
-                showToast('success', t(`${selectedTechs.size} technician(s) assigned!`, `تم تعيين ${selectedTechs.size} فني!`));
+                toast.success( t(`${selectedTechs.size} technician(s) assigned!`, `تم تعيين ${selectedTechs.size} فني!`));
             }
             setShowAssignModal(false);
             await loadOrder();
         } catch (err) {
-            showToast('error', err instanceof Error ? err.message : t('Failed to assign', 'فشل التعيين'));
+            toast.error( err instanceof Error ? err.message : t('Failed to assign', 'فشل التعيين'));
         } finally {
             setAssignLoading(false);
         }
@@ -218,11 +214,11 @@ export default function OrderDetailPage() {
             };
 
             await updateOrder(order.id, dto);
-            showToast('success', t('Order updated successfully', 'تم تحديث الطلب بنجاح'));
+            toast.success( t('Order updated successfully', 'تم تحديث الطلب بنجاح'));
             setShowEditModal(false);
             await loadOrder(); // Refresh the order info
         } catch (err) {
-            showToast('error', err instanceof Error ? err.message : t('Failed to update order', 'فشل تحديث الطلب'));
+            toast.error( err instanceof Error ? err.message : t('Failed to update order', 'فشل تحديث الطلب'));
         } finally {
             setEditLoading(false);
         }
@@ -234,7 +230,7 @@ export default function OrderDetailPage() {
             await deleteOrder(id);
             window.location.href = '/sales/orders';
         } catch (err) {
-            showToast('error', err instanceof Error ? err.message : t('Failed to delete order', 'فشل حذف الطلب'));
+            toast.error( err instanceof Error ? err.message : t('Failed to delete order', 'فشل حذف الطلب'));
         }
     };
 
@@ -244,10 +240,10 @@ export default function OrderDetailPage() {
             if (!confirm(t('Approve this order?', 'هل تريد اعتماد هذا الطلب؟'))) return;
             try {
                 await approveSalesManager(id);
-                showToast('success', t('Order approved successfully!', 'تم اعتماد الطلب بنجاح!'));
+                toast.success( t('Order approved successfully!', 'تم اعتماد الطلب بنجاح!'));
                 await loadOrder();
             } catch (err) {
-                showToast('error', err instanceof Error ? err.message : t('Approval failed', 'فشل الاعتماد'));
+                toast.error( err instanceof Error ? err.message : t('Approval failed', 'فشل الاعتماد'));
             }
         } else if (order.status === 'PendingSupervisorApproval') {
             await openAssignModal(true);
@@ -255,10 +251,10 @@ export default function OrderDetailPage() {
             if (!confirm(t('Accept this order from outside? This will mark it as accepted by an external party.', 'هل تريد قبول هذا الطلب من الخارج؟ سيتم تسجيله كمقبول من جهة خارجية.'))) return;
             try {
                 await acceptFromOutside(id);
-                showToast('success', t('Order accepted from outside', 'تم قبول الطلب من الخارج'));
+                toast.success( t('Order accepted from outside', 'تم قبول الطلب من الخارج'));
                 await loadOrder();
             } catch (err) {
-                showToast('error', err instanceof Error ? err.message : t('Failed to accept from outside', 'فشل القبول من الخارج'));
+                toast.error( err instanceof Error ? err.message : t('Failed to accept from outside', 'فشل القبول من الخارج'));
             }
         }
     };
@@ -267,10 +263,10 @@ export default function OrderDetailPage() {
         if (!confirm(t('Remove this technician from this order?', 'هل تريد إزالة هذا الفني من الطلب؟'))) return;
         try {
             await deleteTask(taskId);
-            showToast('success', t('Technician removed', 'تمت إزالة الفني'));
+            toast.success( t('Technician removed', 'تمت إزالة الفني'));
             await loadOrder();
         } catch (err) {
-            showToast('error', err instanceof Error ? err.message : t('Failed to remove', 'فشل الإزالة'));
+            toast.error( err instanceof Error ? err.message : t('Failed to remove', 'فشل الإزالة'));
         }
     };
 
@@ -306,23 +302,6 @@ export default function OrderDetailPage() {
 
     return (
         <div className="animate-in">
-
-            {/* Toast */}
-            {toast && (
-                <div style={{
-                    position: 'fixed', top: 20, right: 20, zIndex: 9999,
-                    padding: '14px 20px', borderRadius: 'var(--radius-md)',
-                    background: toast.type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)',
-                    color: '#fff', fontWeight: 600, fontSize: 14,
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                    display: 'flex', alignItems: 'center', gap: 12, maxWidth: 420,
-                    backdropFilter: 'blur(8px)',
-                }}>
-                    <span>{toast.type === 'success' ? '✅' : '❌'}</span>
-                    <span style={{ flex: 1 }}>{toast.msg}</span>
-                    <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
-                </div>
-            )}
 
             {/* Header */}
             <div style={{ marginBottom: 32 }}>

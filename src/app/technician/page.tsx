@@ -41,6 +41,7 @@ export default function TechnicianPage() {
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+    const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number | ''; deptFilter: number | ''; dateFrom: string; dateTo: string }>({ branchFilter: '', deptFilter: '', dateFrom: '', dateTo: '' });
     const [statsLoading, setStatsLoading] = useState(false);
     const [filteredStats, setFilteredStats] = useState<{ total: number; active: number; completed: number } | null>(null);
 
@@ -71,16 +72,16 @@ export default function TechnicianPage() {
     }, []);
 
     useEffect(() => {
-        if (!branchFilter && !deptFilter && !dateFrom && !dateTo) {
+        if (!appliedFilters.branchFilter && !appliedFilters.deptFilter && !appliedFilters.dateFrom && !appliedFilters.dateTo) {
             setFilteredStats(null);
             return;
         }
         setStatsLoading(true);
         getTaskStatistics({
-            branchIds: branchFilter ? [Number(branchFilter)] : undefined,
-            departmentIds: deptFilter ? [Number(deptFilter)] : undefined,
-            from: dateFrom || undefined,
-            to: dateTo || undefined,
+            branchIds: appliedFilters.branchFilter ? [Number(appliedFilters.branchFilter)] : undefined,
+            departmentIds: appliedFilters.deptFilter ? [Number(appliedFilters.deptFilter)] : undefined,
+            from: appliedFilters.dateFrom || undefined,
+            to: appliedFilters.dateTo || undefined,
         }).then(s => {
             setFilteredStats({
                 total: s.total ?? s.totalTasks ?? 0,
@@ -88,7 +89,7 @@ export default function TechnicianPage() {
                 completed: s.completed ?? 0,
             });
         }).catch(() => {}).finally(() => setStatsLoading(false));
-    }, [branchFilter, deptFilter, dateFrom, dateTo]);
+    }, [appliedFilters]);
 
     const loadHistory = async (taskId: number) => {
         if (taskHistories[taskId]) return;
@@ -312,8 +313,11 @@ export default function TechnicianPage() {
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
                         <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 140 }} />
                     </div>
-                    {hasFilters && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setDateFrom(''); setDateTo(''); }}>
+                    <button className="btn btn-primary btn-sm" onClick={() => setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo })}>
+                        {t('Apply', 'تطبيق')}
+                    </button>
+                    {(hasFilters || appliedFilters.branchFilter || appliedFilters.deptFilter || appliedFilters.dateFrom || appliedFilters.dateTo) && (
+                        <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: '', deptFilter: '', dateFrom: '', dateTo: '' }); }}>
                             {t('Clear', 'مسح')}
                         </button>
                     )}

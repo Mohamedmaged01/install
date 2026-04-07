@@ -601,7 +601,8 @@ a {
 .table-container {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   background: var(--bg-card);
 }
 
@@ -649,7 +650,7 @@ a {
 table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 thead th {
@@ -1527,12 +1528,8 @@ tbody tr:last-child td {
 }
 
 /* ==================== TABLE CONTAINER OVERFLOW ==================== */
-.table-container {
-  overflow-x: auto;
-}
-
 .table-container table {
-  min-width: 600px;
+  min-width: 700px;
 }
 
 /* ==================== PAGINATION ==================== */

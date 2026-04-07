@@ -10,13 +10,16 @@ import {
     getUserTypes,
 } from '@/lib/endpoints';
 import { Branch, Department, DepartmentUser, Role, Permission } from '@/types';
+import { API_BASE } from '@/lib/api';
 import { useLang } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 import Pagination from '@/components/Pagination';
 
 type AdminTab = 'branches' | 'departments' | 'users' | 'roles' | 'permissions';
 
 export default function AdminPage() {
     const { t } = useLang();
+    const toast = useToast();
     const [activeTab, setActiveTab] = useState<AdminTab>('branches');
     const [branches, setBranches] = useState<Branch[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -31,13 +34,13 @@ export default function AdminPage() {
     const [newDept, setNewDept] = useState({ branchId: 0, name: '' });
     const [editBranch, setEditBranch] = useState<{ id: number; name: string; email: string; phone: string } | null>(null);
     const [editDept, setEditDept] = useState<{ id: number; name: string; branchId: number } | null>(null);
-    const [editUser, setEditUser] = useState<{ id: number; name: string; email: string; phone: string; departmentId: number; roleId: number } | null>(null);
+    const [editUser, setEditUser] = useState<{ id: number; name: string; email: string; phone: string; departmentId: number; roleId: number; currentImageUrl?: string; password: string } | null>(null);
     const [editUserImage, setEditUserImage] = useState<File | null>(null);
+    const [editUserShowPassword, setEditUserShowPassword] = useState(false);
     const [newRoleName, setNewRoleName] = useState('');
     const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
     const [rolePerms, setRolePerms] = useState<number[]>([]);
     const [actionLoading, setActionLoading] = useState(false);
-    const [actionError, setActionError] = useState<string | null>(null);
     const [permSearch, setPermSearch] = useState('');
     const [showPermModal, setShowPermModal] = useState(false);
     const [userSearch, setUserSearch] = useState('');
@@ -99,33 +102,27 @@ export default function AdminPage() {
 
     // ── Branch ──
     const handleCreateBranch = async () => {
-        setActionError(null);
-        if (!newBranch.name) {
-            setActionError(t('Branch name is required.', 'اسم الفرع مطلوب.'));
-            return;
-        }
+        if (!newBranch.name) { toast.error(t('Branch name is required.', 'اسم الفرع مطلوب.')); return; }
         setActionLoading(true);
         try {
             await createBranch(newBranch);
             setNewBranch({ name: '', email: '', phone: '' });
             setBranches(await getBranches().catch(() => []));
-        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Branch created!', 'تم إنشاء الفرع!'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to create branch', 'فشل إنشاء الفرع')); }
         finally { setActionLoading(false); }
     };
 
     const handleUpdateBranch = async () => {
-        setActionError(null);
         if (!editBranch) return;
-        if (!editBranch.name) {
-            setActionError(t('Branch name is required.', 'اسم الفرع مطلوب.'));
-            return;
-        }
+        if (!editBranch.name) { toast.error(t('Branch name is required.', 'اسم الفرع مطلوب.')); return; }
         setActionLoading(true);
         try {
             await updateBranch(editBranch.id, { name: editBranch.name, email: editBranch.email, phone: editBranch.phone });
             setBranches(await getBranches().catch(() => []));
             setEditBranch(null);
-        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Branch updated!', 'تم تحديث الفرع!'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to update branch', 'فشل تحديث الفرع')); }
         finally { setActionLoading(false); }
     };
 
@@ -134,16 +131,13 @@ export default function AdminPage() {
         try {
             await deleteBranch(id);
             setBranches(prev => prev.filter(b => b.id !== id));
-        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Branch deleted.', 'تم حذف الفرع.'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete branch', 'فشل حذف الفرع')); }
     };
 
     // ── Department ──
     const handleCreateDept = async () => {
-        setActionError(null);
-        if (!newDept.branchId || !newDept.name) {
-            setActionError(t('Please select a branch and enter a department name.', 'الرجاء اختيار الفرع وإدخال اسم القسم.'));
-            return;
-        }
+        if (!newDept.branchId || !newDept.name) { toast.error(t('Please select a branch and enter a department name.', 'الرجاء اختيار الفرع وإدخال اسم القسم.')); return; }
         setActionLoading(true);
         try {
             await createDepartment(newDept);
@@ -151,7 +145,8 @@ export default function AdminPage() {
             const all = await getDepartments().catch(() => []);
             setDepartments(Array.isArray(all) ? all : []);
             await loadDeptsByBranch(deptBranchFilter);
-        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Department created!', 'تم إنشاء القسم!'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to create department', 'فشل إنشاء القسم')); }
         finally { setActionLoading(false); }
     };
 
@@ -161,16 +156,13 @@ export default function AdminPage() {
             await deleteDepartment(id);
             setDepartments(prev => prev.filter(d => d.id !== id));
             setDeptsList(prev => prev.filter(d => d.id !== id));
-        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Department deleted.', 'تم حذف القسم.'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete department', 'فشل حذف القسم')); }
     };
 
     const handleUpdateDept = async () => {
-        setActionError(null);
         if (!editDept) return;
-        if (!editDept.name.trim()) {
-            setActionError(t('Department name is required.', 'اسم القسم مطلوب.'));
-            return;
-        }
+        if (!editDept.name.trim()) { toast.error(t('Department name is required.', 'اسم القسم مطلوب.')); return; }
         setActionLoading(true);
         try {
             await updateDepartment(editDept.id, { name: editDept.name, branchId: editDept.branchId || undefined });
@@ -178,7 +170,8 @@ export default function AdminPage() {
             setDepartments(Array.isArray(all) ? all : []);
             await loadDeptsByBranch(deptBranchFilter);
             setEditDept(null);
-        } catch (err) { setActionError(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Department updated!', 'تم تحديث القسم!'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to update department', 'فشل تحديث القسم')); }
         finally { setActionLoading(false); }
     };
 
@@ -191,7 +184,7 @@ export default function AdminPage() {
             setNewRoleName('');
             const r = await getRoles();
             setRoles(Array.isArray(r) ? r : []);
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to create role', 'فشل إنشاء الدور')); }
         finally { setActionLoading(false); }
     };
 
@@ -200,7 +193,8 @@ export default function AdminPage() {
         try {
             await deleteRole(id);
             setRoles(prev => prev.filter(r => r.id !== id));
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Role deleted.', 'تم حذف الدور.'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete role', 'فشل حذف الدور')); }
     };
 
     const handleSelectRole = async (id: number) => {
@@ -216,14 +210,14 @@ export default function AdminPage() {
         setActionLoading(true);
         try {
             await updateRolePermissions(selectedRoleId, rolePerms);
-            alert(t('Permissions saved!', 'تم حفظ الصلاحيات!'));
-        } catch (err) { alert(err instanceof Error ? err.message : t('Failed', 'فشل')); }
+            toast.success(t('Permissions saved!', 'تم حفظ الصلاحيات!'));
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to save permissions', 'فشل حفظ الصلاحيات')); }
         finally { setActionLoading(false); }
     };
 
     const handleCreateUser = async () => {
         if (!userForm.Name || !userForm.Email || !userForm.Password || !userForm.Type) {
-            alert(t('Name, email, password, and type are required.', 'الاسم والبريد الإلكتروني وكلمة المرور والنوع مطلوبة.'));
+            toast.error(t('Name, email, password, and type are required.', 'الاسم والبريد الإلكتروني وكلمة المرور والنوع مطلوبة.'));
             return;
         }
         setActionLoading(true);
@@ -239,11 +233,11 @@ export default function AdminPage() {
             fd.append('Type', userForm.Type);
             await createDepartmentUser(fd);
             setUserForm({ DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '', RoleId: 0, IsSuperAdmin: false, Type: '' });
-            alert(t('User created!', 'تم إنشاء المستخدم!'));
+            toast.success(t('User created successfully!', 'تم إنشاء المستخدم بنجاح!'));
             setShowAddUser(false);
             loadUsers();
         } catch (err) {
-            alert(err instanceof Error ? err.message : t('Failed to create user', 'فشل إنشاء المستخدم'));
+            toast.error(err instanceof Error ? err.message : t('Failed to create user', 'فشل إنشاء المستخدم'));
         } finally { setActionLoading(false); }
     };
 
@@ -252,8 +246,9 @@ export default function AdminPage() {
         try {
             await deleteDepartmentUser(id);
             setUsers(prev => prev.filter(u => u.id !== id));
+            toast.success(t('User deleted.', 'تم حذف المستخدم.'));
         } catch (err) {
-            alert(err instanceof Error ? err.message : t('Failed to delete user', 'فشل حذف المستخدم'));
+            toast.error(err instanceof Error ? err.message : t('Failed to delete user', 'فشل حذف المستخدم'));
         }
     };
 
@@ -263,14 +258,15 @@ export default function AdminPage() {
         try {
             await updateDepartmentUser(
                 editUser.id,
-                { Name: editUser.name, Email: editUser.email, Phone: editUser.phone, DepartmentId: editUser.departmentId || undefined, RoleId: editUser.roleId || undefined },
+                { Name: editUser.name, Email: editUser.email, Phone: editUser.phone, DepartmentId: editUser.departmentId || undefined, RoleId: editUser.roleId || undefined, Password: editUser.password || undefined },
                 editUserImage,
             );
             setEditUser(null);
             setEditUserImage(null);
             loadUsers();
+            toast.success(t('User updated successfully!', 'تم تحديث المستخدم بنجاح!'));
         } catch (err) {
-            alert(err instanceof Error ? err.message : t('Failed to update user', 'فشل تحديث المستخدم'));
+            toast.error(err instanceof Error ? err.message : t('Failed to update user', 'فشل تحديث المستخدم'));
         } finally { setActionLoading(false); }
     };
 
@@ -329,11 +325,6 @@ export default function AdminPage() {
                                 <input className="form-input" placeholder={t('Phone', 'الهاتف')} value={newBranch.phone} onChange={e => setNewBranch({ ...newBranch, phone: e.target.value })} style={{ flex: 1, minWidth: 120 }} />
                                 <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateBranch}>+ {t('Add', 'إضافة')}</button>
                             </div>
-                            {actionError && activeTab === 'branches' && (
-                                <div style={{ background: 'var(--danger-bg, #fee)', color: 'var(--danger, #c00)', border: '1px solid var(--danger, #c00)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 12, whiteSpace: 'pre-line', fontSize: 14 }}>
-                                    {actionError}
-                                </div>
-                            )}
                             {branches.slice((branchesPage - 1) * branchesPageSize, branchesPage * branchesPageSize).map(b => (
                                 <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
                                     {editBranch?.id === b.id ? (
@@ -384,11 +375,6 @@ export default function AdminPage() {
                                 <input className="form-input" placeholder={t('Department name', 'اسم القسم')} value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
                                 <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateDept}>+ {t('Add', 'إضافة')}</button>
                             </div>
-                            {actionError && activeTab === 'departments' && (
-                                <div style={{ background: 'var(--danger-bg, #fee)', color: 'var(--danger, #c00)', border: '1px solid var(--danger, #c00)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 12, whiteSpace: 'pre-line', fontSize: 14 }}>
-                                    {actionError}
-                                </div>
-                            )}
                             {/* Filter by branch */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                                 <select className="form-select" value={deptBranchFilter} onChange={e => { const v = Number(e.target.value); setDeptBranchFilter(v); loadDeptsByBranch(v); }} style={{ maxWidth: 220 }}>
@@ -530,7 +516,16 @@ export default function AdminPage() {
                                                     return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
                                                 }).slice((usersPage - 1) * usersPageSize, usersPage * usersPageSize).map(u => (
                                                     <tr key={u.id}>
-                                                        <td className="table-cell-main" title={u.name}>{u.name}</td>
+                                                        <td className="table-cell-main" title={u.name}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                                {u.image ? (
+                                                                    <img src={u.image.startsWith('http') ? u.image : `${API_BASE}/${u.image.replace(/^\//, '')}`} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                                                ) : (
+                                                                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>👤</div>
+                                                                )}
+                                                                {u.name}
+                                                            </div>
+                                                        </td>
                                                         <td style={{ color: 'var(--text-muted)' }} title={u.email}>{u.email}</td>
                                                         <td style={{ color: 'var(--text-muted)' }}>{u.phone || '—'}</td>
                                                         <td title={u.departmentName || ''}>{u.departmentName || `#${u.departmentId}`}</td>
@@ -543,7 +538,7 @@ export default function AdminPage() {
                                                         <td>{u.type || '—'}</td>
                                                         <td style={{ whiteSpace: 'nowrap' }}>
                                                             <div className="btn-group">
-                                                                <button className="btn btn-secondary btn-sm" onClick={() => { setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId }); setEditUserImage(null); }}>✏️</button>
+                                                                <button className="btn btn-secondary btn-sm" onClick={() => { setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId, currentImageUrl: u.image, password: '' }); setEditUserImage(null); setEditUserShowPassword(false); }}>✏️</button>
                                                                 <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
                                                             </div>
                                                         </td>
@@ -705,8 +700,32 @@ export default function AdminPage() {
                             </div>
                             <div className="form-group">
                                 <label className="form-label">{t('Profile Image', 'الصورة الشخصية')}</label>
+                                {editUser?.currentImageUrl && !editUserImage && (
+                                    <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <img src={editUser.currentImageUrl.startsWith('http') ? editUser.currentImageUrl : `${API_BASE}/${editUser.currentImageUrl.replace(/^\//, '')}`} alt="profile" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Current image — choose a new file to replace', 'الصورة الحالية — اختر ملفاً جديداً للاستبدال')}</span>
+                                    </div>
+                                )}
                                 <input className="form-input" type="file" accept="image/*" onChange={e => setEditUserImage(e.target.files?.[0] ?? null)} />
                                 {editUserImage && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>📎 {editUserImage.name}</div>}
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('New Password', 'كلمة مرور جديدة')} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({t('leave blank to keep current', 'اتركه فارغاً للإبقاء على الحالية')})</span></label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        className="form-input"
+                                        type={editUserShowPassword ? 'text' : 'password'}
+                                        placeholder={t('Enter new password...', 'أدخل كلمة المرور الجديدة...')}
+                                        value={editUser?.password || ''}
+                                        onChange={e => editUser && setEditUser({ ...editUser, password: e.target.value })}
+                                        style={{ paddingRight: 40 }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setEditUserShowPassword(p => !p)}
+                                        style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-muted)' }}
+                                    >{editUserShowPassword ? '🙈' : '👁️'}</button>
+                                </div>
                             </div>
                             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
                                 <button className="btn btn-secondary" onClick={() => setEditUser(null)}>{t('Cancel', 'إلغاء')}</button>

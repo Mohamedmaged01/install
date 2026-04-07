@@ -154,22 +154,50 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
-                    <button
-                        onClick={toggleLang}
-                        title="Toggle Language"
+                    <div
                         style={{
                             background: 'var(--bg-tertiary)',
                             border: '1px solid var(--border)',
-                            borderRadius: 'var(--radius-sm)',
-                            color: 'var(--text-muted)',
-                            padding: '2px 6px',
-                            fontSize: 11,
-                            cursor: 'pointer',
-                            fontWeight: 700,
+                            borderRadius: 16,
+                            padding: 2,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0,
                         }}
                     >
-                        {lang === 'en' ? 'AR' : 'EN'}
-                    </button>
+                        <button
+                            onClick={() => lang !== 'en' && toggleLang()}
+                            title="English"
+                            style={{
+                                padding: '3px 8px',
+                                borderRadius: 14,
+                                border: 'none',
+                                background: lang === 'en' ? 'var(--primary)' : 'transparent',
+                                color: lang === 'en' ? '#fff' : 'var(--text-muted)',
+                                fontWeight: 700,
+                                fontSize: 10,
+                                cursor: lang === 'en' ? 'default' : 'pointer',
+                                transition: 'all 0.2s ease',
+                                lineHeight: 1.4,
+                            }}
+                        >EN</button>
+                        <button
+                            onClick={() => lang !== 'ar' && toggleLang()}
+                            title="العربية"
+                            style={{
+                                padding: '3px 8px',
+                                borderRadius: 14,
+                                border: 'none',
+                                background: lang === 'ar' ? 'var(--primary)' : 'transparent',
+                                color: lang === 'ar' ? '#fff' : 'var(--text-muted)',
+                                fontWeight: 700,
+                                fontSize: 10,
+                                cursor: lang === 'ar' ? 'default' : 'pointer',
+                                transition: 'all 0.2s ease',
+                                lineHeight: 1.4,
+                            }}
+                        >AR</button>
+                    </div>
                     <button
                         onClick={toggleTheme}
                         title={lang === 'en' ? 'Toggle Theme' : 'تغيير المظهر'}

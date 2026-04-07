@@ -7,12 +7,14 @@ import { Order, DepartmentUser, Department, Branch, AssignTaskDto, Role } from '
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
 import Pagination from '@/components/Pagination';
 
 export default function SupervisorPage() {
     const { lang, t } = useLang();
+    const toast = useToast();
     const [orders, setOrders] = useState<Order[]>([]);
     const [technicians, setTechnicians] = useState<DepartmentUser[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -27,16 +29,11 @@ export default function SupervisorPage() {
     const [statusFilter, setStatusFilter] = useState<string>('PendingSupervisorApproval');
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
+    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: string; deptFilter: number | ''; branchFilter: number | '' }>({ statusFilter: 'PendingSupervisorApproval', deptFilter: '', branchFilter: '' });
     const [rejectModal, setRejectModal] = useState<Order | null>(null);
     const [rejectReason, setRejectReason] = useState('');
-    const [toast, setToast] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-
-    const showToast = (type: 'error' | 'success', msg: string) => {
-        setToast({ type, msg });
-        setTimeout(() => setToast(null), 6000);
-    };
 
     useEffect(() => {
         async function load() {
@@ -56,9 +53,9 @@ export default function SupervisorPage() {
             setLoading(true);
             try {
                 const params: Record<string, unknown> = {};
-                if (statusFilter) params.status = statusFilter;
-                if (deptFilter) params.departmentId = deptFilter;
-                if (branchFilter) params.branchId = branchFilter;
+                if (appliedFilters.statusFilter) params.status = appliedFilters.statusFilter;
+                if (appliedFilters.deptFilter) params.departmentId = appliedFilters.deptFilter;
+                if (appliedFilters.branchFilter) params.branchId = appliedFilters.branchFilter;
                 const data = await getOrders(params as Parameters<typeof getOrders>[0]);
                 setOrders(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -68,7 +65,7 @@ export default function SupervisorPage() {
             }
         }
         loadOrders();
-    }, [statusFilter, deptFilter, branchFilter]);
+    }, [appliedFilters]);
 
     const handleApprove = async (order: Order) => {
         openAssignModal(order, true);
@@ -82,10 +79,10 @@ export default function SupervisorPage() {
             setOrders(prev => prev.filter(o => o.id !== rejectModal.id));
             setRejectModal(null);
             setRejectReason('');
-            showToast('success', t('Order returned to Sales', 'تمت إعادة الطلب للمبيعات'));
+            toast.success( t('Order returned to Sales', 'تمت إعادة الطلب للمبيعات'));
         } catch (err) {
             console.error('Reject error:', err);
-            showToast('error', err instanceof Error ? err.message : t('Rejection failed', 'فشل الرفض'));
+            toast.error( err instanceof Error ? err.message : t('Rejection failed', 'فشل الرفض'));
         } finally {
             setActionLoading(null);
         }
@@ -152,7 +149,7 @@ export default function SupervisorPage() {
                 );
             }
             setAssignModal(null);
-            showToast('success', isApproveWorkflow
+            toast.success( isApproveWorkflow
                 ? t('Order approved and technicians assigned', 'تم الموافقة على الطلب وتعيين الفنيين')
                 : t('Technicians assigned', 'تم تعيين الفنيين'));
 
@@ -160,7 +157,7 @@ export default function SupervisorPage() {
             setOrders(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('Assign error:', err);
-            showToast('error', err instanceof Error ? err.message : t('Failed to assign', 'فشل التعيين'));
+            toast.error( err instanceof Error ? err.message : t('Failed to assign', 'فشل التعيين'));
         } finally {
             setActionLoading(null);
         }
@@ -172,23 +169,6 @@ export default function SupervisorPage() {
     return (
         <PermissionGuard requiredPerms={[PERMS.ORDERS_APPROVE_SUPERVISOR]}>
             <div className="animate-in">
-
-                {/* Toast Banner */}
-                {toast && (
-                    <div style={{
-                        position: 'fixed', top: 20, right: 20, zIndex: 9999,
-                        padding: '14px 20px', borderRadius: 'var(--radius-md)',
-                        background: toast.type === 'success' ? 'rgba(16,185,129,0.95)' : 'rgba(239,68,68,0.95)',
-                        color: '#fff', fontWeight: 600, fontSize: 14,
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-                        display: 'flex', alignItems: 'center', gap: 12, maxWidth: 420,
-                        backdropFilter: 'blur(8px)',
-                    }}>
-                        <span>{toast.type === 'success' ? '✅' : '❌'}</span>
-                        <span style={{ flex: 1 }}>{toast.msg}</span>
-                        <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
-                    </div>
-                )}
 
                 <div className="page-header">
                     <h1>{t('Supervisor Dashboard', 'لوحة المشرف')}</h1>
@@ -213,7 +193,7 @@ export default function SupervisorPage() {
 
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 20, padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
                         <select className="form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
                             <option value="">{t('All Branches', 'جميع الفروع')}</option>
                             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -230,6 +210,14 @@ export default function SupervisorPage() {
                             <option value="Complete">{t('Complete', 'مكتمل')}</option>
                             <option value="Canceled">{t('Canceled', 'ملغي')}</option>
                         </select>
+                        <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter }); setPage(1); }}>
+                            {t('Apply', 'تطبيق')}
+                        </button>
+                        {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setStatusFilter('PendingSupervisorApproval'); setAppliedFilters({ statusFilter: 'PendingSupervisorApproval', deptFilter: '', branchFilter: '' }); setPage(1); }}>
+                                {t('Clear', 'مسح')}
+                            </button>
+                        )}
                     </div>
                 </div>
 

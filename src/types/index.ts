@@ -138,7 +138,7 @@ export interface AddOrderDto {
     customerId: string | null;
     createdAt: string;
     priority: Priority;
-    branchIds: { id: number }[];
+    branchId: number;
     departmentIds: { idd: number }[];
     notes: string | null;
 }
