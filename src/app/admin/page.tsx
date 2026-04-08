@@ -46,6 +46,9 @@ export default function AdminPage() {
     const [userSearch, setUserSearch] = useState('');
     const [showAddUser, setShowAddUser] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
+    const [userBranchFilter, setUserBranchFilter] = useState(0);
+    const [userDeptFilter, setUserDeptFilter] = useState(0);
+    const [userFilterDepts, setUserFilterDepts] = useState<Department[]>([]);
     const [deptsList, setDeptsList] = useState<Department[]>([]);
 
     // Pagination
@@ -485,11 +488,43 @@ export default function AdminPage() {
                             <div className="card">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
                                     <div className="card-title">{t('All Users', 'جميع المستخدمين')}</div>
-                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                        <button className="btn btn-secondary btn-sm" onClick={() => { loadUsers(); setUsersPage(1); }}>{t('Load All', 'تحميل الكل')}</button>
-                                        {departments.slice(0, 5).map(d => (
-                                            <button key={d.id} className="btn btn-secondary btn-sm" onClick={() => { loadUsers(undefined, d.id); setUsersPage(1); }}>{d.name}</button>
-                                        ))}
+                                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                        <select
+                                            className="form-select"
+                                            style={{ fontSize: 13, padding: '4px 10px', minWidth: 150 }}
+                                            value={userBranchFilter}
+                                            onChange={async e => {
+                                                const bid = Number(e.target.value);
+                                                setUserBranchFilter(bid);
+                                                setUserDeptFilter(0);
+                                                setUsersPage(1);
+                                                if (bid) {
+                                                    const d = await getDepartments(bid).catch(() => []);
+                                                    setUserFilterDepts(Array.isArray(d) ? d : []);
+                                                } else {
+                                                    setUserFilterDepts([]);
+                                                }
+                                                loadUsers(bid || undefined, undefined);
+                                            }}
+                                        >
+                                            <option value={0}>{t('All Branches', 'كل الفروع')}</option>
+                                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                        </select>
+                                        <select
+                                            className="form-select"
+                                            style={{ fontSize: 13, padding: '4px 10px', minWidth: 160 }}
+                                            value={userDeptFilter}
+                                            disabled={!userBranchFilter}
+                                            onChange={e => {
+                                                const did = Number(e.target.value);
+                                                setUserDeptFilter(did);
+                                                setUsersPage(1);
+                                                loadUsers(userBranchFilter || undefined, did || undefined);
+                                            }}
+                                        >
+                                            <option value={0}>{t('All Departments', 'كل الأقسام')}</option>
+                                            {(userBranchFilter ? userFilterDepts : departments).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                        </select>
                                     </div>
                                 </div>
                                 <div className="table-search" style={{ marginBottom: 12 }}>
