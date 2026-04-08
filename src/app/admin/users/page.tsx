@@ -50,8 +50,12 @@ export default function AdminUsersPage() {
     /* forms */
     const [newRoleName, setNewRoleName] = useState('');
     const [userForm, setUserForm] = useState<NewUserForm>({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0, IsSuperAdmin: false });
+    const [userImageFile, setUserImageFile] = useState<File | null>(null);
+    const [userImagePreview, setUserImagePreview] = useState<string | null>(null);
     const [editUserTarget, setEditUserTarget] = useState<DepartmentUser | null>(null);
     const [editUserForm, setEditUserForm] = useState<{ Name: string; Email: string; Phone: string; Password: string; DepartmentId: number; RoleId: number }>({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0 });
+    const [editUserImageFile, setEditUserImageFile] = useState<File | null>(null);
+    const [editUserImagePreview, setEditUserImagePreview] = useState<string | null>(null);
     const [searchQ, setSearchQ] = useState('');
     const [userSearch, setUserSearch] = useState('');
 
@@ -160,9 +164,12 @@ const handleSavePerms = async () => {
         try {
             const fd = new FormData();
             Object.entries(userForm).forEach(([k, v]) => fd.append(k, String(v)));
+            if (userImageFile) fd.append('Image', userImageFile);
             await createDepartmentUser(fd);
             setModal(null);
             setUserForm({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0, IsSuperAdmin: false });
+            setUserImageFile(null);
+            setUserImagePreview(null);
             await loadAll();
             toast.success(t('User created successfully!', 'تم إنشاء المستخدم بنجاح!'));
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to create user', 'فشل إنشاء المستخدم')); }
@@ -182,6 +189,8 @@ const handleSavePerms = async () => {
     const openEditUser = (u: DepartmentUser) => {
         setEditUserTarget(u);
         setEditUserForm({ Name: u.name, Email: u.email, Phone: u.phone || '', Password: '', DepartmentId: u.departmentId, RoleId: u.roleId });
+        setEditUserImageFile(null);
+        setEditUserImagePreview(u.image || null);
         setModal('editUser');
     };
 
@@ -189,7 +198,7 @@ const handleSavePerms = async () => {
         if (!editUserTarget) return;
         setActionLoading(true);
         try {
-            await updateDepartmentUser(editUserTarget.id, editUserForm);
+            await updateDepartmentUser(editUserTarget.id, editUserForm, editUserImageFile || null);
             await loadAll();
             setModal('viewUsers');
             toast.success(t('User updated successfully!', 'تم تحديث المستخدم بنجاح!'));
@@ -459,8 +468,10 @@ const handleSavePerms = async () => {
                                             <tr key={u.id}>
                                                 <td>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#fff', flexShrink: 0 }}>
-                                                            {u.name?.charAt(0) || 'U'}
+                                                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#fff', flexShrink: 0, overflow: 'hidden', border: '2px solid var(--border)' }}>
+                                                            {u.image
+                                                                ? <img src={u.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                : (u.name?.charAt(0) || 'U')}
                                                         </div>
                                                         <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</span>
                                                     </div>
@@ -522,6 +533,40 @@ const handleSavePerms = async () => {
                                 </select>
                             </div>
                         </div>
+                        {/* Image upload */}
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label className="form-label">{t('Profile Image', 'صورة الملف الشخصي')}</label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '2px solid var(--border)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: 'var(--text-muted)' }}>
+                                    {editUserImagePreview
+                                        ? <img src={editUserImagePreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        : <span>{editUserTarget?.name?.charAt(0) || '👤'}</span>}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        id="edit-user-image"
+                                        style={{ display: 'none' }}
+                                        onChange={e => {
+                                            const file = e.target.files?.[0] || null;
+                                            setEditUserImageFile(file);
+                                            setEditUserImagePreview(file ? URL.createObjectURL(file) : (editUserTarget?.image || null));
+                                        }}
+                                    />
+                                    <label htmlFor="edit-user-image" className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                        📷 {t('Change Image', 'تغيير الصورة')}
+                                    </label>
+                                    {editUserImageFile && (
+                                        <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: 8 }} onClick={() => { setEditUserImageFile(null); setEditUserImagePreview(editUserTarget?.image || null); }}>
+                                            ✕ {t('Remove', 'إزالة')}
+                                        </button>
+                                    )}
+                                    {editUserImageFile && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{editUserImageFile.name}</div>}
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="modal-footer" style={{ paddingTop: 16 }}>
                             <button className="btn btn-secondary" onClick={() => setModal('viewUsers')}>{t('Cancel', 'إلغاء')}</button>
                             <button className="btn btn-primary" disabled={actionLoading} onClick={handleSaveEditUser}>
@@ -568,6 +613,40 @@ const handleSavePerms = async () => {
                                     <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
                                     {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
+                            </div>
+                        </div>
+
+                        {/* Image upload */}
+                        <div className="form-group" style={{ marginBottom: 16 }}>
+                            <label className="form-label">{t('Profile Image', 'صورة الملف الشخصي')} <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>({t('optional', 'اختياري')})</span></label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '2px solid var(--border)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: 'var(--text-muted)' }}>
+                                    {userImagePreview
+                                        ? <img src={userImagePreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        : '👤'}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        id="new-user-image"
+                                        style={{ display: 'none' }}
+                                        onChange={e => {
+                                            const file = e.target.files?.[0] || null;
+                                            setUserImageFile(file);
+                                            setUserImagePreview(file ? URL.createObjectURL(file) : null);
+                                        }}
+                                    />
+                                    <label htmlFor="new-user-image" className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-block' }}>
+                                        📷 {t('Choose Image', 'اختر صورة')}
+                                    </label>
+                                    {userImageFile && (
+                                        <button type="button" className="btn btn-secondary btn-sm" style={{ marginLeft: 8 }} onClick={() => { setUserImageFile(null); setUserImagePreview(null); }}>
+                                            ✕ {t('Remove', 'إزالة')}
+                                        </button>
+                                    )}
+                                    {userImageFile && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{userImageFile.name}</div>}
+                                </div>
                             </div>
                         </div>
 
