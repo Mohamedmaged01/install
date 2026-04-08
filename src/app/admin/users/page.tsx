@@ -10,7 +10,7 @@ import {
 } from '@/lib/endpoints';
 import { Role, Permission, DepartmentUser, Department } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
-import { PERMS } from '@/context/RoleContext';
+import { PERMS, useAuth } from '@/context/RoleContext';
 import { useLang } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import Pagination from '@/components/Pagination';
@@ -34,6 +34,7 @@ type ModalType = 'addRole' | 'addUser' | 'permissions' | 'viewUsers' | 'editUser
 export default function AdminUsersPage() {
     const { t } = useLang();
     const toast = useToast();
+    const { user, setUser } = useAuth();
 
     /* data */
     const [roles, setRoles] = useState<Role[]>([]);
@@ -198,7 +199,15 @@ const handleSavePerms = async () => {
         if (!editUserTarget) return;
         setActionLoading(true);
         try {
-            await updateDepartmentUser(editUserTarget.id, editUserForm, editUserImageFile || null);
+            const updated = await updateDepartmentUser(editUserTarget.id, editUserForm, editUserImageFile || null);
+            // If the edited user is the currently logged-in user, sync the auth context
+            if (user && user.id === editUserTarget.id && updated.image) {
+                const stored = localStorage.getItem('auth_user');
+                const parsed = stored ? JSON.parse(stored) : {};
+                const next = { ...parsed, ...user, image: updated.image };
+                localStorage.setItem('auth_user', JSON.stringify(next));
+                setUser(next);
+            }
             await loadAll();
             setModal('viewUsers');
             toast.success(t('User updated successfully!', 'تم تحديث المستخدم بنجاح!'));
