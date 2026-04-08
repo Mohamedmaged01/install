@@ -8,6 +8,7 @@ import type {
     Order,
     AddOrderDto, UpdateOrderDto,
     OrderHistoryEntry,
+    OrderNote,
     Evidence,
     VerifyQrDto,
     AssignTaskDto,
@@ -340,6 +341,36 @@ export async function uploadEvidence(orderId: number, images: File[], note?: str
     });
 }
 
+export async function getOrderNotes(orderId: number): Promise<OrderNote[]> {
+    try {
+        const raw = await api<unknown>(`/api/Orders/${orderId}/notes`);
+        if (Array.isArray(raw)) return raw as OrderNote[];
+        const obj = raw as Record<string, unknown>;
+        if (obj && Array.isArray(obj.data)) return obj.data as OrderNote[];
+        return [];
+    } catch {
+        return [];
+    }
+}
+
+export async function addOrderNote(orderId: number, note: string): Promise<OrderNote> {
+    return api<OrderNote>(`/api/Orders/${orderId}/notes`, {
+        method: 'POST',
+        body: { Note: note },
+    });
+}
+
+export async function updateOrderNote(id: number, note: string): Promise<OrderNote> {
+    return api<OrderNote>(`/api/Orders/notes/${id}`, {
+        method: 'PUT',
+        body: { Note: note },
+    });
+}
+
+export async function deleteOrderNote(id: number): Promise<void> {
+    return api<void>(`/api/Orders/notes/${id}`, { method: 'DELETE' });
+}
+
 export async function getOrderTechnicians(id: number): Promise<DepartmentUser[]> {
     try {
         const raw = await api<unknown>(`/api/Orders/${id}/technicians`);
@@ -350,6 +381,17 @@ export async function getOrderTechnicians(id: number): Promise<DepartmentUser[]>
     } catch {
         return [];
     }
+}
+
+export async function updateEvidence(id: number, note: string): Promise<Evidence> {
+    return api<Evidence>(`/api/Orders/evidence/${id}`, {
+        method: 'PUT',
+        body: { Note: note },
+    });
+}
+
+export async function deleteEvidence(id: number): Promise<void> {
+    return api<void>(`/api/Orders/evidence/${id}`, { method: 'DELETE' });
 }
 
 export async function getOrderEvidence(id: number): Promise<Evidence[]> {

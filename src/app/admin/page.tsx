@@ -393,6 +393,10 @@ export default function AdminPage() {
                                     {editDept?.id === d.id ? (
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                                             <input className="form-input" value={editDept.name} onChange={e => setEditDept({ ...editDept, name: e.target.value })} placeholder={t('Department name', 'اسم القسم')} style={{ flex: 1, minWidth: 140 }} />
+                                            <select className="form-select" value={editDept.branchId} onChange={e => setEditDept({ ...editDept, branchId: Number(e.target.value) })} style={{ minWidth: 140 }}>
+                                                <option value={0}>— {t('Branch', 'الفرع')} —</option>
+                                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                            </select>
                                             <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleUpdateDept}>💾</button>
                                             <button className="btn btn-secondary btn-sm" onClick={() => setEditDept(null)}>✕</button>
                                         </div>

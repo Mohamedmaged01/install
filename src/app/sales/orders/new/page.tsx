@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createOrder, getBranches, getDepartments, getApexInvoices, getApexOffers } from '@/lib/endpoints';
+import { createOrder, getBranches, getDepartments, getApexInvoices, getApexOffers, uploadEvidence } from '@/lib/endpoints';
 import { Branch, Department, AddOrderDto, ApexInvoice, ApexOffer } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
@@ -30,10 +30,12 @@ export default function NewOrderPage() {
     const [address, setAddress] = useState('');
     const [priority, setPriority] = useState<'Normal' | 'Urgent'>('Normal');
     const [branchId, setBranchId] = useState<number>(0);
-    const [departmentIds, setDepartmentIds] = useState<number[]>([]);
+    const [departmentIds, setDepartmentIds] = useState<{ id: number; note: string }[]>([]);
     const [locationLink, setLocationLink] = useState('');
     const [notes, setNotes] = useState('');
     const [scheduledDate, setScheduledDate] = useState('');
+    const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+    const [evidenceNote, setEvidenceNote] = useState('');
 
     useEffect(() => {
         async function load() {
@@ -42,7 +44,7 @@ export default function NewOrderPage() {
                 setBranches(b);
                 setDepartments(d);
                 if (b.length > 0) setBranchId(b[0].id);
-                if (d.length > 0) setDepartmentIds([d[0].id]);
+                if (d.length > 0) setDepartmentIds([{ id: d[0].id, note: '' }]);
             } catch (err) {
                 console.error('Failed to load form data:', err);
             }
@@ -70,7 +72,7 @@ export default function NewOrderPage() {
                 .then(d => {
                     const list = Array.isArray(d) ? d : [];
                     setDepartments(list);
-                    if (list.length > 0) setDepartmentIds([list[0].id]);
+                    if (list.length > 0) setDepartmentIds([{ id: list[0].id, note: '' }]);
                 })
                 .catch(() => { });
         }
@@ -97,11 +99,14 @@ export default function NewOrderPage() {
                 createdAt: new Date().toISOString(),
                 priority,
                 branchId,
-                departmentIds: departmentIds.map(id => ({ idd: id })),
+                departmentIds: departmentIds.map(d => ({ idd: d.id, note: d.note || null })),
                 notes: notes || null,
             };
 
             const newOrder = await createOrder(dto);
+            if (evidenceFiles.length > 0) {
+                await uploadEvidence(newOrder.id, evidenceFiles, evidenceNote || undefined).catch(() => {});
+            }
             router.push(`/orders/${newOrder.id}`);
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : t('Failed to create order', 'فشل إنشاء الطلب'));
@@ -226,6 +231,36 @@ export default function NewOrderPage() {
                             </div>
                         </div>
 
+                        {/* Evidence (optional) */}
+                        <div className="card" style={{ marginBottom: 20 }}>
+                            <div className="card-title" style={{ marginBottom: 16 }}>📸 {t('Evidence', 'الأدلة')} <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>({t('optional', 'اختياري')})</span></div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Attach Images', 'إرفاق صور')}</label>
+                                <input
+                                    className="form-input"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={e => setEvidenceFiles(Array.from(e.target.files || []))}
+                                    style={{ padding: '8px 12px' }}
+                                />
+                                {evidenceFiles.length > 0 && (
+                                    <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                                        {evidenceFiles.length} {t('file(s) selected', 'ملف/ملفات محددة')}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Evidence Note', 'ملاحظة الدليل')}</label>
+                                <input
+                                    className="form-input"
+                                    placeholder={t('Optional note for the evidence...', 'ملاحظة اختيارية للدليل...')}
+                                    value={evidenceNote}
+                                    onChange={e => setEvidenceNote(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
                         {/* Installation Details */}
                         <div className="card" style={{ marginBottom: 20 }}>
                             <div className="card-title" style={{ marginBottom: 16 }}>🔧 {t('Installation Details', 'تفاصيل التركيب')}</div>
@@ -241,18 +276,32 @@ export default function NewOrderPage() {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">{t('Department', 'القسم')} *</label>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 180, overflowY: 'auto', padding: '10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-secondary)', maxHeight: 260, overflowY: 'auto' }}>
                                         {filteredDepts.map(d => {
-                                            const checked = departmentIds.includes(d.id);
+                                            const entry = departmentIds.find(x => x.id === d.id);
+                                            const checked = !!entry;
                                             return (
-                                                <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={() => setDepartmentIds(prev => checked ? prev.filter(id => id !== d.id) : [...prev, d.id])}
-                                                    />
-                                                    <span style={{ fontSize: 13, userSelect: 'none' }}>{d.name}</span>
-                                                </label>
+                                                <div key={d.id}>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => setDepartmentIds(prev =>
+                                                                checked ? prev.filter(x => x.id !== d.id) : [...prev, { id: d.id, note: '' }]
+                                                            )}
+                                                        />
+                                                        <span style={{ fontSize: 13, userSelect: 'none', fontWeight: checked ? 600 : 400 }}>{d.name}</span>
+                                                    </label>
+                                                    {checked && (
+                                                        <input
+                                                            className="form-input"
+                                                            placeholder={t('Note for this department (optional)...', 'ملاحظة لهذا القسم (اختياري)...')}
+                                                            value={entry?.note || ''}
+                                                            onChange={e => setDepartmentIds(prev => prev.map(x => x.id === d.id ? { ...x, note: e.target.value } : x))}
+                                                            style={{ marginTop: 4, fontSize: 12 }}
+                                                        />
+                                                    )}
+                                                </div>
                                             );
                                         })}
                                     </div>
@@ -311,7 +360,7 @@ export default function NewOrderPage() {
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}</span>
-                                    <span>{filteredDepts.filter(d => departmentIds.includes(d.id)).map(d => d.name).join(', ') || '—'}</span>
+                                    <span>{filteredDepts.filter(d => departmentIds.some(x => x.id === d.id)).map(d => d.name).join(', ') || '—'}</span>
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>{t('City', 'المدينة')}</span>

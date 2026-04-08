@@ -108,6 +108,7 @@ export interface Department {
     id: number;
     name: string;
     branchId: number;
+    branchName?: string;
 }
 
 export interface DepartmentUser {
@@ -139,7 +140,7 @@ export interface AddOrderDto {
     createdAt: string;
     priority: Priority;
     branchId: number;
-    departmentIds: { idd: number }[];
+    departmentIds: { idd: number; note?: string | null }[];
     notes: string | null;
 }
 
@@ -158,6 +159,20 @@ export interface UpdateOrderDto {
     branchIds: { id: number }[];
     departmentId: number;
     notes: string | null;
+}
+
+export interface OrderNote {
+    id: number;
+    orderId?: number;
+    note: string;
+    createdAt: string;
+    createdByName?: string;
+}
+
+export interface OrderDepartmentNote {
+    departmentId: number;
+    departmentName?: string;
+    note?: string;
 }
 
 export interface Order {
@@ -190,6 +205,7 @@ export interface Order {
     tasks?: Task[];
     items?: OrderItem[];
     technicians?: { id: number; name: string }[];
+    departmentNotes?: OrderDepartmentNote[];
 }
 
 export interface OrderItem {

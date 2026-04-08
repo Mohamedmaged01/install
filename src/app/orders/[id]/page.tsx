@@ -5,19 +5,21 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-    getOrderById, getOrderHistory, getOrderEvidence, uploadEvidence, deleteOrder, deleteTask,
+    getOrderById, getOrderHistory, getOrderEvidence, uploadEvidence, updateEvidence, deleteEvidence,
+    getOrderNotes, addOrderNote, updateOrderNote, deleteOrderNote,
+    deleteOrder, deleteTask,
     getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
     getApexInvoices, getApexOffers, updateOrder, acceptFromOutside,
     approveSalesManager, approveSupervisor, getBranchTechnicians
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
-import { Order, OrderHistoryEntry, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto } from '@/types';
+import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 
-type TabType = 'timeline' | 'items' | 'evidence';
+type TabType = 'timeline' | 'items' | 'evidence' | 'notes';
 
 export default function OrderDetailPage() {
     const { lang, t } = useLang();
@@ -39,6 +41,18 @@ export default function OrderDetailPage() {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Evidence edit/delete state
+    const [editingEvidenceId, setEditingEvidenceId] = useState<number | null>(null);
+    const [editingEvidenceNote, setEditingEvidenceNote] = useState('');
+    const [evidenceActionLoading, setEvidenceActionLoading] = useState(false);
+
+    // Order notes state
+    const [orderNotes, setOrderNotes] = useState<OrderNote[]>([]);
+    const [newNoteText, setNewNoteText] = useState('');
+    const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+    const [editingNoteText, setEditingNoteText] = useState('');
+    const [noteLoading, setNoteLoading] = useState(false);
+
     // Assign technician state
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [technicians, setTechnicians] = useState<DepartmentUser[]>([]);
@@ -59,10 +73,11 @@ export default function OrderDetailPage() {
 
     const loadOrder = async () => {
         try {
-            const [orderData, historyData, evidenceData] = await Promise.all([
+            const [orderData, historyData, evidenceData, notesData] = await Promise.all([
                 getOrderById(id),
                 getOrderHistory(id).catch(() => []),
                 getOrderEvidence(id).catch(() => []),
+                getOrderNotes(id).catch(() => []),
             ]);
 
             if (orderData) {
@@ -78,6 +93,7 @@ export default function OrderDetailPage() {
             setOrder(orderData);
             setHistory(Array.isArray(historyData) ? historyData : []);
             setEvidence(Array.isArray(evidenceData) ? evidenceData : []);
+            setOrderNotes(Array.isArray(notesData) ? notesData : []);
 
             // Fetch APEX items if the order is linked to an APEX document
             const apexCode = orderData.invoiceId || orderData.quotationId;
@@ -129,6 +145,79 @@ export default function OrderDetailPage() {
             toast.error( err instanceof Error ? err.message : t('Upload failed', 'فشل الرفع'));
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleEditEvidence = async (evidenceId: number) => {
+        setEvidenceActionLoading(true);
+        try {
+            await updateEvidence(evidenceId, editingEvidenceNote);
+            const ev = await getOrderEvidence(id).catch(() => []);
+            setEvidence(Array.isArray(ev) ? ev : []);
+            setEditingEvidenceId(null);
+            toast.success(t('Evidence updated!', 'تم تحديث الدليل!'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Update failed', 'فشل التحديث'));
+        } finally {
+            setEvidenceActionLoading(false);
+        }
+    };
+
+    const handleDeleteEvidence = async (evidenceId: number) => {
+        if (!confirm(t('Delete this evidence?', 'حذف هذا الدليل؟'))) return;
+        setEvidenceActionLoading(true);
+        try {
+            await deleteEvidence(evidenceId);
+            setEvidence(prev => prev.filter(e => e.id !== evidenceId));
+            toast.success(t('Evidence deleted!', 'تم حذف الدليل!'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Delete failed', 'فشل الحذف'));
+        } finally {
+            setEvidenceActionLoading(false);
+        }
+    };
+
+    const handleAddNote = async () => {
+        if (!newNoteText.trim()) return;
+        setNoteLoading(true);
+        try {
+            const note = await addOrderNote(id, newNoteText.trim());
+            setOrderNotes(prev => [note, ...prev]);
+            setNewNoteText('');
+            toast.success(t('Note added!', 'تمت إضافة الملاحظة!'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Failed to add note', 'فشل إضافة الملاحظة'));
+        } finally {
+            setNoteLoading(false);
+        }
+    };
+
+    const handleEditNote = async (noteId: number) => {
+        if (!editingNoteText.trim()) return;
+        setNoteLoading(true);
+        try {
+            await updateOrderNote(noteId, editingNoteText.trim());
+            setOrderNotes(prev => prev.map(n => n.id === noteId ? { ...n, note: editingNoteText.trim() } : n));
+            setEditingNoteId(null);
+            toast.success(t('Note updated!', 'تم تحديث الملاحظة!'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Failed to update note', 'فشل تحديث الملاحظة'));
+        } finally {
+            setNoteLoading(false);
+        }
+    };
+
+    const handleDeleteNote = async (noteId: number) => {
+        if (!confirm(t('Delete this note?', 'حذف هذه الملاحظة؟'))) return;
+        setNoteLoading(true);
+        try {
+            await deleteOrderNote(noteId);
+            setOrderNotes(prev => prev.filter(n => n.id !== noteId));
+            toast.success(t('Note deleted!', 'تم حذف الملاحظة!'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Failed to delete note', 'فشل حذف الملاحظة'));
+        } finally {
+            setNoteLoading(false);
         }
     };
 
@@ -298,6 +387,7 @@ export default function OrderDetailPage() {
         { key: 'timeline', label: t('Timeline', 'الجدول الزمني'), icon: '📅' },
         { key: 'items', label: t('Items', 'العناصر'), icon: '📦' },
         { key: 'evidence', label: t('Evidence', 'الأدلة'), icon: '📸' },
+        { key: 'notes', label: t('Notes', 'الملاحظات'), icon: '📝' },
     ];
 
     return (
@@ -531,14 +621,29 @@ export default function OrderDetailPage() {
                                 </button>
                             </div>
 
+                            {/* Department Notes (from order creation) */}
+                            {order.departmentNotes && order.departmentNotes.some(dn => dn.note) && (
+                                <div style={{ marginBottom: 20, padding: 14, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>🏢 {t('Department Notes', 'ملاحظات الأقسام')}</div>
+                                    {order.departmentNotes.filter(dn => dn.note).map(dn => (
+                                        <div key={dn.departmentId} style={{ marginBottom: 6, fontSize: 13 }}>
+                                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{dn.departmentName || `#${dn.departmentId}`}: </span>
+                                            <span style={{ color: 'var(--text-secondary)' }}>{dn.note}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             {evidence.length > 0 ? (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
+
                                     {evidence.map(ev => {
                                         let imgUrl = ev.imageUrl || ev.imagePath || '';
                                         if (imgUrl && !imgUrl.startsWith('http')) {
                                             imgUrl = `${API_BASE}/${imgUrl.replace(/^\//, '')}`;
                                         }
 
+                                        const isEditing = editingEvidenceId === ev.id;
                                         return (
                                             <div key={ev.id} style={{ background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
                                                 {imgUrl ? (
@@ -554,14 +659,45 @@ export default function OrderDetailPage() {
                                                     <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>📸</div>
                                                 )}
                                                 <div style={{ padding: '10px 12px' }}>
-                                                    <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 4 }}>{ev.note || t('Evidence', 'دليل')}</div>
-                                                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                                                        {ev.uploadedBy || '—'}
-                                                    </div>
-                                                    {imgUrl && (
-                                                        <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm" style={{ marginTop: 8 }}>
-                                                            🔗 {t('Open', 'فتح')}
-                                                        </a>
+                                                    {isEditing ? (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                            <input
+                                                                className="form-input"
+                                                                value={editingEvidenceNote}
+                                                                onChange={e => setEditingEvidenceNote(e.target.value)}
+                                                                placeholder={t('Note...', 'ملاحظة...')}
+                                                                style={{ fontSize: 13 }}
+                                                            />
+                                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                                <button className="btn btn-primary btn-sm" disabled={evidenceActionLoading} onClick={() => handleEditEvidence(ev.id)}>
+                                                                    {evidenceActionLoading ? '⏳' : `💾 ${t('Save', 'حفظ')}`}
+                                                                </button>
+                                                                <button className="btn btn-secondary btn-sm" onClick={() => setEditingEvidenceId(null)}>✕</button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 4 }}>{ev.note || t('Evidence', 'دليل')}</div>
+                                                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+                                                                {ev.uploadedBy || '—'}
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                                                {imgUrl && (
+                                                                    <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">
+                                                                        🔗 {t('Open', 'فتح')}
+                                                                    </a>
+                                                                )}
+                                                                <button
+                                                                    className="btn btn-secondary btn-sm"
+                                                                    onClick={() => { setEditingEvidenceId(ev.id); setEditingEvidenceNote(ev.note || ''); }}
+                                                                >✏️ {t('Edit', 'تعديل')}</button>
+                                                                <button
+                                                                    className="btn btn-danger btn-sm"
+                                                                    disabled={evidenceActionLoading}
+                                                                    onClick={() => handleDeleteEvidence(ev.id)}
+                                                                >🗑️</button>
+                                                            </div>
+                                                        </>
                                                     )}
                                                 </div>
                                             </div>
@@ -574,6 +710,75 @@ export default function OrderDetailPage() {
                         </div>
                     )}
 
+                    {/* Notes Tab */}
+                    {activeTab === 'notes' && (
+                        <div className="card">
+                            <div className="card-title" style={{ marginBottom: 20 }}>📝 {t('Order Notes', 'ملاحظات الطلب')}</div>
+
+                            {/* Add Note */}
+                            <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 10 }}>➕ {t('Add Note', 'إضافة ملاحظة')}</div>
+                                <textarea
+                                    className="form-input"
+                                    rows={3}
+                                    placeholder={t('Write a note...', 'اكتب ملاحظة...')}
+                                    value={newNoteText}
+                                    onChange={e => setNewNoteText(e.target.value)}
+                                    style={{ resize: 'vertical', marginBottom: 8 }}
+                                />
+                                <button
+                                    className="btn btn-primary btn-sm"
+                                    disabled={noteLoading || !newNoteText.trim()}
+                                    onClick={handleAddNote}
+                                >
+                                    {noteLoading ? `⏳ ${t('Adding...', 'جارٍ الإضافة...')}` : `💾 ${t('Add Note', 'إضافة ملاحظة')}`}
+                                </button>
+                            </div>
+
+                            {/* Notes List */}
+                            {orderNotes.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {orderNotes.map(n => (
+                                        <div key={n.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                                            {editingNoteId === n.id ? (
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                    <textarea
+                                                        className="form-input"
+                                                        rows={2}
+                                                        value={editingNoteText}
+                                                        onChange={e => setEditingNoteText(e.target.value)}
+                                                        style={{ resize: 'vertical', fontSize: 13 }}
+                                                    />
+                                                    <div style={{ display: 'flex', gap: 6 }}>
+                                                        <button className="btn btn-primary btn-sm" disabled={noteLoading} onClick={() => handleEditNote(n.id)}>
+                                                            {noteLoading ? '⏳' : `💾 ${t('Save', 'حفظ')}`}
+                                                        </button>
+                                                        <button className="btn btn-secondary btn-sm" onClick={() => setEditingNoteId(null)}>✕</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div style={{ fontSize: 14, color: 'var(--text-primary)', marginBottom: 6, whiteSpace: 'pre-wrap' }}>{n.note}</div>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                                            {n.createdByName && <span>{n.createdByName} · </span>}
+                                                            {new Date(n.createdAt).toLocaleString()}
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: 6 }}>
+                                                            <button className="btn btn-secondary btn-sm" onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.note); }}>✏️</button>
+                                                            <button className="btn btn-danger btn-sm" disabled={noteLoading} onClick={() => handleDeleteNote(n.id)}>🗑️</button>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No notes yet.', 'لا توجد ملاحظات بعد.')}</p>
+                            )}
+                        </div>
+                    )}
 
                 </div>
 
