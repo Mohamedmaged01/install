@@ -10,7 +10,7 @@ import {
     deleteOrder, deleteTask,
     getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
     getApexInvoices, getApexOffers, updateOrder, acceptFromOutside,
-    approveSalesManager, approveSupervisor, getBranchTechnicians
+    approveSalesManager, approveSupervisor, getBranchTechnicians, rejectOrder
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
 import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto } from '@/types';
@@ -18,12 +18,14 @@ import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
+import { useAuth, PERMS } from '@/context/RoleContext';
 
 type TabType = 'timeline' | 'items' | 'evidence' | 'notes';
 
 export default function OrderDetailPage() {
     const { lang, t } = useLang();
     const toast = useToast();
+    const { hasPermission } = useAuth();
     const params = useParams();
     const id = Number(params.id);
     const [order, setOrder] = useState<Order | null>(null);
@@ -70,6 +72,11 @@ export default function OrderDetailPage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editLoading, setEditLoading] = useState(false);
     const [editForm, setEditForm] = useState<Partial<Omit<UpdateOrderDto, 'branchIds'> & { branchIds: number[], location: string; notes: string }>>({});
+
+    // Return Order state
+    const [showReturnModal, setShowReturnModal] = useState(false);
+    const [returnReason, setReturnReason] = useState('');
+    const [returnLoading, setReturnLoading] = useState(false);
 
     const loadOrder = async () => {
         try {
@@ -323,6 +330,22 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleReturn = async () => {
+        if (!order) return;
+        setReturnLoading(true);
+        try {
+            await rejectOrder(order.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'));
+            toast.success(t('Order returned successfully.', 'تم إرجاع الطلب بنجاح.'));
+            setShowReturnModal(false);
+            setReturnReason('');
+            await loadOrder();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Failed to return order', 'فشل إرجاع الطلب'));
+        } finally {
+            setReturnLoading(false);
+        }
+    };
+
     const handleAccept = async () => {
         if (!order) return;
         if (order.status === 'PendingSalesApproval') {
@@ -438,6 +461,11 @@ export default function OrderDetailPage() {
                         }}>
                             ✏️ {t('Edit Order', 'تعديل الطلب')}
                         </button>
+                        {hasPermission(PERMS.ORDERS_RETURN) && (
+                            <button className="btn btn-warning" onClick={() => { setReturnReason(''); setShowReturnModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                ↩️ {t('Return Order', 'إرجاع الطلب')}
+                            </button>
+                        )}
                         <button className="btn btn-danger" onClick={handleDeleteOrder} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             🗑️ {t('Delete Order', 'حذف الطلب')}
                         </button>
@@ -1008,6 +1036,38 @@ export default function OrderDetailPage() {
                     </div>
                 )
             }
+            {/* Return Order Modal */}
+            {showReturnModal && (
+                <div className="modal-overlay" onClick={() => setShowReturnModal(false)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>↩️ {t('Return Order', 'إرجاع الطلب')}</h2>
+                            <button className="modal-close" onClick={() => setShowReturnModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                                {t('Returning order', 'إرجاع الطلب')} <strong>{order?.orderNumber || `#${order?.id}`}</strong>
+                            </p>
+                            <div className="form-group">
+                                <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
+                                <textarea
+                                    className="form-textarea"
+                                    placeholder={t('Enter reason for return...', 'أدخل سبب الإرجاع...')}
+                                    value={returnReason}
+                                    onChange={e => setReturnReason(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setShowReturnModal(false)}>{t('Cancel', 'إلغاء')}</button>
+                            <button className="btn btn-warning" disabled={returnLoading} onClick={handleReturn}>
+                                {returnLoading ? `⏳ ${t('Returning...', 'جارٍ الإرجاع...')}` : `↩️ ${t('Confirm Return', 'تأكيد الإرجاع')}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Edit Order Modal */}
             {showEditModal && (
                 <div className="modal-overlay" onClick={() => setShowEditModal(false)}>

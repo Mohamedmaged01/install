@@ -6,7 +6,7 @@ import {
     getRoles, createRole, deleteRole,
     getPermissions, getRolePermissions, updateRolePermissions,
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser,
-    getDepartments, updateDepartmentUser, updateRole,
+    getDepartments, updateDepartmentUser, updateRole, getBranches,
 } from '@/lib/endpoints';
 import { Role, Permission, DepartmentUser, Department } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
@@ -26,7 +26,7 @@ interface NewUserForm {
     IsSuperAdmin: boolean;
 }
 
-type ModalType = 'addRole' | 'addUser' | 'permissions' | 'viewUsers' | 'editUser' | null;
+type ModalType = 'addRole' | 'addUser' | 'permissions' | 'viewUsers' | 'editUser' | 'assignUser' | null;
 
 /* ════════════════════════════════════════════════════════
    PAGE
@@ -59,6 +59,12 @@ export default function AdminUsersPage() {
     const [editUserImagePreview, setEditUserImagePreview] = useState<string | null>(null);
     const [searchQ, setSearchQ] = useState('');
     const [userSearch, setUserSearch] = useState('');
+    const [allUsers, setAllUsers] = useState<DepartmentUser[]>([]);
+    const [assignSearch, setAssignSearch] = useState('');
+    const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
+    const [newUserBranchId, setNewUserBranchId] = useState<number>(0);
+    const [newUserDepts, setNewUserDepts] = useState<Department[]>([]);
+    const [branches, setBranches] = useState<import('@/types').Branch[]>([]);
 
     /* ui */
     const [loading, setLoading] = useState(true);
@@ -71,14 +77,16 @@ export default function AdminUsersPage() {
     const loadAll = useCallback(async () => {
         setLoading(true);
         try {
-            const [r, p, d] = await Promise.all([
+            const [r, p, d, b] = await Promise.all([
                 getRoles().catch(() => []),
                 getPermissions().catch(() => []),
                 getDepartments().catch(() => []),
+                getBranches().catch(() => []),
             ]);
             setRoles(Array.isArray(r) ? r : []);
             setPermissions(Array.isArray(p) ? p : []);
             setDepartments(Array.isArray(d) ? d : []);
+            setBranches(Array.isArray(b) ? b : []);
         } catch (err) {
             console.error(err);
         } finally {
@@ -154,6 +162,34 @@ const handleSavePerms = async () => {
                 (Array.isArray((u as any).roles) && (u as any).roles.includes(role.name))
             ));
         } catch { setRoleUsers([]); }
+    };
+
+    /* ── assign existing user to role ── */
+    const openAssignUser = async (role: Role) => {
+        setActiveRole(role);
+        setAssignSearch('');
+        setModal('assignUser');
+        try {
+            const all = await getDepartmentUsers();
+            setAllUsers(Array.isArray(all) ? all : []);
+        } catch { setAllUsers([]); }
+    };
+
+    const handleAssignUser = async (u: DepartmentUser) => {
+        if (!activeRole) return;
+        setAssigningUserId(u.id);
+        try {
+            await updateDepartmentUser(u.id, { RoleId: activeRole.id }, null);
+            toast.success(t(`${u.name} assigned to ${activeRole.name}`, `تم تعيين ${u.name} في ${activeRole.name}`));
+            // refresh the role users list
+            const all = await getDepartmentUsers();
+            setAllUsers(Array.isArray(all) ? all : []);
+            setRoleUsers((Array.isArray(all) ? all : []).filter(x =>
+                x.roleId === activeRole.id || x.roleName === activeRole.name
+            ));
+            await loadAll();
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to assign user', 'فشل تعيين المستخدم')); }
+        finally { setAssigningUserId(null); }
     };
 
     /* ── create user ── */
@@ -238,7 +274,7 @@ const handleSavePerms = async () => {
                         <button className="btn btn-secondary" onClick={() => setModal('addRole')}>
                             + {t('Add Role', 'إضافة دور')}
                         </button>
-                        <button className="btn btn-primary" onClick={() => setModal('addUser')}>
+                        <button className="btn btn-primary" onClick={() => { setNewUserBranchId(0); setNewUserDepts([]); setUserForm({ Name: '', Email: '', Phone: '', Password: '', DepartmentId: 0, RoleId: 0, IsSuperAdmin: false }); setUserImageFile(null); setUserImagePreview(null); setModal('addUser'); }}>
                             + {t('Add User', 'إضافة مستخدم')}
                         </button>
                     </div>
@@ -438,7 +474,7 @@ const handleSavePerms = async () => {
                         <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
                             <button
                                 className="btn btn-primary btn-sm"
-                                onClick={() => { setModal('addUser'); setUserForm(prev => ({ ...prev, RoleId: activeRole.id })); }}
+                                onClick={() => openAssignUser(activeRole)}
                             >
                                 + {t('Add User to this Role', 'إضافة مستخدم لهذا الدور')}
                             </button>
@@ -499,6 +535,82 @@ const handleSavePerms = async () => {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                    </ModalShell>
+                )}
+
+                {/* Assign User to Role Modal */}
+                {modal === 'assignUser' && activeRole && (
+                    <ModalShell title={`👤 ${t('Assign User to', 'تعيين مستخدم في')} — ${activeRole.name}`} onClose={() => setModal('viewUsers')} wide>
+                        <div className="table-search" style={{ marginBottom: 12 }}>
+                            <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
+                            <input
+                                placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
+                                value={assignSearch}
+                                onChange={e => setAssignSearch(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                        <div className="table-container" style={{ border: 'none', overflowX: 'auto', maxHeight: 420 }}>
+                            <table style={{ minWidth: 560 }}>
+                                <thead>
+                                    <tr>
+                                        <th>{t('Name', 'الاسم')}</th>
+                                        <th>{t('Email', 'البريد')}</th>
+                                        <th>{t('Current Role', 'الدور الحالي')}</th>
+                                        <th style={{ width: 100 }}>{t('Action', 'الإجراء')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {allUsers.filter(u => {
+                                        const q = assignSearch.toLowerCase();
+                                        return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
+                                    }).length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                                                {t('No users found', 'لا يوجد مستخدمون')}
+                                            </td>
+                                        </tr>
+                                    ) : allUsers.filter(u => {
+                                        const q = assignSearch.toLowerCase();
+                                        return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
+                                    }).map(u => {
+                                        const alreadyInRole = u.roleId === activeRole.id || u.roleName === activeRole.name;
+                                        return (
+                                            <tr key={u.id}>
+                                                <td>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, color: '#fff', flexShrink: 0, overflow: 'hidden', border: '2px solid var(--border)' }}>
+                                                            {u.image
+                                                                ? <img src={u.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                : (u.name?.charAt(0) || 'U')}
+                                                        </div>
+                                                        <span style={{ fontWeight: 600 }}>{u.name}</span>
+                                                    </div>
+                                                </td>
+                                                <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
+                                                <td style={{ fontSize: 13 }}>{u.roleName || '—'}</td>
+                                                <td>
+                                                    {alreadyInRole ? (
+                                                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>✓ {t('In role', 'في الدور')}</span>
+                                                    ) : (
+                                                        <button
+                                                            className="btn btn-primary btn-sm"
+                                                            disabled={assigningUserId === u.id}
+                                                            onClick={() => handleAssignUser(u)}
+                                                        >
+                                                            {assigningUserId === u.id ? '⏳' : `+ ${t('Assign', 'تعيين')}`}
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="modal-footer" style={{ paddingTop: 16 }}>
+                            <button className="btn btn-secondary" onClick={() => setModal('viewUsers')}>{t('Back', 'رجوع')}</button>
                         </div>
                     </ModalShell>
                 )}
@@ -617,10 +729,29 @@ const handleSavePerms = async () => {
                                 </select>
                             </div>
                             <div className="form-group">
+                                <label className="form-label">{t('Branch', 'الفرع')}</label>
+                                <select className="form-select" value={newUserBranchId} onChange={async e => {
+                                    const bid = Number(e.target.value);
+                                    setNewUserBranchId(bid);
+                                    setUserForm(p => ({ ...p, DepartmentId: 0 }));
+                                    if (bid) {
+                                        const d = await getDepartments(bid).catch(() => []);
+                                        setNewUserDepts(Array.isArray(d) ? d : []);
+                                    } else {
+                                        setNewUserDepts([]);
+                                    }
+                                }}>
+                                    <option value={0}>— {t('Select Branch', 'اختر الفرع')} —</option>
+                                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="form-row">
+                            <div className="form-group">
                                 <label className="form-label">{t('Department', 'القسم')}</label>
-                                <select className="form-select" value={userForm.DepartmentId} onChange={e => setUserForm(p => ({ ...p, DepartmentId: Number(e.target.value) }))}>
+                                <select className="form-select" value={userForm.DepartmentId} disabled={!newUserBranchId} onChange={e => setUserForm(p => ({ ...p, DepartmentId: Number(e.target.value) }))}>
                                     <option value={0}>— {t('Select Department', 'اختر القسم')} —</option>
-                                    {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    {newUserDepts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -658,15 +789,6 @@ const handleSavePerms = async () => {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Super Admin toggle */}
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', background: userForm.IsSuperAdmin ? 'rgba(239,68,68,0.08)' : 'var(--bg-tertiary)', border: `1px solid ${userForm.IsSuperAdmin ? 'rgba(239,68,68,0.3)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', marginBottom: 20 }}>
-                            <input type="checkbox" style={{ accentColor: '#ef4444', width: 16, height: 16 }} checked={userForm.IsSuperAdmin} onChange={e => setUserForm(p => ({ ...p, IsSuperAdmin: e.target.checked }))} />
-                            <div>
-                                <div style={{ fontWeight: 600, fontSize: 14 }}>{t('Super Admin', 'مشرف عام')}</div>
-                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Grants full access to all features', 'يمنح وصولاً كاملاً لجميع الميزات')}</div>
-                            </div>
-                        </label>
 
                         <div className="modal-footer" style={{ paddingTop: 0 }}>
                             <button className="btn btn-secondary" onClick={() => setModal(null)}>{t('Cancel', 'إلغاء')}</button>

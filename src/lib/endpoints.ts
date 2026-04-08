@@ -175,6 +175,15 @@ export async function getBranchTechnicians(branchId: number): Promise<Department
 
 // ==================== DEPARTMENTS ====================
 
+function normalizeDepartment(d: any): Department {
+    return {
+        id: d.id ?? d.Id ?? 0,
+        name: d.name ?? d.Name ?? '',
+        branchId: d.branchId ?? d.BranchId ?? 0,
+        branchName: d.branchName ?? d.BranchName,
+    };
+}
+
 export async function getDepartments(branchId?: number | number[]): Promise<Department[]> {
     const id = branchId === undefined ? undefined
         : Array.isArray(branchId) ? branchId[0]
@@ -182,11 +191,11 @@ export async function getDepartments(branchId?: number | number[]): Promise<Depa
     const p: Record<string, number | undefined> = {};
     if (id) p.branchId = id;
     const raw = await api<unknown>('/api/Departments', { params: p });
-    if (Array.isArray(raw)) return raw as Department[];
-    const obj = raw as Record<string, unknown>;
-    if (obj && Array.isArray(obj.data)) return obj.data as Department[];
-    if (obj && Array.isArray(obj.items)) return obj.items as Department[];
-    return [];
+    const list: any[] = Array.isArray(raw) ? raw
+        : Array.isArray((raw as any)?.data) ? (raw as any).data
+        : Array.isArray((raw as any)?.items) ? (raw as any).items
+        : [];
+    return list.map(normalizeDepartment);
 }
 
 export async function createDepartment(dto: { branchId: number; name: string }): Promise<Department> {
@@ -253,6 +262,40 @@ export async function updateDepartmentUser(
 
 // ==================== ORDERS ====================
 
+function normalizeOrder(o: any): Order {
+    return {
+        id: o.id ?? o.Id,
+        orderNumber: o.orderNumber ?? o.OrderNumber,
+        status: o.status ?? o.Status,
+        city: o.city ?? o.City,
+        address: o.address ?? o.Address,
+        scheduledDate: o.scheduledDate ?? o.ScheduledDate,
+        quotationId: o.quotationId ?? o.QuotationId,
+        invoiceId: o.invoiceId ?? o.InvoiceId,
+        customerId: o.customerId ?? o.CustomerId,
+        customerName: o.customerName ?? o.CustomerName,
+        customerPhone: o.customerPhone ?? o.CustomerPhone,
+        customerEmail: o.customerEmail ?? o.CustomerEmail,
+        createdAt: o.createdAt ?? o.CreatedAt,
+        updatedAt: o.updatedAt ?? o.UpdatedAt,
+        priority: o.priority ?? o.Priority,
+        branches: o.branches ?? o.Branches,
+        departmentId: o.departmentId ?? o.DepartmentId ?? (o.departments ?? o.Departments)?.[0]?.id ?? (o.departments ?? o.Departments)?.[0]?.Id,
+        departmentName: o.departmentName ?? o.DepartmentName ?? (o.departments ?? o.Departments)?.[0]?.name ?? (o.departments ?? o.Departments)?.[0]?.Name,
+        qrToken: o.qrToken ?? o.QrToken,
+        qrExpiry: o.qrExpiry ?? o.QrExpiry,
+        createdByName: o.createdByName ?? o.CreatedByName,
+        createdById: o.createdById ?? o.CreatedById,
+        salesRepresentative: o.salesRepresentative ?? o.SalesRepresentative,
+        notes: o.notes ?? o.Notes,
+        location: o.location ?? o.Location,
+        tasks: o.tasks ?? o.Tasks,
+        items: o.items ?? o.Items,
+        technicians: o.technicians ?? o.Technicians,
+        departmentNotes: o.departmentNotes ?? o.DepartmentNotes,
+    };
+}
+
 export async function getOrders(params?: {
     branchId?: number;
     departmentId?: number;
@@ -261,20 +304,19 @@ export async function getOrders(params?: {
     dateTo?: string;
 }): Promise<Order[]> {
     const raw = await api<unknown>('/api/Orders', { params: params as Record<string, string | number> });
-    if (Array.isArray(raw)) return raw as Order[];
-    const obj = raw as Record<string, unknown>;
-    if (obj && Array.isArray(obj.data)) return obj.data as Order[];
-    return [];
+    const list: any[] = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.data) ? (raw as any).data : []);
+    return list.map(normalizeOrder);
 }
 
 export async function getOrderById(id: number): Promise<Order> {
     const raw = await api<unknown>(`/api/Orders/${id}`);
     const obj = raw as Record<string, unknown>;
+    let data: any = raw;
     if (obj && typeof obj === 'object') {
-        if ('data' in obj && obj.data) return obj.data as Order;
-        if ('item' in obj && obj.item) return obj.item as Order;
+        if ('data' in obj && obj.data) data = obj.data;
+        else if ('item' in obj && obj.item) data = obj.item;
     }
-    return raw as Order;
+    return normalizeOrder(data);
 }
 
 export async function createOrder(dto: AddOrderDto): Promise<Order> {
@@ -538,15 +580,14 @@ export async function getStatistics(params?: {
     // so `raw` is `{ total: 2, pendingSalesApproval: 1, orders: [...] }`.
     const payload = raw && typeof raw === 'object' ? raw : {};
 
-    // Pass through orders array directly
-    const orders = Array.isArray(payload.orders) ? payload.orders : [];
-
     // Normalize other field names
     const normalized = Object.fromEntries(
         Object.entries(payload).map(([k, v]) => [k.charAt(0).toLowerCase() + k.slice(1), v])
     );
 
-    normalized.orders = orders;
+    // Normalize orders array so camelCase fields are consistent
+    const rawOrders = Array.isArray(payload.orders) ? payload.orders : Array.isArray((payload as any).Orders) ? (payload as any).Orders : [];
+    normalized.orders = rawOrders.map(normalizeOrder);
 
     return normalized as Statistics;
 }

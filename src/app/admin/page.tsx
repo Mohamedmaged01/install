@@ -407,7 +407,7 @@ export default function AdminPage() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div>
                                                 <div style={{ fontWeight: 600 }}>{d.name}</div>
-                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—'}</div>
+                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchName || (d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—')}</div>
                                             </div>
                                             <div className="btn-group">
                                                 <button className="btn btn-secondary btn-sm" onClick={() => setEditDept({ id: d.id, name: d.name, branchId: d.branchId })}>✏️</button>
