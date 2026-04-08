@@ -141,10 +141,17 @@ function buildUserFromJwt(token: string): AuthUser {
         branchName: p.BranchName ?? p.branchName,
         isSuperAdmin,
         token,
-        image: p.ImagePath ?? p.Image ?? p.image,
+        image: toImageUrl(p.ImagePath ?? p.imagePath ?? p.Image ?? p.image),
         type: typeString,
         permissions,
     };
+}
+
+function toImageUrl(path?: string | null): string | undefined {
+    if (!path) return undefined;
+    const normalized = path.replace(/\\/g, '/');
+    if (normalized.startsWith('http')) return normalized;
+    return `https://apiorders.runasp.net/${normalized.replace(/^\//, '')}`;
 }
 
 function normaliseUser(raw: any): AuthUser {
@@ -169,7 +176,7 @@ function normaliseUser(raw: any): AuthUser {
             String(raw.Type) === 'SuperAdmin'
         ),
         token: raw.token ?? raw.Token ?? '',
-        image: raw.image ?? raw.Image ?? raw.ImagePath,
+        image: toImageUrl(raw.imagePath ?? raw.ImagePath ?? raw.image ?? raw.Image),
         type: String(raw.type || raw.Type || ''),
         permissions: parsePermissions(raw),
     };

@@ -141,13 +141,22 @@ export async function deleteBranch(id: number): Promise<void> {
     return api<void>(`/api/Branches/${id}`, { method: 'DELETE' });
 }
 
+const API_BASE = 'https://apiorders.runasp.net';
+
+function toImageUrl(path?: string | null): string | undefined {
+    if (!path) return undefined;
+    const normalized = path.replace(/\\/g, '/');
+    if (normalized.startsWith('http')) return normalized;
+    return `${API_BASE}/${normalized.replace(/^\//, '')}`;
+}
+
 function normalizeDepartmentUser(u: any): DepartmentUser {
     return {
         id: u.id ?? u.Id ?? u.userId ?? u.UserId ?? u.appUserId ?? u.AppUserId ?? 0,
         name: u.name ?? u.Name ?? u.fullName ?? u.FullName ?? '',
         email: u.email ?? u.Email ?? '',
         phone: u.phone ?? u.Phone ?? '',
-        image: u.image ?? u.Image,
+        image: toImageUrl(u.imagePath ?? u.ImagePath ?? u.image ?? u.Image),
         roleId: u.roleId ?? u.RoleId ?? 0,
         roleName: u.roleName ?? u.RoleName,
         departmentId: u.departmentId ?? u.DepartmentId ?? 0,
