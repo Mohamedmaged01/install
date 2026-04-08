@@ -278,14 +278,44 @@ export async function getOrderById(id: number): Promise<Order> {
 }
 
 export async function createOrder(dto: AddOrderDto): Promise<Order> {
-    const res = await api<any>('/api/Orders', { method: 'POST', body: dto });
-    // The backend returns the new order ID as `data` (e.g., { data: 36 })
-    // If it returns a full object with an id, use that. Otherwise use the data integer.
+    const fd = new FormData();
+    fd.append('Status', dto.status);
+    if (dto.city)          fd.append('City', dto.city);
+    if (dto.address)       fd.append('Address', dto.address);
+    if (dto.location)      fd.append('Location', dto.location);
+    if (dto.scheduledDate) fd.append('ScheduledDate', dto.scheduledDate);
+    if (dto.quotationId)   fd.append('QuotationId', dto.quotationId);
+    if (dto.invoiceId)     fd.append('InvoiceId', dto.invoiceId);
+    if (dto.customerId)    fd.append('CustomerId', dto.customerId);
+    fd.append('CreatedAt', dto.createdAt);
+    fd.append('Priority', dto.priority);
+    fd.append('BranchId', String(dto.branchId));
+    if (dto.notes)         fd.append('Notes', dto.notes);
+    dto.departmentIds.forEach((d, i) => {
+        fd.append(`DepartmentIds[${i}][Idd]`, String(d.idd));
+        fd.append(`DepartmentIds[${i}][Note]`, d.note ?? '');
+    });
+    const res = await api<any>('/api/Orders', { method: 'POST', body: fd, isFormData: true });
     return (res?.id ? res : { id: res }) as Order;
 }
 
 export async function updateOrder(id: number, dto: UpdateOrderDto): Promise<Order> {
-    const res = await api<any>(`/api/Orders/${id}`, { method: 'PUT', body: dto });
+    const fd = new FormData();
+    fd.append('Status', dto.status);
+    if (dto.city)                fd.append('City', dto.city);
+    if (dto.address)             fd.append('Address', dto.address);
+    if (dto.location)            fd.append('Location', dto.location);
+    if (dto.scheduledDate)       fd.append('ScheduledDate', dto.scheduledDate);
+    if (dto.quotationId)         fd.append('QuotationId', dto.quotationId);
+    if (dto.invoiceId)           fd.append('InvoiceId', dto.invoiceId);
+    if (dto.customerId)          fd.append('CustomerId', dto.customerId);
+    fd.append('CreatedAt', dto.createdAt);
+    if (dto.salesApprovalDate)   fd.append('SalesApprovalDate', dto.salesApprovalDate);
+    fd.append('Priority', dto.priority);
+    if (dto.notes)               fd.append('Notes', dto.notes);
+    dto.branchIds?.forEach((b, i) => fd.append(`BranchIds[${i}][Id]`, String(b.id)));
+    if (dto.departmentId)        fd.append('DepartmentId', String(dto.departmentId));
+    const res = await api<any>(`/api/Orders/${id}`, { method: 'PUT', body: fd, isFormData: true });
     return res as Order;
 }
 
