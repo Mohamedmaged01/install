@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getStatistics, getBranches, getDepartments } from '@/lib/endpoints';
-import { Statistics, Order, Branch, Department } from '@/types';
+import { getStatistics, getBranches, getDepartments, approveSalesManager, acceptFromOutside, rejectOrder } from '@/lib/endpoints';
+import { Statistics, Order, Branch, Department, OrderStatus } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import MultiSelect from '@/components/MultiSelect';
 import { useLang } from '@/context/LanguageContext';
+import { useAuth, PERMS } from '@/context/RoleContext';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -14,9 +15,13 @@ import {
 
 export default function DashboardPage() {
   const { lang, t } = useLang();
+  const { hasPermission } = useAuth();
   const [stats, setStats] = useState<Statistics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [returnModal, setReturnModal] = useState<Order | null>(null);
+  const [returnReason, setReturnReason] = useState('');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [branchFilter, setBranchFilter] = useState<number[]>([]);
@@ -62,6 +67,36 @@ export default function DashboardPage() {
     }
     load();
   }, [appliedFilters]);
+
+  const handleApprove = async (order: Order) => {
+    if (!confirm(t('Approve this order?', 'هل تريد اعتماد هذا الطلب؟'))) return;
+    setActionLoading(order.id);
+    try {
+      await approveSalesManager(order.id);
+      setRecentOrders(prev => prev.filter(o => o.id !== order.id));
+      // toast not available on dashboard but order is removed from list
+    } catch { /* silent */ } finally { setActionLoading(null); }
+  };
+
+  const handleAcceptOutside = async (order: Order) => {
+    if (!confirm(t('Accept this order from outside?', 'هل تريد قبول هذا الطلب من الخارج؟'))) return;
+    setActionLoading(order.id);
+    try {
+      await acceptFromOutside(order.id);
+      setRecentOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Complete' as OrderStatus } : o));
+    } catch { /* silent */ } finally { setActionLoading(null); }
+  };
+
+  const handleConfirmReturn = async () => {
+    if (!returnModal) return;
+    setActionLoading(returnModal.id);
+    try {
+      await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'));
+      setRecentOrders(prev => prev.filter(o => o.id !== returnModal.id));
+      setReturnModal(null);
+      setReturnReason('');
+    } catch { /* silent */ } finally { setActionLoading(null); }
+  };
 
   if (loading) {
     return (
@@ -276,7 +311,27 @@ export default function DashboardPage() {
                     <td><StatusBadge status={order.status} lang={lang} /></td>
                     <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                      <div className="btn-group">
+                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                        {order.status === 'PendingSalesApproval' && (
+                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)}>
+                            {actionLoading === order.id ? '⏳' : `✅ ${t('Approve', 'اعتماد')}`}
+                          </button>
+                        )}
+                        {order.status === 'PendingSupervisorApproval' && (
+                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm">✅ {t('Approve & Assign', 'اعتماد وتعيين')}</Link>
+                        )}
+                        {order.status === 'ReadyForInstallation' && (
+                          <button className="btn btn-primary btn-sm" disabled={actionLoading === order.id} onClick={() => handleAcceptOutside(order)}>
+                            {actionLoading === order.id ? '⏳' : `🌐 ${t('Accept', 'قبول')}`}
+                          </button>
+                        )}
+                        {hasPermission(PERMS.ORDERS_RETURN) && (
+                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); }}>
+                            ↩️ {t('Return', 'إرجاع')}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -285,6 +340,38 @@ export default function DashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* Return Modal */}
+      {returnModal && (
+        <div className="modal-overlay" onClick={() => setReturnModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>↩️ {t('Return Order', 'إرجاع الطلب')}</h2>
+              <button className="modal-close" onClick={() => setReturnModal(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                {t('Returning order', 'إرجاع الطلب')} <strong>{returnModal.orderNumber || `#${returnModal.id}`}</strong>
+              </p>
+              <div className="form-group">
+                <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder={t('Enter reason...', 'أدخل السبب...')}
+                  value={returnReason}
+                  onChange={e => setReturnReason(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setReturnModal(null)}>{t('Cancel', 'إلغاء')}</button>
+              <button className="btn btn-warning" disabled={actionLoading !== null} onClick={handleConfirmReturn}>
+                {actionLoading ? `⏳ ${t('Returning...', 'جارٍ الإرجاع...')}` : `↩️ ${t('Confirm Return', 'تأكيد الإرجاع')}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

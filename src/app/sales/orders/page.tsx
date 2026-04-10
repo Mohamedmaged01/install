@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getOrders, getDepartments, getBranches, deleteOrder } from '@/lib/endpoints';
+import { getOrders, getDepartments, getBranches, deleteOrder, approveSalesManager, acceptFromOutside, rejectOrder } from '@/lib/endpoints';
 import { Order, OrderStatus, Department, Branch, getOrderStatusLabel } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import PermissionGuard from '@/components/PermissionGuard';
-import { PERMS } from '@/context/RoleContext';
+import { PERMS, useAuth } from '@/context/RoleContext';
 import Pagination from '@/components/Pagination';
 
 const allStatuses: OrderStatus[] = [
@@ -20,6 +20,7 @@ const allStatuses: OrderStatus[] = [
 export default function SalesOrdersPage() {
     const { lang, t } = useLang();
     const toast = useToast();
+    const { hasPermission } = useAuth();
     const [orders, setOrders] = useState<Order[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
     const [branches, setBranches] = useState<Branch[]>([]);
@@ -33,6 +34,9 @@ export default function SalesOrdersPage() {
     const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: OrderStatus | ''; deptFilter: number | ''; branchFilter: number | ''; dateFrom: string; dateTo: string }>({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [actionLoading, setActionLoading] = useState<number | null>(null);
+    const [returnModal, setReturnModal] = useState<Order | null>(null);
+    const [returnReason, setReturnReason] = useState('');
 
     useEffect(() => {
         async function load() {
@@ -77,6 +81,50 @@ export default function SalesOrdersPage() {
             toast.success(t('Order deleted.', 'تم حذف الطلب.'));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('Failed to delete order', 'فشل حذف الطلب'));
+        }
+    };
+
+    const handleApprove = async (order: Order) => {
+        if (!confirm(t('Approve this order?', 'هل تريد اعتماد هذا الطلب؟'))) return;
+        setActionLoading(order.id);
+        try {
+            await approveSalesManager(order.id);
+            setOrders(prev => prev.filter(o => o.id !== order.id));
+            toast.success(t('Order approved successfully!', 'تم اعتماد الطلب بنجاح!'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Approval failed', 'فشل الاعتماد'));
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleAcceptOutside = async (order: Order) => {
+        if (!confirm(t('Accept this order from outside?', 'هل تريد قبول هذا الطلب من الخارج؟'))) return;
+        setActionLoading(order.id);
+        try {
+            await acceptFromOutside(order.id);
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Complete' as OrderStatus } : o));
+            toast.success(t('Order accepted from outside', 'تم قبول الطلب من الخارج'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Failed to accept from outside', 'فشل القبول من الخارج'));
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleConfirmReturn = async () => {
+        if (!returnModal) return;
+        setActionLoading(returnModal.id);
+        try {
+            await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'));
+            setOrders(prev => prev.filter(o => o.id !== returnModal.id));
+            setReturnModal(null);
+            setReturnReason('');
+            toast.success(t('Order returned.', 'تم إرجاع الطلب.'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Return failed', 'فشل الإرجاع'));
+        } finally {
+            setActionLoading(null);
         }
     };
 
@@ -234,6 +282,38 @@ export default function SalesOrdersPage() {
                                         <td>
                                             <div className="btn-group">
                                                 <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                                                {order.status === 'PendingSalesApproval' && (
+                                                    <button
+                                                        className="btn btn-success btn-sm"
+                                                        disabled={actionLoading === order.id}
+                                                        onClick={() => handleApprove(order)}
+                                                    >
+                                                        {actionLoading === order.id ? '⏳' : `✅ ${t('Approve', 'اعتماد')}`}
+                                                    </button>
+                                                )}
+                                                {order.status === 'PendingSupervisorApproval' && (
+                                                    <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm">
+                                                        ✅ {t('Approve & Assign', 'اعتماد وتعيين')}
+                                                    </Link>
+                                                )}
+                                                {order.status === 'ReadyForInstallation' && (
+                                                    <button
+                                                        className="btn btn-primary btn-sm"
+                                                        disabled={actionLoading === order.id}
+                                                        onClick={() => handleAcceptOutside(order)}
+                                                    >
+                                                        {actionLoading === order.id ? '⏳' : `🌐 ${t('Accept', 'قبول')}`}
+                                                    </button>
+                                                )}
+                                                {hasPermission(PERMS.ORDERS_RETURN) && (
+                                                    <button
+                                                        className="btn btn-warning btn-sm"
+                                                        disabled={actionLoading === order.id}
+                                                        onClick={() => { setReturnModal(order); setReturnReason(''); }}
+                                                    >
+                                                        ↩️ {t('Return', 'إرجاع')}
+                                                    </button>
+                                                )}
                                                 <button className="btn btn-danger btn-sm" onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)}>🗑️</button>
                                             </div>
                                         </td>
@@ -253,6 +333,38 @@ export default function SalesOrdersPage() {
                     />
                 )}
             </div>
+
+            {/* Return Modal */}
+            {returnModal && (
+                <div className="modal-overlay" onClick={() => setReturnModal(null)}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>↩️ {t('Return Order', 'إرجاع الطلب')}</h2>
+                            <button className="modal-close" onClick={() => setReturnModal(null)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                                {t('Returning order', 'إرجاع الطلب')} <strong>{returnModal.orderNumber || `#${returnModal.id}`}</strong>
+                            </p>
+                            <div className="form-group">
+                                <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
+                                <textarea
+                                    className="form-textarea"
+                                    placeholder={t('Enter reason...', 'أدخل السبب...')}
+                                    value={returnReason}
+                                    onChange={e => setReturnReason(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setReturnModal(null)}>{t('Cancel', 'إلغاء')}</button>
+                            <button className="btn btn-warning" disabled={actionLoading !== null} onClick={handleConfirmReturn}>
+                                {actionLoading ? `⏳ ${t('Returning...', 'جارٍ الإرجاع...')}` : `↩️ ${t('Confirm Return', 'تأكيد الإرجاع')}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </PermissionGuard>
     );
 }
