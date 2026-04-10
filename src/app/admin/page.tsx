@@ -44,6 +44,7 @@ export default function AdminPage() {
     const [permSearch, setPermSearch] = useState('');
     const [showPermModal, setShowPermModal] = useState(false);
     const [userSearch, setUserSearch] = useState('');
+    const [appliedUserSearch, setAppliedUserSearch] = useState('');
     const [showAddUser, setShowAddUser] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
@@ -527,13 +528,19 @@ export default function AdminPage() {
                                         </select>
                                     </div>
                                 </div>
-                                <div className="table-search" style={{ marginBottom: 12 }}>
-                                    <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
-                                    <input
-                                        placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
-                                        value={userSearch}
-                                        onChange={e => { setUserSearch(e.target.value); setUsersPage(1); }}
-                                    />
+                                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                                    <div className="table-search" style={{ flex: 1 }}>
+                                        <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
+                                        <input
+                                            placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
+                                            value={userSearch}
+                                            onChange={e => setUserSearch(e.target.value)}
+                                            onKeyDown={e => { if (e.key === 'Enter') { setAppliedUserSearch(userSearch); setUsersPage(1); } }}
+                                        />
+                                    </div>
+                                    <button className="btn btn-primary btn-sm" onClick={() => { setAppliedUserSearch(userSearch); setUsersPage(1); }}>
+                                        {t('Apply', 'تطبيق')}
+                                    </button>
                                 </div>
                                 <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
                                     <table style={{ tableLayout: 'auto' }}>
@@ -551,7 +558,7 @@ export default function AdminPage() {
                                                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>
                                             ) : (
                                                 users.filter(u => {
-                                                    const q = userSearch.toLowerCase();
+                                                    const q = appliedUserSearch.toLowerCase();
                                                     return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
                                                 }).slice((usersPage - 1) * usersPageSize, usersPage * usersPageSize).map(u => (
                                                     <tr key={u.id}>
@@ -577,7 +584,13 @@ export default function AdminPage() {
                                                         <td>{u.type || '—'}</td>
                                                         <td style={{ whiteSpace: 'nowrap' }}>
                                                             <div className="btn-group">
-                                                                <button className="btn btn-secondary btn-sm" onClick={() => { setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId, currentImageUrl: u.image, password: '' }); setEditUserImage(null); setEditUserShowPassword(false); }}>✏️</button>
+                                                                <button className="btn btn-secondary btn-sm" onClick={() => {
+                                                                    const resolvedRoleId = u.roleId || roles.find(r => r.name === (u.roleName || u.role))?.id || 0;
+                                                                    const resolvedDeptId = u.departmentId || departments.find(d => d.name === u.departmentName)?.id || 0;
+                                                                    setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: resolvedDeptId, roleId: resolvedRoleId, currentImageUrl: u.image, password: '' });
+                                                                    setEditUserImage(null);
+                                                                    setEditUserShowPassword(false);
+                                                                }}>✏️</button>
                                                                 <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
                                                             </div>
                                                         </td>
@@ -590,7 +603,7 @@ export default function AdminPage() {
                                 {users.length > 0 && (
                                     <Pagination
                                         currentPage={usersPage}
-                                        totalItems={users.filter(u => { const q = userSearch.toLowerCase(); return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q); }).length}
+                                        totalItems={users.filter(u => { const q = appliedUserSearch.toLowerCase(); return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q); }).length}
                                         pageSize={usersPageSize}
                                         onPageChange={setUsersPage}
                                         onPageSizeChange={setUsersPageSize}

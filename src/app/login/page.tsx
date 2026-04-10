@@ -46,7 +46,7 @@ export default function LoginPage() {
                 animation: 'slideUp var(--transition-base)',
             }}>
                 {/* Language toggle */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
                     <div
                         style={{
                             background: 'var(--bg-secondary)',
