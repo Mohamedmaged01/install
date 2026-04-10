@@ -84,7 +84,7 @@ export default function ManagerPage() {
 
                 <div className="page-header">
                     <h1>{t('Pending Approvals', 'الموافقات المعلقة')}</h1>
-                    <p>{t('Orders waiting for Sales Manager approval', 'أوامر بانتظار موافقة مدير المبيعات')}</p>
+                    <p>{t('Orders waiting for Sales Supervisor approval', 'أوامر بانتظار موافقة مشرف المبيعات')}</p>
                 </div>
 
                 {/* Stats */}

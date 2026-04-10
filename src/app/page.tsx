@@ -245,12 +245,13 @@ export default function DashboardPage() {
                 <th>{t('Department', 'القسم')}</th>
                 <th>{t('Status', 'الحالة')}</th>
                 <th>{t('Date', 'التاريخ')}</th>
+                <th>{t('Actions', 'الإجراءات')}</th>
               </tr>
             </thead>
             <tbody>
               {recentOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>
                     {t('No orders found', 'لا توجد أوامر')}
                   </td>
                 </tr>
@@ -274,6 +275,9 @@ export default function DashboardPage() {
                     </td>
                     <td><StatusBadge status={order.status} lang={lang} /></td>
                     <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                    </td>
                   </tr>
                 ))
               )}

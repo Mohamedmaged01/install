@@ -194,6 +194,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Always try to re-decode from token to get fresh permissions
                 if (token.split('.').length === 3) {
                     const freshUser = buildUserFromJwt(token);
+                    // Preserve any image the user updated — the JWT still has the old one until re-login
+                    const storedRaw = localStorage.getItem('auth_user');
+                    if (storedRaw) {
+                        try {
+                            const storedUser = JSON.parse(storedRaw);
+                            if (storedUser.id === freshUser.id && storedUser.image) {
+                                freshUser.image = toImageUrl(storedUser.image) ?? freshUser.image;
+                            }
+                        } catch { /* ignore parse errors */ }
+                    }
                     setUser(freshUser);
                     // Update localStorage with fresh data
                     localStorage.setItem('auth_user', JSON.stringify(freshUser));

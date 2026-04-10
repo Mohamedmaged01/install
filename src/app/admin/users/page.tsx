@@ -59,6 +59,7 @@ export default function AdminUsersPage() {
     const [editUserImagePreview, setEditUserImagePreview] = useState<string | null>(null);
     const [searchQ, setSearchQ] = useState('');
     const [userSearch, setUserSearch] = useState('');
+    const [appliedUserSearch, setAppliedUserSearch] = useState('');
     const [allUsers, setAllUsers] = useState<DepartmentUser[]>([]);
     const [assignSearch, setAssignSearch] = useState('');
     const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
@@ -153,6 +154,7 @@ const handleSavePerms = async () => {
         setModal('viewUsers');
         setRoleUsers([]);
         setUserSearch('');
+        setAppliedUserSearch('');
         try {
             const all = await getDepartmentUsers();
             setRoleUsers((Array.isArray(all) ? all : []).filter(u => 
@@ -237,12 +239,24 @@ const handleSavePerms = async () => {
         try {
             const updated = await updateDepartmentUser(editUserTarget.id, editUserForm, editUserImageFile || null);
             // If the edited user is the currently logged-in user, sync the auth context
-            if (user && user.id === editUserTarget.id && updated.image) {
+            if (user && user.id === editUserTarget.id) {
+                // Convert raw API path to full URL
+                const apiImage = updated.image
+                    ? (updated.image.startsWith('http')
+                        ? updated.image
+                        : `https://apiorders.runasp.net/${updated.image.replace(/\\/g, '/').replace(/^\//, '')}`)
+                    : user.image;
                 const stored = localStorage.getItem('auth_user');
                 const parsed = stored ? JSON.parse(stored) : {};
-                const next = { ...parsed, ...user, image: updated.image };
+                const next = {
+                    ...parsed, ...user,
+                    name: updated.name || editUserForm.Name || user.name,
+                    image: apiImage,
+                };
                 localStorage.setItem('auth_user', JSON.stringify(next));
-                setUser(next);
+                // Use blob preview for immediate sidebar update; API URL persists across refreshes
+                const displayImage = (editUserImageFile && editUserImagePreview) ? editUserImagePreview : apiImage;
+                setUser({ ...next, image: displayImage ?? undefined });
             }
             await loadAll();
             setModal('viewUsers');
@@ -478,13 +492,19 @@ const handleSavePerms = async () => {
                             >
                                 + {t('Add User to this Role', 'إضافة مستخدم لهذا الدور')}
                             </button>
-                            <div className="table-search" style={{ flex: 1, minWidth: 180 }}>
-                                <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
-                                <input
-                                    placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
-                                    value={userSearch}
-                                    onChange={e => setUserSearch(e.target.value)}
-                                />
+                            <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 180 }}>
+                                <div className="table-search" style={{ flex: 1 }}>
+                                    <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
+                                    <input
+                                        placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
+                                        value={userSearch}
+                                        onChange={e => setUserSearch(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') setAppliedUserSearch(userSearch); }}
+                                    />
+                                </div>
+                                <button className="btn btn-primary btn-sm" onClick={() => setAppliedUserSearch(userSearch)}>
+                                    {t('Apply', 'تطبيق')}
+                                </button>
                             </div>
                         </div>
                         <div className="table-container" style={{ border: 'none', overflowX: 'auto' }}>
@@ -507,7 +527,7 @@ const handleSavePerms = async () => {
                                         </tr>
                                     ) : (
                                         roleUsers.filter(u => {
-                                            const q = userSearch.toLowerCase();
+                                            const q = appliedUserSearch.toLowerCase();
                                             return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
                                         }).map(u => (
                                             <tr key={u.id}>

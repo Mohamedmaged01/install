@@ -46,6 +46,7 @@ export default function OrderDetailPage() {
     // Evidence edit/delete state
     const [editingEvidenceId, setEditingEvidenceId] = useState<number | null>(null);
     const [editingEvidenceNote, setEditingEvidenceNote] = useState('');
+    const [editingEvidenceImage, setEditingEvidenceImage] = useState<File | null>(null);
     const [evidenceActionLoading, setEvidenceActionLoading] = useState(false);
 
     // Order notes state
@@ -158,10 +159,11 @@ export default function OrderDetailPage() {
     const handleEditEvidence = async (evidenceId: number) => {
         setEvidenceActionLoading(true);
         try {
-            await updateEvidence(evidenceId, editingEvidenceNote);
+            await updateEvidence(evidenceId, editingEvidenceNote, editingEvidenceImage);
             const ev = await getOrderEvidence(id).catch(() => []);
             setEvidence(Array.isArray(ev) ? ev : []);
             setEditingEvidenceId(null);
+            setEditingEvidenceImage(null);
             toast.success(t('Evidence updated!', 'تم تحديث الدليل!'));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('Update failed', 'فشل التحديث'));
@@ -429,9 +431,17 @@ export default function OrderDetailPage() {
                             <PriorityBadge priority={order.priority} />
                         </div>
                         <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                            {(order.departmentName && order.departmentName !== 'string') && (
+                                <><span style={{ fontWeight: 600 }}>🏢 {order.departmentName}</span>{' • '}</>
+                            )}
                             {order.invoiceId ? `${t('Invoice', 'فاتورة')}: ${order.invoiceId}` : order.quotationId ? `${t('Quotation', 'عرض سعر')}: ${order.quotationId}` : ''}
                             {' • '}{t('Created', 'تاريخ الإنشاء')} {new Date(order.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                         </p>
+                        {order.notes && (
+                            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-secondary)', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', display: 'inline-block' }}>
+                                📝 {order.notes}
+                            </div>
+                        )}
                     </div>
                     <div className="btn-group">
                         <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -635,14 +645,14 @@ export default function OrderDetailPage() {
                                 )}
                                 <input
                                     className="form-input"
-                                    placeholder={t('Note (optional)', 'ملاحظة (اختيارية)')}
+                                    placeholder={t('Note (required)', 'ملاحظة (مطلوبة) *')}
                                     value={uploadNote}
                                     onChange={e => setUploadNote(e.target.value)}
                                     style={{ marginBottom: 10 }}
                                 />
                                 <button
                                     className="btn btn-primary btn-sm"
-                                    disabled={uploading || uploadFiles.length === 0}
+                                    disabled={uploading || uploadFiles.length === 0 || !uploadNote.trim()}
                                     onClick={handleUploadEvidence}
                                 >
                                     {uploading ? `⏳ ${t('Uploading...', 'جارٍ الرفع...')}` : `⬆️ ${t('Upload', 'رفع')}`}
@@ -696,11 +706,20 @@ export default function OrderDetailPage() {
                                                                 placeholder={t('Note...', 'ملاحظة...')}
                                                                 style={{ fontSize: 13 }}
                                                             />
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={e => setEditingEvidenceImage(e.target.files?.[0] ?? null)}
+                                                                style={{ fontSize: 12, color: 'var(--text-primary)' }}
+                                                            />
+                                                            {editingEvidenceImage && (
+                                                                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>📎 {editingEvidenceImage.name}</span>
+                                                            )}
                                                             <div style={{ display: 'flex', gap: 6 }}>
                                                                 <button className="btn btn-primary btn-sm" disabled={evidenceActionLoading} onClick={() => handleEditEvidence(ev.id)}>
                                                                     {evidenceActionLoading ? '⏳' : `💾 ${t('Save', 'حفظ')}`}
                                                                 </button>
-                                                                <button className="btn btn-secondary btn-sm" onClick={() => setEditingEvidenceId(null)}>✕</button>
+                                                                <button className="btn btn-secondary btn-sm" onClick={() => { setEditingEvidenceId(null); setEditingEvidenceImage(null); }}>✕</button>
                                                             </div>
                                                         </div>
                                                     ) : (

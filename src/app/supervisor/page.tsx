@@ -171,7 +171,7 @@ export default function SupervisorPage() {
             <div className="animate-in">
 
                 <div className="page-header">
-                    <h1>{t('Supervisor Dashboard', 'لوحة المشرف')}</h1>
+                    <h1>{t('Installations Supervisor', 'مشرف التركيبات')}</h1>
                     <p>{t('Review orders, assign technicians, and manage installations', 'مراجعة الأوامر، تعيين الفنيين، وإدارة التركيبات')}</p>
                 </div>
 
@@ -229,7 +229,6 @@ export default function SupervisorPage() {
                                 <th>{t('Order', 'الطلب')}</th>
                                 <th>{t('Customer', 'العميل')}</th>
                                 <th>{t('Department', 'القسم')}</th>
-                                <th>{t('Priority', 'الأولوية')}</th>
                                 <th>{t('Status', 'الحالة')}</th>
                                 <th>{t('Date', 'التاريخ')}</th>
                                 <th>{t('Actions', 'الإجراءات')}</th>
@@ -237,9 +236,9 @@ export default function SupervisorPage() {
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading...', 'جارٍ التحميل...')}</td></tr>
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading...', 'جارٍ التحميل...')}</td></tr>
                             ) : orders.length === 0 ? (
-                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 48 }}>
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 48 }}>
                                     <div style={{ fontSize: 40, marginBottom: 8 }}>📭</div>
                                     <div style={{ fontWeight: 600 }}>{t('No orders found', 'لا توجد أوامر')}</div>
                                 </td></tr>
@@ -253,7 +252,6 @@ export default function SupervisorPage() {
                                         </td>
                                         <td>{order.customerName || '—'}<div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city}</div></td>
                                         <td>{order.departmentName || `#${order.departmentId}`}</td>
-                                        <td><PriorityBadge priority={order.priority} /></td>
                                         <td><StatusBadge status={order.status} lang={lang} /></td>
                                         <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                                         <td>

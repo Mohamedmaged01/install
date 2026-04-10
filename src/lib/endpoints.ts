@@ -81,6 +81,36 @@ export async function getApexOffers(params?: {
 }
 
 /**
+ * Fetches ALL pages of APEX invoices (max 50 pages of 20).
+ */
+export async function getAllApexInvoices(params?: { dateFrom?: string; dateTo?: string }): Promise<ApexInvoice[]> {
+    const all: ApexInvoice[] = [];
+    const PAGE_SIZE = 20;
+    for (let page = 1; page <= 50; page++) {
+        const items = await getApexInvoices({ ...params, page, pageSize: PAGE_SIZE });
+        if (!items || items.length === 0) break;
+        all.push(...items);
+        if (items.length < PAGE_SIZE) break;
+    }
+    return all;
+}
+
+/**
+ * Fetches ALL pages of APEX offers (max 50 pages of 20).
+ */
+export async function getAllApexOffers(params?: { from?: string; to?: string }): Promise<ApexOffer[]> {
+    const all: ApexOffer[] = [];
+    const PAGE_SIZE = 20;
+    for (let page = 1; page <= 50; page++) {
+        const items = await getApexOffers({ ...params, page, size: PAGE_SIZE });
+        if (!items || items.length === 0) break;
+        all.push(...items);
+        if (items.length < PAGE_SIZE) break;
+    }
+    return all;
+}
+
+/**
  * Convenience helper to find a specific document by code and return its items.
  * Since APEX endpoints don't support direct fetch by code, we loop through pages.
  */
@@ -424,7 +454,7 @@ export async function uploadEvidence(orderId: number, images: File[], note?: str
 
 export async function getOrderNotes(orderId: number): Promise<OrderNote[]> {
     try {
-        const raw = await api<unknown>(`/api/Orders/${orderId}/notes`);
+        const raw = await api<unknown>(`/api/Notes/${orderId}`);
         if (Array.isArray(raw)) return raw as OrderNote[];
         const obj = raw as Record<string, unknown>;
         if (obj && Array.isArray(obj.data)) return obj.data as OrderNote[];
@@ -435,21 +465,21 @@ export async function getOrderNotes(orderId: number): Promise<OrderNote[]> {
 }
 
 export async function addOrderNote(orderId: number, note: string): Promise<OrderNote> {
-    return api<OrderNote>(`/api/Orders/${orderId}/notes`, {
+    return api<OrderNote>(`/api/Notes/${orderId}`, {
         method: 'POST',
-        body: { Note: note },
+        body: { note },
     });
 }
 
 export async function updateOrderNote(id: number, note: string): Promise<OrderNote> {
-    return api<OrderNote>(`/api/Orders/notes/${id}`, {
+    return api<OrderNote>(`/api/Notes/${id}`, {
         method: 'PUT',
-        body: { Note: note },
+        body: { note },
     });
 }
 
 export async function deleteOrderNote(id: number): Promise<void> {
-    return api<void>(`/api/Orders/notes/${id}`, { method: 'DELETE' });
+    return api<void>(`/api/Notes/${id}`, { method: 'DELETE' });
 }
 
 export async function getOrderTechnicians(id: number): Promise<DepartmentUser[]> {
@@ -464,10 +494,14 @@ export async function getOrderTechnicians(id: number): Promise<DepartmentUser[]>
     }
 }
 
-export async function updateEvidence(id: number, note: string): Promise<Evidence> {
-    return api<Evidence>(`/api/Orders/evidence/${id}`, {
+export async function updateEvidence(id: number, note: string, image?: File | null): Promise<Evidence> {
+    const formData = new FormData();
+    formData.append('Note', note);
+    if (image) formData.append('Image', image);
+    return api<Evidence>(`/api/Orders/Evidence/${id}`, {
         method: 'PUT',
-        body: { Note: note },
+        body: formData,
+        isFormData: true,
     });
 }
 

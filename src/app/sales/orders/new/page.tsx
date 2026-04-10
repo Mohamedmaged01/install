@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createOrder, getBranches, getDepartments, getApexInvoices, getApexOffers, uploadEvidence } from '@/lib/endpoints';
+import { createOrder, getBranches, getDepartments, getAllApexInvoices, getAllApexOffers, uploadEvidence } from '@/lib/endpoints';
 import { Branch, Department, AddOrderDto, ApexInvoice, ApexOffer } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
@@ -51,8 +51,8 @@ export default function NewOrderPage() {
             // Load APEX docs separately so branch/dept failure doesn't block them
             try {
                 const [inv, off] = await Promise.all([
-                    getApexInvoices().catch((e) => { setApexError(String(e?.message || e)); return []; }),
-                    getApexOffers().catch(() => []),
+                    getAllApexInvoices().catch((e) => { setApexError(String(e?.message || e)); return []; }),
+                    getAllApexOffers().catch(() => []),
                 ]);
                 setInvoices(inv);
                 setOffers(off);
