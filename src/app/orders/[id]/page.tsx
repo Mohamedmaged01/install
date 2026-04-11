@@ -142,9 +142,15 @@ export default function OrderDetailPage() {
         if (uploadFiles.length === 0) return;
         setUploading(true);
         try {
+            const noteText = uploadNote;
+            const existingIds = new Set(evidence.map(e => e.id));
             await uploadEvidence(id, uploadFiles, uploadNote || undefined);
             const ev = await getOrderEvidence(id).catch(() => []);
-            setEvidence(Array.isArray(ev) ? ev : []);
+            // For newly added items, fill in the note from the user's input if the API didn't return it
+            const merged = (Array.isArray(ev) ? ev : []).map(item =>
+                !existingIds.has(item.id) && !item.note && noteText ? { ...item, note: noteText } : item
+            );
+            setEvidence(merged);
             setUploadFiles([]);
             setUploadNote('');
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -238,8 +244,9 @@ export default function OrderDetailPage() {
         setAssignNotes('');
         setTechsLoading(true);
         try {
-            const techsPromise = forApprove && order.branches && order.branches.length > 0
-                ? Promise.all(order.branches.map(b => getBranchTechnicians(b.id))).then(res => res.flat())
+            const hasBranches = order.branches && order.branches.length > 0;
+            const techsPromise = hasBranches
+                ? Promise.all(order.branches!.map(b => getBranchTechnicians(b.id))).then(res => res.flat())
                 : getDepartmentUsers(undefined, order.departmentId);
             const [users, allRoles] = await Promise.all([
                 techsPromise,
@@ -1013,7 +1020,7 @@ export default function OrderDetailPage() {
                                         </p>
                                     ) : technicians.length === 0 ? (
                                         <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '16px 0', textAlign: 'center' }}>
-                                            {t('No users found in this department.', 'لا يوجد مستخدمون في هذا القسم.')}
+                                            {t('No technicians found in this branch.', 'لا يوجد فنيون في هذا الفرع.')}
                                         </p>
                                     ) : (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
