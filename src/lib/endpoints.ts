@@ -193,6 +193,8 @@ function normalizeDepartmentUser(u: any): DepartmentUser {
         departmentName: u.departmentName ?? u.DepartmentName,
         isSuperAdmin: u.isSuperAdmin ?? u.IsSuperAdmin ?? false,
         isActive: u.isActive !== undefined ? (u.isActive === true || String(u.isActive).toLowerCase() === 'true') : (u.IsActive !== undefined ? (u.IsActive === true || String(u.IsActive).toLowerCase() === 'true') : undefined),
+        branchId: u.branchId ?? u.BranchId ?? undefined,
+        branchName: u.branchName ?? u.BranchName,
         type: u.type ?? u.Type,
         role: u.role ?? u.Role,
     };
@@ -269,16 +271,18 @@ export async function deleteDepartmentUser(id: number): Promise<void> {
 
 export async function updateDepartmentUser(
     id: number,
-    fields: { Name?: string; Email?: string; Phone?: string; Password?: string; DepartmentId?: number; RoleId?: number },
+    fields: { Name?: string; Email?: string; Phone?: string; Password?: string; DepartmentId?: number; RoleId?: number; BranchId?: number; IsActive?: boolean },
     image?: File | null,
 ): Promise<DepartmentUser> {
-    const params: Record<string, string | number | undefined | null> = {};
-    if (fields.Name)         params.Name         = fields.Name;
-    if (fields.Email)        params.Email        = fields.Email;
-    if (fields.Phone)        params.Phone        = fields.Phone;
-    if (fields.Password)     params.Password     = fields.Password;
-    if (fields.DepartmentId) params.DepartmentId = fields.DepartmentId;
-    if (fields.RoleId)       params.RoleId       = fields.RoleId;
+    const params: Record<string, string | number | boolean | undefined | null> = {};
+    if (fields.Name)              params.Name         = fields.Name;
+    if (fields.Email)             params.Email        = fields.Email;
+    if (fields.Phone)             params.Phone        = fields.Phone;
+    if (fields.Password)          params.Password     = fields.Password;
+    if (fields.DepartmentId)      params.DepartmentId = fields.DepartmentId;
+    if (fields.RoleId)            params.RoleId       = fields.RoleId;
+    if (fields.BranchId)          params.BranchId     = fields.BranchId;
+    if (fields.IsActive !== undefined) params.IsActive = fields.IsActive;
 
     const formData = new FormData();
     if (image) formData.append('Image', image);
@@ -719,6 +723,12 @@ export async function getRolePermissions(id: number): Promise<Permission[]> {
         name: (p as any).title ?? (p as any).Title ?? (p as any).name ?? (p as any).Name ?? '',
         description: (p as any).description ?? (p as any).Description,
     }));
+}
+
+export async function getRoleUsers(roleId: number): Promise<DepartmentUser[]> {
+    const raw = await api<unknown>(`/api/Roles/${roleId}/users`);
+    const arr = Array.isArray(raw) ? raw : Array.isArray((raw as any)?.data) ? (raw as any).data : [];
+    return arr.map(normalizeDepartmentUser);
 }
 
 export async function setRolePermissions(id: number, permissionIds: number[]): Promise<void> {

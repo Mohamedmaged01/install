@@ -6,7 +6,7 @@ import {
     getDepartments, createDepartment, updateDepartment, deleteDepartment,
     getDepartmentUsers, createDepartmentUser, deleteDepartmentUser, updateDepartmentUser,
     getRoles, createRole, deleteRole,
-    getPermissions, getRolePermissions, updateRolePermissions,
+    getPermissions, getRolePermissions, updateRolePermissions, getRoleUsers,
     getUserTypes,
 } from '@/lib/endpoints';
 import { Branch, Department, DepartmentUser, Role, Permission } from '@/types';
@@ -34,7 +34,8 @@ export default function AdminPage() {
     const [newDept, setNewDept] = useState({ branchId: 0, name: '' });
     const [editBranch, setEditBranch] = useState<{ id: number; name: string; email: string; phone: string } | null>(null);
     const [editDept, setEditDept] = useState<{ id: number; name: string; branchId: number } | null>(null);
-    const [editUser, setEditUser] = useState<{ id: number; name: string; email: string; phone: string; departmentId: number; roleId: number; currentImageUrl?: string; password: string } | null>(null);
+    const [editUser, setEditUser] = useState<{ id: number; name: string; email: string; phone: string; branchId: number; departmentId: number; roleId: number; isActive: boolean; currentImageUrl?: string; password: string } | null>(null);
+    const [editUserDepts, setEditUserDepts] = useState<Department[]>([]);
     const [editUserImage, setEditUserImage] = useState<File | null>(null);
     const [editUserShowPassword, setEditUserShowPassword] = useState(false);
     const [newRoleName, setNewRoleName] = useState('');
@@ -54,6 +55,7 @@ export default function AdminPage() {
     const [userSearch, setUserSearch] = useState('');
     const [appliedUserSearch, setAppliedUserSearch] = useState('');
     const [userActiveFilter, setUserActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+    const [appliedActiveFilter, setAppliedActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [showAddUser, setShowAddUser] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
@@ -212,14 +214,28 @@ export default function AdminPage() {
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete role', 'فشل حذف الدور')); }
     };
 
+    const fetchAllUsers = async (): Promise<DepartmentUser[]> => {
+        // getDepartmentUsers requires a branchId filter; fetch for each branch in parallel and deduplicate
+        const branchList = branches.length > 0 ? branches : await getBranches().catch(() => []);
+        if (branchList.length === 0) {
+            // Fallback: try without filter (may work on some server configs)
+            return getDepartmentUsers().catch(() => []);
+        }
+        const results = await Promise.all(
+            branchList.map(b => getDepartmentUsers(b.id).catch(() => [] as DepartmentUser[]))
+        );
+        const merged = results.flat();
+        // Deduplicate by user id
+        const seen = new Set<number>();
+        return merged.filter(u => { if (seen.has(u.id)) return false; seen.add(u.id); return true; });
+    };
+
     const openViewUsers = async (role: Role) => {
         setViewUsersRole(role);
         setRoleUsersLoading(true);
         try {
-            const all = await getDepartmentUsers();
-            setRoleUsersList((Array.isArray(all) ? all : []).filter(u =>
-                u.roleId === role.id || u.roleName === role.name
-            ));
+            const users = await getRoleUsers(role.id);
+            setRoleUsersList(Array.isArray(users) ? users : []);
         } catch { setRoleUsersList([]); }
         finally { setRoleUsersLoading(false); }
     };
@@ -229,8 +245,8 @@ export default function AdminPage() {
         setAssignSearch('');
         setAppliedAssignSearch('');
         try {
-            const all = await getDepartmentUsers();
-            setAllUsersForAssign(Array.isArray(all) ? all : []);
+            const all = await fetchAllUsers();
+            setAllUsersForAssign(all);
         } catch { setAllUsersForAssign([]); }
     };
 
@@ -240,9 +256,9 @@ export default function AdminPage() {
         try {
             await updateDepartmentUser(u.id, { RoleId: assignUserRole.id }, null);
             toast.success(t(`${u.name} assigned to ${assignUserRole.name}`, `تم تعيين ${u.name} في ${assignUserRole.name}`));
-            const all = await getDepartmentUsers();
-            setAllUsersForAssign(Array.isArray(all) ? all : []);
-            setUsers(Array.isArray(all) ? all : []);
+            const all = await fetchAllUsers();
+            setAllUsersForAssign(all);
+            setUsers(all);
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to assign user', 'فشل تعيين المستخدم')); }
         finally { setAssigningUserId(null); }
     };
@@ -308,7 +324,7 @@ export default function AdminPage() {
         try {
             await updateDepartmentUser(
                 editUser.id,
-                { Name: editUser.name, Email: editUser.email, Phone: editUser.phone, DepartmentId: editUser.departmentId || undefined, RoleId: editUser.roleId || undefined, Password: editUser.password || undefined },
+                { Name: editUser.name, Email: editUser.email, Phone: editUser.phone, BranchId: editUser.branchId || undefined, DepartmentId: editUser.departmentId || undefined, RoleId: editUser.roleId || undefined, Password: editUser.password || undefined, IsActive: editUser.isActive },
                 editUserImage,
             );
             setEditUser(null);
@@ -569,7 +585,7 @@ export default function AdminPage() {
                                             className="form-select"
                                             style={{ fontSize: 13, padding: '4px 10px', minWidth: 130 }}
                                             value={userActiveFilter}
-                                            onChange={e => { setUserActiveFilter(e.target.value as 'all' | 'active' | 'inactive'); setUsersPage(1); }}
+                                            onChange={e => setUserActiveFilter(e.target.value as 'all' | 'active' | 'inactive')}
                                         >
                                             <option value="all">{t('All Status', 'كل الحالات')}</option>
                                             <option value="active">{t('Active', 'نشط')}</option>
@@ -589,6 +605,7 @@ export default function AdminPage() {
                                                     setAppliedUserSearch(userSearch);
                                                     setAppliedBranchFilter(userBranchFilter);
                                                     setAppliedDeptFilter(userDeptFilter);
+                                                    setAppliedActiveFilter(userActiveFilter);
                                                     setUsersPage(1);
                                                     loadUsers(userBranchFilter || undefined, userDeptFilter || undefined);
                                                 }
@@ -599,6 +616,7 @@ export default function AdminPage() {
                                         setAppliedUserSearch(userSearch);
                                         setAppliedBranchFilter(userBranchFilter);
                                         setAppliedDeptFilter(userDeptFilter);
+                                        setAppliedActiveFilter(userActiveFilter);
                                         setUsersPage(1);
                                         loadUsers(userBranchFilter || undefined, userDeptFilter || undefined);
                                     }}>
@@ -624,7 +642,7 @@ export default function AdminPage() {
                                                 users.filter(u => {
                                                     const q = appliedUserSearch.toLowerCase();
                                                     const matchesSearch = !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
-                                                    const matchesActive = userActiveFilter === 'all' || (userActiveFilter === 'active' ? u.isActive !== false : u.isActive === false);
+                                                    const matchesActive = appliedActiveFilter === 'all' || (appliedActiveFilter === 'active' ? u.isActive !== false : u.isActive === false);
                                                     return matchesSearch && matchesActive;
                                                 }).slice((usersPage - 1) * usersPageSize, usersPage * usersPageSize).map(u => (
                                                     <tr key={u.id}>
@@ -662,7 +680,9 @@ export default function AdminPage() {
                                                                 <button className="btn btn-secondary btn-sm" onClick={() => {
                                                                     const resolvedRoleId = u.roleId || roles.find(r => r.name === (u.roleName || u.role))?.id || 0;
                                                                     const resolvedDeptId = u.departmentId || departments.find(d => d.name === u.departmentName)?.id || 0;
-                                                                    setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: resolvedDeptId, roleId: resolvedRoleId, currentImageUrl: u.image, password: '' });
+                                                                    const resolvedBranchId = u.branchId || branches.find(b => b.name === u.branchName)?.id || 0;
+                                                                    setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', branchId: resolvedBranchId, departmentId: resolvedDeptId, roleId: resolvedRoleId, isActive: u.isActive !== false, currentImageUrl: u.image, password: '' });
+                                                                    setEditUserDepts(resolvedBranchId ? departments.filter(d => d.branchId === resolvedBranchId) : departments);
                                                                     setEditUserImage(null);
                                                                     setEditUserShowPassword(false);
                                                                 }}>✏️</button>
@@ -678,7 +698,7 @@ export default function AdminPage() {
                                 {users.length > 0 && (
                                     <Pagination
                                         currentPage={usersPage}
-                                        totalItems={users.filter(u => { const q = appliedUserSearch.toLowerCase(); const matchesSearch = !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q); const matchesActive = userActiveFilter === 'all' || (userActiveFilter === 'active' ? u.isActive !== false : u.isActive === false); return matchesSearch && matchesActive; }).length}
+                                        totalItems={users.filter(u => { const q = appliedUserSearch.toLowerCase(); const matchesSearch = !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q); const matchesActive = appliedActiveFilter === 'all' || (appliedActiveFilter === 'active' ? u.isActive !== false : u.isActive === false); return matchesSearch && matchesActive; }).length}
                                         pageSize={usersPageSize}
                                         onPageChange={setUsersPage}
                                         onPageSizeChange={setUsersPageSize}
@@ -813,19 +833,44 @@ export default function AdminPage() {
                                     <input className="form-input" value={editUser.phone} onChange={e => setEditUser({ ...editUser, phone: e.target.value })} />
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">{t('Department', 'القسم')}</label>
-                                    <select className="form-select" value={editUser.departmentId} onChange={e => setEditUser({ ...editUser, departmentId: Number(e.target.value) })}>
+                                    <label className="form-label">{t('Branch', 'الفرع')}</label>
+                                    <select className="form-select" value={editUser.branchId} onChange={async e => {
+                                        const bid = Number(e.target.value);
+                                        setEditUser({ ...editUser, branchId: bid, departmentId: 0 });
+                                        if (bid) {
+                                            const d = await getDepartments(bid).catch(() => [] as Department[]);
+                                            setEditUserDepts(Array.isArray(d) ? d : []);
+                                        } else {
+                                            setEditUserDepts(departments);
+                                        }
+                                    }}>
                                         <option value={0}>— {t('Select', 'اختر')} —</option>
-                                        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                        {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                     </select>
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label className="form-label">{t('Role', 'الدور')}</label>
-                                <select className="form-select" value={editUser.roleId} onChange={e => setEditUser({ ...editUser, roleId: Number(e.target.value) })}>
-                                    <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
-                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                <label className="form-label">{t('Department', 'القسم')}</label>
+                                <select className="form-select" value={editUser.departmentId} onChange={e => setEditUser({ ...editUser, departmentId: Number(e.target.value) })}>
+                                    <option value={0}>— {t('Select', 'اختر')} —</option>
+                                    {(editUserDepts.length > 0 ? editUserDepts : departments).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                 </select>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">{t('Role', 'الدور')}</label>
+                                    <select className="form-select" value={editUser.roleId} onChange={e => setEditUser({ ...editUser, roleId: Number(e.target.value) })}>
+                                        <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
+                                        {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Status', 'الحالة')}</label>
+                                    <select className="form-select" value={editUser.isActive ? 'active' : 'inactive'} onChange={e => setEditUser({ ...editUser, isActive: e.target.value === 'active' })}>
+                                        <option value="active">{t('Active', 'نشط')}</option>
+                                        <option value="inactive">{t('Inactive', 'غير نشط')}</option>
+                                    </select>
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label className="form-label">{t('Profile Image', 'الصورة الشخصية')}</label>
@@ -905,7 +950,11 @@ export default function AdminPage() {
                                                     <td>
                                                         <button className="btn btn-secondary btn-sm" title={t('Edit', 'تعديل')} onClick={() => {
                                                             setViewUsersRole(null);
-                                                            setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId, currentImageUrl: u.image, password: '' });
+                                                            const resolvedRoleId = u.roleId || viewUsersRole?.id || 0;
+                                                            const resolvedDeptId = u.departmentId || departments.find(d => d.name === u.departmentName)?.id || 0;
+                                                            const resolvedBranchId = u.branchId || branches.find(b => b.name === u.branchName)?.id || 0;
+                                                            setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', branchId: resolvedBranchId, departmentId: resolvedDeptId, roleId: resolvedRoleId, isActive: u.isActive !== false, currentImageUrl: u.image, password: '' });
+                                                            setEditUserDepts(resolvedBranchId ? departments.filter(d => d.branchId === resolvedBranchId) : departments);
                                                             setEditUserImage(null);
                                                             setEditUserShowPassword(false);
                                                         }}>✏️</button>

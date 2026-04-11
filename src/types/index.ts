@@ -124,6 +124,8 @@ export interface DepartmentUser {
     departmentName?: string;
     isSuperAdmin: boolean;
     isActive?: boolean;
+    branchId?: number;
+    branchName?: string;
     type?: string;
     role?: string;
 }

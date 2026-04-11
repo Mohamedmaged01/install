@@ -20,7 +20,7 @@ export function removeToken(): void {
 interface RequestOptions {
     method?: string;
     body?: unknown;
-    params?: Record<string, string | number | (string | number)[] | undefined | null>;
+    params?: Record<string, string | number | boolean | (string | number)[] | undefined | null>;
     isFormData?: boolean;
 }
 
