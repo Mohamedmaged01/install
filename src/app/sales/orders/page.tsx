@@ -230,7 +230,6 @@ export default function SalesOrdersPage() {
                     <table>
                         <thead>
                             <tr>
-                                <th>{t('Order', 'الطلب')}</th>
                                 <th>{t('Customer', 'العميل')}</th>
                                 <th>{t('Department', 'القسم')}</th>
                                 <th>{t('Priority', 'الأولوية')}</th>
@@ -242,13 +241,13 @@ export default function SalesOrdersPage() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
+                                    <td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
                                         {t('Loading orders...', 'جارٍ تحميل الأوامر...')}
                                     </td>
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', padding: 48 }}>
+                                    <td colSpan={6} style={{ textAlign: 'center', padding: 48 }}>
                                         <div style={{ fontSize: 40, marginBottom: 8 }}>📭</div>
                                         <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('No orders found', 'لا توجد أوامر')}</div>
                                         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
@@ -262,18 +261,21 @@ export default function SalesOrdersPage() {
                                 filtered.slice((page - 1) * pageSize, page * pageSize).map(order => (
                                     <tr key={order.id}>
                                         <td>
-                                            <Link href={`/orders/${order.id}`} className="table-cell-main" style={{ color: 'var(--accent-primary-hover)' }}>
-                                                {order.orderNumber || `#${order.id}`}
+                                            <Link href={`/orders/${order.id}`} style={{ fontWeight: 500, color: 'var(--accent-primary-hover)' }}>
+                                                {order.customerName || '—'}
                                             </Link>
-                                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                                                {order.invoiceId ? `INV: ${order.invoiceId}` : order.quotationId ? `QT: ${order.quotationId}` : '—'}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div style={{ fontWeight: 500 }}>{order.customerName || '—'}</div>
                                             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city || ''}</div>
                                         </td>
-                                        <td>{order.departmentName || `#${order.departmentId}`}</td>
+                                        <td>
+                                            {(order.departmentNames && order.departmentNames.length > 0)
+                                                ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                    {order.departmentNames.map((name, i) => (
+                                                        <span key={i} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{name}</span>
+                                                    ))}
+                                                  </div>
+                                                : <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                            }
+                                        </td>
                                         <td><PriorityBadge priority={order.priority} /></td>
                                         <td><StatusBadge status={order.status} lang={lang} /></td>
                                         <td style={{ fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>

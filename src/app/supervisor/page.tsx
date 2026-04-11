@@ -258,15 +258,15 @@ export default function SupervisorPage() {
                                             <div className="btn-group">
                                                 {order.status === 'PendingSupervisorApproval' && (
                                                     <>
-                                                        <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)}>
-                                                            {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
+                                                        <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} title={t('Approve', 'اعتماد')}>
+                                                            {actionLoading === order.id ? '⏳' : '✅'}
                                                         </button>
-                                                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => { setRejectModal(order); setRejectReason(''); }}>
-                                                            ↩ {t('Return', 'إرجاع')}
+                                                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => { setRejectModal(order); setRejectReason(''); }} title={t('Return', 'إرجاع')}>
+                                                            ↩️
                                                         </button>
                                                     </>
                                                 )}
-                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
                                             </div>
                                         </td>
                                     </tr>

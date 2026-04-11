@@ -204,17 +204,21 @@ export interface Order {
     branches?: { id: number; name: string }[];
     departmentId: number;
     departmentName?: string;
+    departmentNames?: string[];
     qrToken?: string;
     qrExpiry?: string;
     createdByName?: string;
     createdById?: number;
     salesRepresentative?: string;
+    salesManager?: string;
+    supervisor?: string;
     notes?: string;
     location?: string;
     // Nested data from GET /api/Orders/{id}
     tasks?: Task[];
     items?: OrderItem[];
     technicians?: { id: number; name: string }[];
+    technicianAssignments?: { id: number; name: string }[];
     departmentNotes?: OrderDepartmentNote[];
 }
 

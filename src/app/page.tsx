@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getStatistics, getBranches, getDepartments, approveSalesManager, acceptFromOutside, rejectOrder } from '@/lib/endpoints';
+import { getStatistics, getBranches, getDepartments, approveSalesManager, acceptFromOutside, rejectOrder, deleteOrder } from '@/lib/endpoints';
 import { Statistics, Order, Branch, Department, OrderStatus } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import MultiSelect from '@/components/MultiSelect';
@@ -84,6 +84,15 @@ export default function DashboardPage() {
     try {
       await acceptFromOutside(order.id);
       setRecentOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Complete' as OrderStatus } : o));
+    } catch { /* silent */ } finally { setActionLoading(null); }
+  };
+
+  const handleDeleteOrder = async (order: Order) => {
+    if (!confirm(t(`Delete order ${order.orderNumber || `#${order.id}`}?`, `حذف الطلب ${order.orderNumber || `#${order.id}`}؟`))) return;
+    setActionLoading(order.id);
+    try {
+      await deleteOrder(order.id);
+      setRecentOrders(prev => prev.filter(o => o.id !== order.id));
     } catch { /* silent */ } finally { setActionLoading(null); }
   };
 
@@ -312,25 +321,26 @@ export default function DashboardPage() {
                     <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div className="btn-group">
-                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
                         {order.status === 'PendingSalesApproval' && (
-                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)}>
-                            {actionLoading === order.id ? '⏳' : `✅ ${t('Approve', 'اعتماد')}`}
+                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} title={t('Approve', 'اعتماد')}>
+                            {actionLoading === order.id ? '⏳' : '✅'}
                           </button>
                         )}
                         {order.status === 'PendingSupervisorApproval' && (
-                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm">✅ {t('Approve & Assign', 'اعتماد وتعيين')}</Link>
+                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" title={t('Approve & Assign', 'اعتماد وتعيين')}>✅</Link>
                         )}
                         {order.status === 'ReadyForInstallation' && (
-                          <button className="btn btn-primary btn-sm" disabled={actionLoading === order.id} onClick={() => handleAcceptOutside(order)}>
-                            {actionLoading === order.id ? '⏳' : `🌐 ${t('Accept', 'قبول')}`}
+                          <button className="btn btn-primary btn-sm" disabled={actionLoading === order.id} onClick={() => handleAcceptOutside(order)} title={t('Accept', 'قبول')}>
+                            {actionLoading === order.id ? '⏳' : '🌐'}
                           </button>
                         )}
                         {hasPermission(PERMS.ORDERS_RETURN) && (
-                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); }}>
-                            ↩️ {t('Return', 'إرجاع')}
+                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); }} title={t('Return', 'إرجاع')}>
+                            ↩️
                           </button>
                         )}
+                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => handleDeleteOrder(order)} title={t('Delete', 'حذف')}>🗑️</button>
                       </div>
                     </td>
                   </tr>

@@ -10,10 +10,10 @@ import {
     deleteOrder, deleteTask,
     getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
     getApexInvoices, getApexOffers, updateOrder, acceptFromOutside,
-    approveSalesManager, approveSupervisor, getBranchTechnicians, rejectOrder
+    approveSalesManager, approveSupervisor, getBranchTechnicians, rejectOrder, getBranches
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
-import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto } from '@/types';
+import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto, Branch } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
@@ -74,6 +74,8 @@ export default function OrderDetailPage() {
     const [editLoading, setEditLoading] = useState(false);
     const [editForm, setEditForm] = useState<Partial<Omit<UpdateOrderDto, 'branchIds'> & { branchIds: number[], location: string; notes: string }>>({});
 
+    const [branches, setBranches] = useState<Branch[]>([]);
+
     // Return Order state
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [returnReason, setReturnReason] = useState('');
@@ -132,6 +134,7 @@ export default function OrderDetailPage() {
 
     useEffect(() => {
         if (id) loadOrder();
+        getBranches().then(setBranches).catch(() => {});
     }, [id]);
 
     useEffect(() => {
@@ -244,7 +247,7 @@ export default function OrderDetailPage() {
         setAssignNotes('');
         setTechsLoading(true);
         try {
-            const validBranches = (order.branches ?? []).filter(b => b.id != null);
+            const validBranches = (order.branches ?? []).filter(b => b.id != null && b.id !== 0);
             const techsPromise = validBranches.length > 0
                 ? Promise.all(validBranches.map(b => getBranchTechnicians(b.id))).then(res => res.flat())
                 : getDepartmentUsers(undefined, order.departmentId);
@@ -471,7 +474,7 @@ export default function OrderDetailPage() {
                                 customerId: order.customerId || '',
                                 salesApprovalDate: (order as any).salesApprovalDate || '',
                                 priority: order.priority,
-                                branchIds: order.branches ? order.branches.map(b => b.id) : [],
+                                branchIds: order.branches ? order.branches.map(b => b.id).filter(id => id !== 0) : [],
                                 departmentId: order.departmentId,
                             });
                             setShowEditModal(true);
@@ -861,18 +864,8 @@ export default function OrderDetailPage() {
                             ) : null}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Scheduled', 'الموعد المحدد')}:</span> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString() : '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Created by', 'أُنشئ بواسطة')}:</span> {order.salesRepresentative || order.createdByName || '—'}</div>
-                            {(() => {
-                                const salesApproval = history.find(h => h.toStatus === 'PendingSupervisorApproval');
-                                const supervisorApproval = history.find(h => h.toStatus === 'ReadyForInstallation');
-                                return (<>
-                                    {salesApproval?.actionByUserName && (
-                                        <div><span style={{ color: 'var(--text-muted)' }}>{t('Sales Approved by', 'اعتمد المبيعات')}:</span> {salesApproval.actionByUserName}</div>
-                                    )}
-                                    {supervisorApproval?.actionByUserName && (
-                                        <div><span style={{ color: 'var(--text-muted)' }}>{t('Supervisor Approved by', 'اعتمد المشرف')}:</span> {supervisorApproval.actionByUserName}</div>
-                                    )}
-                                </>);
-                            })()}
+                            {order.salesManager && <div><span style={{ color: 'var(--text-muted)' }}>{t('Sales Manager', 'مدير المبيعات')}:</span> {order.salesManager}</div>}
+                            {order.supervisor && <div><span style={{ color: 'var(--text-muted)' }}>{t('Supervisor', 'المشرف')}:</span> {order.supervisor}</div>}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Status', 'الحالة')}:</span> <StatusBadge status={order.status} lang={lang} /></div>
                             {order.notes && (
                                 <div style={{ marginTop: 4, padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
@@ -1140,8 +1133,11 @@ export default function OrderDetailPage() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                                 <div className="form-group">
-                                    <label className="form-label">{t('Branch IDs', 'معرفات الفروع')} (comma separated)</label>
-                                    <input type="text" className="form-input" value={editForm.branchIds?.join(', ') || ''} onChange={e => setEditForm(prev => ({ ...prev, branchIds: e.target.value.split(',').map(n => Number(n.trim())).filter(n => !isNaN(n) && n > 0) }))} />
+                                    <label className="form-label">{t('Branch', 'الفرع')}</label>
+                                    <select className="form-input" value={editForm.branchIds?.[0] || ''} onChange={e => setEditForm(prev => ({ ...prev, branchIds: e.target.value ? [Number(e.target.value)] : [] }))}>
+                                        <option value="">{t('Select branch', 'اختر الفرع')}</option>
+                                        {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    </select>
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">{t('Department ID', 'معرف القسم')}</label>

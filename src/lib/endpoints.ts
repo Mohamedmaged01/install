@@ -329,16 +329,31 @@ function normalizeOrder(o: any): Order {
         })(),
         departmentId: o.departmentId ?? o.DepartmentId ?? (o.departments ?? o.Departments)?.[0]?.id ?? (o.departments ?? o.Departments)?.[0]?.Id,
         departmentName: o.departmentName ?? o.DepartmentName ?? (o.departments ?? o.Departments)?.[0]?.name ?? (o.departments ?? o.Departments)?.[0]?.Name,
+        departmentNames: (() => {
+            const depts = o.departments ?? o.Departments;
+            if (Array.isArray(depts) && depts.length > 0) {
+                return depts.map((d: any) => d.name ?? d.Name).filter(Boolean);
+            }
+            const single = o.departmentName ?? o.DepartmentName;
+            return single ? [single] : [];
+        })(),
         qrToken: o.qrToken ?? o.QrToken,
         qrExpiry: o.qrExpiry ?? o.QrExpiry,
         createdByName: o.createdByName ?? o.CreatedByName,
         createdById: o.createdById ?? o.CreatedById,
         salesRepresentative: o.salesRepresentative ?? o.SalesRepresentative,
+        salesManager: o.salesManager ?? o.SalesManager ?? o.salesManger ?? o.SalesManger,
+        supervisor: o.supervisor ?? o.Supervisor ?? o.supervisior ?? o.Supervisior,
         notes: o.notes ?? o.Notes,
         location: o.location ?? o.Location,
         tasks: o.tasks ?? o.Tasks,
         items: o.items ?? o.Items,
         technicians: o.technicians ?? o.Technicians,
+        technicianAssignments: (() => {
+            const tech = o.tech ?? o.Tech;
+            if (Array.isArray(tech)) return tech.map((t: any) => ({ id: t.id ?? t.Id ?? t.technicianId ?? t.TechnicianId, name: t.name ?? t.Name ?? t.technicianName ?? t.TechnicianName ?? '' }));
+            return [];
+        })(),
         departmentNotes: (() => {
             const depts = o.departments ?? o.Departments;
             if (Array.isArray(depts) && depts.length > 0) {
@@ -415,7 +430,7 @@ export async function updateOrder(id: number, dto: UpdateOrderDto): Promise<Orde
         invoiceId: dto.invoiceId ?? null,
         customerId: dto.customerId ?? null,
         priority: dto.priority,
-        branchId: dto.branchIds?.[0]?.id ?? 0,
+        branchId: dto.branchIds?.find(b => b.id && b.id !== 0)?.id ?? null,
         departmentIds: (dto.departmentIds ?? (dto.departmentId ? [{ idd: dto.departmentId, note: '' }] : [])),
         notes: dto.notes ?? null,
     };
