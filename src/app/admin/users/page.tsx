@@ -62,6 +62,7 @@ export default function AdminUsersPage() {
     const [appliedUserSearch, setAppliedUserSearch] = useState('');
     const [allUsers, setAllUsers] = useState<DepartmentUser[]>([]);
     const [assignSearch, setAssignSearch] = useState('');
+    const [appliedAssignSearch, setAppliedAssignSearch] = useState('');
     const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
     const [newUserBranchId, setNewUserBranchId] = useState<number>(0);
     const [newUserDepts, setNewUserDepts] = useState<Department[]>([]);
@@ -170,6 +171,7 @@ const handleSavePerms = async () => {
     const openAssignUser = async (role: Role) => {
         setActiveRole(role);
         setAssignSearch('');
+        setAppliedAssignSearch('');
         setModal('assignUser');
         try {
             const all = await getDepartmentUsers();
@@ -559,14 +561,25 @@ const handleSavePerms = async () => {
                 {/* Assign User to Role Modal */}
                 {modal === 'assignUser' && activeRole && (
                     <ModalShell title={`👤 ${t('Assign User to', 'تعيين مستخدم في')} — ${activeRole.name}`} onClose={() => setModal('viewUsers')} wide>
-                        <div className="table-search" style={{ marginBottom: 12 }}>
-                            <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
-                            <input
-                                placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
-                                value={assignSearch}
-                                onChange={e => setAssignSearch(e.target.value)}
-                                autoFocus
-                            />
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <div className="table-search" style={{ flex: 1, marginBottom: 0 }}>
+                                <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
+                                <input
+                                    placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
+                                    value={assignSearch}
+                                    onChange={e => setAssignSearch(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') setAppliedAssignSearch(assignSearch); }}
+                                    autoFocus
+                                />
+                            </div>
+                            <button className="btn btn-primary btn-sm" onClick={() => setAppliedAssignSearch(assignSearch)}>
+                                {t('Apply', 'تطبيق')}
+                            </button>
+                            {(appliedAssignSearch || assignSearch) && (
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setAssignSearch(''); setAppliedAssignSearch(''); }}>
+                                    {t('Clear', 'مسح')}
+                                </button>
+                            )}
                         </div>
                         <div className="table-container" style={{ border: 'none', overflowX: 'auto', maxHeight: 420 }}>
                             <table style={{ minWidth: 560 }}>
@@ -580,7 +593,7 @@ const handleSavePerms = async () => {
                                 </thead>
                                 <tbody>
                                     {allUsers.filter(u => {
-                                        const q = assignSearch.toLowerCase();
+                                        const q = appliedAssignSearch.toLowerCase();
                                         return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
                                     }).length === 0 ? (
                                         <tr>
@@ -589,10 +602,11 @@ const handleSavePerms = async () => {
                                             </td>
                                         </tr>
                                     ) : allUsers.filter(u => {
-                                        const q = assignSearch.toLowerCase();
+                                        const q = appliedAssignSearch.toLowerCase();
                                         return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
                                     }).map(u => {
                                         const alreadyInRole = u.roleId === activeRole.id || u.roleName === activeRole.name;
+                                        const displayRole = u.roleName || roles.find(r => r.id === u.roleId)?.name;
                                         return (
                                             <tr key={u.id}>
                                                 <td>
@@ -606,7 +620,7 @@ const handleSavePerms = async () => {
                                                     </div>
                                                 </td>
                                                 <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
-                                                <td style={{ fontSize: 13 }}>{u.roleName || '—'}</td>
+                                                <td style={{ fontSize: 13 }}>{displayRole || '—'}</td>
                                                 <td>
                                                     {alreadyInRole ? (
                                                         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>✓ {t('In role', 'في الدور')}</span>
