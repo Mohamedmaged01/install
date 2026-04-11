@@ -309,7 +309,24 @@ function normalizeOrder(o: any): Order {
         createdAt: o.createdAt ?? o.CreatedAt,
         updatedAt: o.updatedAt ?? o.UpdatedAt,
         priority: o.priority ?? o.Priority,
-        branches: o.branches ?? o.Branches,
+        branches: (() => {
+            const arr = o.branches ?? o.Branches;
+            if (Array.isArray(arr) && arr.length > 0) {
+                return arr.map((b: any) => ({ id: b.id ?? b.Id, name: b.name ?? b.Name ?? '' }));
+            }
+            // Handle singular branch object
+            const branchObj = o.branch ?? o.Branch;
+            if (branchObj && typeof branchObj === 'object' && !Array.isArray(branchObj)) {
+                const bid = branchObj.id ?? branchObj.Id ?? branchObj.branchId ?? branchObj.BranchId;
+                if (bid) return [{ id: Number(bid), name: branchObj.name ?? branchObj.Name ?? '' }];
+            }
+            // API stores a single branchId; construct a one-item array from flat fields
+            const singleId = o.branchId ?? o.BranchId;
+            if (singleId != null) {
+                return [{ id: Number(singleId), name: o.branchName ?? o.BranchName ?? '' }];
+            }
+            return [];
+        })(),
         departmentId: o.departmentId ?? o.DepartmentId ?? (o.departments ?? o.Departments)?.[0]?.id ?? (o.departments ?? o.Departments)?.[0]?.Id,
         departmentName: o.departmentName ?? o.DepartmentName ?? (o.departments ?? o.Departments)?.[0]?.name ?? (o.departments ?? o.Departments)?.[0]?.Name,
         qrToken: o.qrToken ?? o.QrToken,

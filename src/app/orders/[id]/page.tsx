@@ -244,9 +244,9 @@ export default function OrderDetailPage() {
         setAssignNotes('');
         setTechsLoading(true);
         try {
-            const hasBranches = order.branches && order.branches.length > 0;
-            const techsPromise = hasBranches
-                ? Promise.all(order.branches!.map(b => getBranchTechnicians(b.id))).then(res => res.flat())
+            const validBranches = (order.branches ?? []).filter(b => b.id != null);
+            const techsPromise = validBranches.length > 0
+                ? Promise.all(validBranches.map(b => getBranchTechnicians(b.id))).then(res => res.flat())
                 : getDepartmentUsers(undefined, order.departmentId);
             const [users, allRoles] = await Promise.all([
                 techsPromise,
