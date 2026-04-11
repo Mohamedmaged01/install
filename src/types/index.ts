@@ -158,6 +158,7 @@ export interface UpdateOrderDto {
     priority: Priority;
     branchIds: { id: number }[];
     departmentId: number;
+    departmentIds?: { idd: number; note?: string }[];
     notes: string | null;
 }
 

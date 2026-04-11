@@ -405,22 +405,21 @@ export async function createOrder(dto: AddOrderDto): Promise<Order> {
 }
 
 export async function updateOrder(id: number, dto: UpdateOrderDto): Promise<Order> {
-    const fd = new FormData();
-    fd.append('Status', dto.status);
-    if (dto.city)                fd.append('City', dto.city);
-    if (dto.address)             fd.append('Address', dto.address);
-    if (dto.location)            fd.append('Location', dto.location);
-    if (dto.scheduledDate)       fd.append('ScheduledDate', dto.scheduledDate);
-    if (dto.quotationId)         fd.append('QuotationId', dto.quotationId);
-    if (dto.invoiceId)           fd.append('InvoiceId', dto.invoiceId);
-    if (dto.customerId)          fd.append('CustomerId', dto.customerId);
-    fd.append('CreatedAt', dto.createdAt);
-    if (dto.salesApprovalDate)   fd.append('SalesApprovalDate', dto.salesApprovalDate);
-    fd.append('Priority', dto.priority);
-    if (dto.notes)               fd.append('Notes', dto.notes);
-    dto.branchIds?.forEach((b, i) => fd.append(`BranchIds[${i}][Id]`, String(b.id)));
-    if (dto.departmentId)        fd.append('DepartmentId', String(dto.departmentId));
-    const res = await api<any>(`/api/Orders/${id}`, { method: 'PUT', body: fd, isFormData: true });
+    const body: Record<string, unknown> = {
+        status: dto.status,
+        city: dto.city ?? null,
+        address: dto.address ?? null,
+        location: dto.location ?? null,
+        scheduledDate: dto.scheduledDate ?? null,
+        quotationId: dto.quotationId ?? null,
+        invoiceId: dto.invoiceId ?? null,
+        customerId: dto.customerId ?? null,
+        priority: dto.priority,
+        branchId: dto.branchIds?.[0]?.id ?? 0,
+        departmentIds: (dto.departmentIds ?? (dto.departmentId ? [{ idd: dto.departmentId, note: '' }] : [])),
+        notes: dto.notes ?? null,
+    };
+    const res = await api<any>(`/api/Orders/${id}`, { method: 'PUT', body });
     return res as Order;
 }
 
