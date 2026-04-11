@@ -59,12 +59,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             show: hasAnyPermission(PERMS.TASKS_VIEW, PERMS.TASKS_MANAGE),
         },
         {
-            href: '/admin/users',
-            label: t('Users & Permissions', 'المستخدمون والصلاحيات'),
-            icon: '🔑',
-            show: isSuper || hasPermission(PERMS.USERS_MANAGE),
-        },
-        {
             href: '/admin',
             label: t('Settings', 'الإعدادات'),
             icon: '⚙️',

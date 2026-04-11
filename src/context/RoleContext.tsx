@@ -128,6 +128,11 @@ function buildUserFromJwt(token: string): AuthUser {
         if (!permissions.includes(PERMS.TASKS_MANAGE)) permissions.push(PERMS.TASKS_MANAGE);
     }
 
+    const isActiveRaw = p.IsActive ?? p.isActive ?? p.isactive;
+    const isActive = isActiveRaw === undefined
+        ? true // not in token → assume active
+        : isActiveRaw === true || String(isActiveRaw).toLowerCase() === 'true';
+
     return {
         id: Number(p.Id ?? p.id ?? p.sub ?? 0),
         name: p.Name ?? p.name ?? p['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ?? 'User',
@@ -140,6 +145,7 @@ function buildUserFromJwt(token: string): AuthUser {
         branchId: p.BranchId ? Number(p.BranchId) : undefined,
         branchName: p.BranchName ?? p.branchName,
         isSuperAdmin,
+        isActive,
         token,
         image: toImageUrl(p.ImagePath ?? p.imagePath ?? p.Image ?? p.image),
         type: typeString,
@@ -175,6 +181,7 @@ function normaliseUser(raw: any): AuthUser {
             String(raw.type) === 'SuperAdmin' ||
             String(raw.Type) === 'SuperAdmin'
         ),
+        isActive: raw.isActive !== undefined ? !!raw.isActive : (raw.IsActive !== undefined ? !!raw.IsActive : true),
         token: raw.token ?? raw.Token ?? '',
         image: toImageUrl(raw.imagePath ?? raw.ImagePath ?? raw.image ?? raw.Image),
         type: String(raw.type || raw.Type || ''),
@@ -203,6 +210,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                                 freshUser.image = toImageUrl(storedUser.image) ?? freshUser.image;
                             }
                         } catch { /* ignore parse errors */ }
+                    }
+                    // Block inactive users immediately
+                    if (freshUser.isActive === false) {
+                        removeToken();
+                        localStorage.removeItem('auth_user');
+                        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                            window.location.href = '/login?reason=inactive';
+                        }
+                        setIsLoading(false);
+                        return;
                     }
                     setUser(freshUser);
                     // Update localStorage with fresh data
@@ -233,6 +250,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
             authUser = normaliseUser(raw);
             if (authUser.token) setToken(authUser.token);
+        }
+
+        if (authUser.isActive === false) {
+            removeToken();
+            throw new Error('Account is inactive. Please contact your administrator.');
         }
 
         localStorage.setItem('auth_user', JSON.stringify(authUser));

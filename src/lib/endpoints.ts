@@ -192,6 +192,7 @@ function normalizeDepartmentUser(u: any): DepartmentUser {
         departmentId: u.departmentId ?? u.DepartmentId ?? 0,
         departmentName: u.departmentName ?? u.DepartmentName,
         isSuperAdmin: u.isSuperAdmin ?? u.IsSuperAdmin ?? false,
+        isActive: u.isActive !== undefined ? (u.isActive === true || String(u.isActive).toLowerCase() === 'true') : (u.IsActive !== undefined ? (u.IsActive === true || String(u.IsActive).toLowerCase() === 'true') : undefined),
         type: u.type ?? u.Type,
         role: u.role ?? u.Role,
     };

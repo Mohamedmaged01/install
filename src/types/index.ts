@@ -88,6 +88,7 @@ export interface AuthUser {
     branchId?: number;
     branchName?: string;
     isSuperAdmin: boolean;
+    isActive?: boolean;
     token: string;
     image?: string;
     type?: string;
@@ -122,6 +123,7 @@ export interface DepartmentUser {
     departmentId: number;
     departmentName?: string;
     isSuperAdmin: boolean;
+    isActive?: boolean;
     type?: string;
     role?: string;
 }

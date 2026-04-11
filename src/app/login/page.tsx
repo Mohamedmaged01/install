@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/RoleContext';
 import { useToast } from '@/context/ToastContext';
 import { useLang } from '@/context/LanguageContext';
@@ -9,6 +9,8 @@ import { login } from '@/lib/endpoints';
 
 export default function LoginPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const isInactiveRedirect = searchParams.get('reason') === 'inactive';
     const { loginUser } = useAuth();
     const toast = useToast();
     const { lang, toggleLang } = useLang();
@@ -115,6 +117,13 @@ export default function LoginPage() {
                         {lang === 'ar' ? 'نظام إدارة أوامر التركيب' : 'Installation Order Management System'}
                     </p>
                 </div>
+
+                {/* Inactive account notice */}
+                {isInactiveRedirect && (
+                    <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 'var(--radius-md)', padding: '10px 16px', marginBottom: 16, color: '#dc2626', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+                        {lang === 'ar' ? 'حسابك غير نشط. تواصل مع المسؤول.' : 'Your account is inactive. Contact your administrator.'}
+                    </div>
+                )}
 
                 {/* Login Card */}
                 <div className="card" style={{ padding: 32 }}>

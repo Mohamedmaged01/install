@@ -43,8 +43,17 @@ export default function AdminPage() {
     const [actionLoading, setActionLoading] = useState(false);
     const [permSearch, setPermSearch] = useState('');
     const [showPermModal, setShowPermModal] = useState(false);
+    const [viewUsersRole, setViewUsersRole] = useState<Role | null>(null);
+    const [roleUsersList, setRoleUsersList] = useState<DepartmentUser[]>([]);
+    const [roleUsersLoading, setRoleUsersLoading] = useState(false);
+    const [assignUserRole, setAssignUserRole] = useState<Role | null>(null);
+    const [allUsersForAssign, setAllUsersForAssign] = useState<DepartmentUser[]>([]);
+    const [assignSearch, setAssignSearch] = useState('');
+    const [appliedAssignSearch, setAppliedAssignSearch] = useState('');
+    const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
     const [userSearch, setUserSearch] = useState('');
     const [appliedUserSearch, setAppliedUserSearch] = useState('');
+    const [userActiveFilter, setUserActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [showAddUser, setShowAddUser] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
@@ -201,6 +210,41 @@ export default function AdminPage() {
             setRoles(prev => prev.filter(r => r.id !== id));
             toast.success(t('Role deleted.', 'تم حذف الدور.'));
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete role', 'فشل حذف الدور')); }
+    };
+
+    const openViewUsers = async (role: Role) => {
+        setViewUsersRole(role);
+        setRoleUsersLoading(true);
+        try {
+            const all = await getDepartmentUsers();
+            setRoleUsersList((Array.isArray(all) ? all : []).filter(u =>
+                u.roleId === role.id || u.roleName === role.name
+            ));
+        } catch { setRoleUsersList([]); }
+        finally { setRoleUsersLoading(false); }
+    };
+
+    const openAssignUser = async (role: Role) => {
+        setAssignUserRole(role);
+        setAssignSearch('');
+        setAppliedAssignSearch('');
+        try {
+            const all = await getDepartmentUsers();
+            setAllUsersForAssign(Array.isArray(all) ? all : []);
+        } catch { setAllUsersForAssign([]); }
+    };
+
+    const handleAssignUserToRole = async (u: DepartmentUser) => {
+        if (!assignUserRole) return;
+        setAssigningUserId(u.id);
+        try {
+            await updateDepartmentUser(u.id, { RoleId: assignUserRole.id }, null);
+            toast.success(t(`${u.name} assigned to ${assignUserRole.name}`, `تم تعيين ${u.name} في ${assignUserRole.name}`));
+            const all = await getDepartmentUsers();
+            setAllUsersForAssign(Array.isArray(all) ? all : []);
+            setUsers(Array.isArray(all) ? all : []);
+        } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to assign user', 'فشل تعيين المستخدم')); }
+        finally { setAssigningUserId(null); }
     };
 
     const handleSelectRole = async (id: number) => {
@@ -521,6 +565,16 @@ export default function AdminPage() {
                                             <option value={0}>{t('All Departments', 'كل الأقسام')}</option>
                                             {(userBranchFilter ? userFilterDepts : departments).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                         </select>
+                                        <select
+                                            className="form-select"
+                                            style={{ fontSize: 13, padding: '4px 10px', minWidth: 130 }}
+                                            value={userActiveFilter}
+                                            onChange={e => { setUserActiveFilter(e.target.value as 'all' | 'active' | 'inactive'); setUsersPage(1); }}
+                                        >
+                                            <option value="all">{t('All Status', 'كل الحالات')}</option>
+                                            <option value="active">{t('Active', 'نشط')}</option>
+                                            <option value="inactive">{t('Inactive', 'غير نشط')}</option>
+                                        </select>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -560,15 +614,18 @@ export default function AdminPage() {
                                             <th>{t('Department', 'القسم')}</th>
                                             <th>{t('Role', 'الدور')}</th>
                                             <th>{t('Type', 'النوع')}</th>
+                                            <th>{t('Status', 'الحالة')}</th>
                                             <th style={{ whiteSpace: 'nowrap', width: 1 }}>{t('Actions', 'الإجراءات')}</th>
                                         </tr></thead>
                                         <tbody>
                                             {users.length === 0 ? (
-                                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>
+                                                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>
                                             ) : (
                                                 users.filter(u => {
                                                     const q = appliedUserSearch.toLowerCase();
-                                                    return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
+                                                    const matchesSearch = !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
+                                                    const matchesActive = userActiveFilter === 'all' || (userActiveFilter === 'active' ? u.isActive !== false : u.isActive === false);
+                                                    return matchesSearch && matchesActive;
                                                 }).slice((usersPage - 1) * usersPageSize, usersPage * usersPageSize).map(u => (
                                                     <tr key={u.id}>
                                                         <td className="table-cell-main" title={u.name}>
@@ -591,6 +648,15 @@ export default function AdminPage() {
                                                             }
                                                         </td>
                                                         <td>{u.type || '—'}</td>
+                                                        <td>
+                                                            {u.isActive === undefined ? (
+                                                                <span style={{ color: 'var(--text-muted)' }}>—</span>
+                                                            ) : u.isActive ? (
+                                                                <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'rgba(34,197,94,0.15)', color: '#16a34a', fontWeight: 700, whiteSpace: 'nowrap' }}>{t('Active', 'نشط')}</span>
+                                                            ) : (
+                                                                <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: 'rgba(239,68,68,0.15)', color: '#dc2626', fontWeight: 700, whiteSpace: 'nowrap' }}>{t('Inactive', 'غير نشط')}</span>
+                                                            )}
+                                                        </td>
                                                         <td style={{ whiteSpace: 'nowrap' }}>
                                                             <div className="btn-group">
                                                                 <button className="btn btn-secondary btn-sm" onClick={() => {
@@ -612,7 +678,7 @@ export default function AdminPage() {
                                 {users.length > 0 && (
                                     <Pagination
                                         currentPage={usersPage}
-                                        totalItems={users.filter(u => { const q = appliedUserSearch.toLowerCase(); return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q); }).length}
+                                        totalItems={users.filter(u => { const q = appliedUserSearch.toLowerCase(); const matchesSearch = !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q); const matchesActive = userActiveFilter === 'all' || (userActiveFilter === 'active' ? u.isActive !== false : u.isActive === false); return matchesSearch && matchesActive; }).length}
                                         pageSize={usersPageSize}
                                         onPageChange={setUsersPage}
                                         onPageSizeChange={setUsersPageSize}
@@ -634,8 +700,10 @@ export default function AdminPage() {
                                 <div key={role.id} style={{ padding: '12px 16px', background: selectedRoleId === role.id ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)', border: selectedRoleId === role.id ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => handleSelectRole(role.id)}>
                                     <div style={{ fontWeight: 600, fontSize: 15 }}>{role.name}</div>
                                     <div className="btn-group">
-                                        <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); handleSelectRole(role.id); setPermSearch(''); setShowPermModal(true); }}>{t('Edit Permissions', 'تعديل الصلاحيات')}</button>
-                                        <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDeleteRole(role.id); }}>{t('Delete', 'حذف')}</button>
+                                        <button className="btn btn-secondary btn-sm" title={t('View Users', 'عرض المستخدمين')} onClick={e => { e.stopPropagation(); openViewUsers(role); }}>👥</button>
+                                        <button className="btn btn-secondary btn-sm" title={t('Assign User', 'تعيين مستخدم')} onClick={e => { e.stopPropagation(); openAssignUser(role); }}>➕</button>
+                                        <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); handleSelectRole(role.id); setPermSearch(''); setShowPermModal(true); }}>🛡️</button>
+                                        <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDeleteRole(role.id); }}>🗑️</button>
                                     </div>
                                 </div>
                             ))}
@@ -793,6 +861,143 @@ export default function AdminPage() {
                                 <button className="btn btn-primary" disabled={actionLoading} onClick={handleUpdateUser}>
                                     {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `💾 ${t('Save Changes', 'حفظ التغييرات')}`}
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════ VIEW USERS IN ROLE MODAL ══════════ */}
+            {viewUsersRole && (
+                <div className="modal-overlay" onClick={() => setViewUsersRole(null)}>
+                    <div className="modal" style={{ maxWidth: 620 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 style={{ fontSize: 17 }}>👥 {t('Users in', 'المستخدمون في')} — {viewUsersRole.name}</h2>
+                            <button className="modal-close" onClick={() => setViewUsersRole(null)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            {roleUsersLoading ? (
+                                <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>⏳ {t('Loading...', 'جارٍ التحميل...')}</div>
+                            ) : roleUsersList.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>{t('No users in this role.', 'لا يوجد مستخدمون في هذا الدور.')}</div>
+                            ) : (
+                                <div className="table-container" style={{ border: 'none', maxHeight: 420, overflowY: 'auto' }}>
+                                    <table>
+                                        <thead><tr>
+                                            <th>{t('Name', 'الاسم')}</th>
+                                            <th>{t('Email', 'البريد')}</th>
+                                            <th>{t('Department', 'القسم')}</th>
+                                            <th style={{ width: 80 }}>{t('Actions', 'الإجراءات')}</th>
+                                        </tr></thead>
+                                        <tbody>
+                                            {roleUsersList.map(u => (
+                                                <tr key={u.id}>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
+                                                                {u.image ? <img src={u.image} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : (u.name?.charAt(0) || '👤')}
+                                                            </div>
+                                                            <span style={{ fontWeight: 600 }}>{u.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
+                                                    <td style={{ fontSize: 13 }}>{u.departmentName || '—'}</td>
+                                                    <td>
+                                                        <button className="btn btn-secondary btn-sm" title={t('Edit', 'تعديل')} onClick={() => {
+                                                            setViewUsersRole(null);
+                                                            setEditUser({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', departmentId: u.departmentId, roleId: u.roleId, currentImageUrl: u.image, password: '' });
+                                                            setEditUserImage(null);
+                                                            setEditUserShowPassword(false);
+                                                        }}>✏️</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 16 }}>
+                                <button className="btn btn-secondary" onClick={() => setViewUsersRole(null)}>{t('Close', 'إغلاق')}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════ ASSIGN USER TO ROLE MODAL ══════════ */}
+            {assignUserRole && (
+                <div className="modal-overlay" onClick={() => setAssignUserRole(null)}>
+                    <div className="modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2 style={{ fontSize: 17 }}>➕ {t('Assign User to', 'تعيين مستخدم في')} — {assignUserRole.name}</h2>
+                            <button className="modal-close" onClick={() => setAssignUserRole(null)}>×</button>
+                        </div>
+                        <div className="modal-body">
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                                <div className="table-search" style={{ flex: 1, marginBottom: 0 }}>
+                                    <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>🔍</span>
+                                    <input
+                                        placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
+                                        value={assignSearch}
+                                        onChange={e => setAssignSearch(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') setAppliedAssignSearch(assignSearch); }}
+                                        autoFocus
+                                    />
+                                </div>
+                                <button className="btn btn-primary btn-sm" onClick={() => setAppliedAssignSearch(assignSearch)}>{t('Apply', 'تطبيق')}</button>
+                                {(assignSearch || appliedAssignSearch) && (
+                                    <button className="btn btn-secondary btn-sm" onClick={() => { setAssignSearch(''); setAppliedAssignSearch(''); }}>{t('Clear', 'مسح')}</button>
+                                )}
+                            </div>
+                            <div className="table-container" style={{ border: 'none', maxHeight: 420, overflowY: 'auto' }}>
+                                <table>
+                                    <thead><tr>
+                                        <th>{t('Name', 'الاسم')}</th>
+                                        <th>{t('Email', 'البريد')}</th>
+                                        <th>{t('Current Role', 'الدور الحالي')}</th>
+                                        <th style={{ width: 100 }}>{t('Action', 'الإجراء')}</th>
+                                    </tr></thead>
+                                    <tbody>
+                                        {allUsersForAssign.filter(u => {
+                                            const q = appliedAssignSearch.toLowerCase();
+                                            return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
+                                        }).length === 0 ? (
+                                            <tr><td colSpan={4} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>{t('No users found', 'لا يوجد مستخدمون')}</td></tr>
+                                        ) : allUsersForAssign.filter(u => {
+                                            const q = appliedAssignSearch.toLowerCase();
+                                            return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
+                                        }).map(u => {
+                                            const alreadyInRole = u.roleId === assignUserRole.id || u.roleName === assignUserRole.name;
+                                            const displayRole = u.roleName || roles.find(r => r.id === u.roleId)?.name;
+                                            return (
+                                                <tr key={u.id}>
+                                                    <td>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>
+                                                                {u.image ? <img src={u.image} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} /> : (u.name?.charAt(0) || '👤')}
+                                                            </div>
+                                                            <span style={{ fontWeight: 600 }}>{u.name}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{u.email}</td>
+                                                    <td style={{ fontSize: 13 }}>{displayRole || '—'}</td>
+                                                    <td>
+                                                        {alreadyInRole ? (
+                                                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>✓ {t('In role', 'في الدور')}</span>
+                                                        ) : (
+                                                            <button className="btn btn-primary btn-sm" disabled={assigningUserId === u.id} onClick={() => handleAssignUserToRole(u)}>
+                                                                {assigningUserId === u.id ? '⏳' : `+ ${t('Assign', 'تعيين')}`}
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 16 }}>
+                                <button className="btn btn-secondary" onClick={() => setAssignUserRole(null)}>{t('Close', 'إغلاق')}</button>
                             </div>
                         </div>
                     </div>
