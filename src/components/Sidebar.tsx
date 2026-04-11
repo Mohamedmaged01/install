@@ -42,13 +42,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         },
         {
             href: '/manager',
-            label: t('Pending Approvals', 'موافقات معلقة'),
+            label: t('Sales Supervisor', 'مشرف مبيعات'),
             icon: '✅',
             show: hasPermission(PERMS.ORDERS_APPROVE_SALES),
         },
         {
             href: '/supervisor',
-            label: t('Supervisor Dashboard', 'لوحة المشرف'),
+            label: t('Installation Supervisor', 'مشرف تركيبات'),
             icon: '👷',
             show: hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR),
         },

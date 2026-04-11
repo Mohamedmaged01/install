@@ -317,14 +317,12 @@ const handleSavePerms = async () => {
                 <div className="table-container">
                     <table style={{ width: '100%', tableLayout: 'fixed' }}>
                         <colgroup>
-                            <col style={{ width: 48 }} />
                             <col />
                             <col style={{ width: 160 }} />
-                            <col style={{ width: 160 }} />
+                            <col style={{ width: 100 }} />
                         </colgroup>
                         <thead>
                             <tr>
-                                <th>#</th>
                                 <th>{t('Role Name', 'اسم الدور')}</th>
                                 <th>{t('Users', 'المستخدمون')}</th>
                                 <th>{t('Actions', 'الإجراءات')}</th>
@@ -333,19 +331,18 @@ const handleSavePerms = async () => {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={4} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading...', 'جارٍ التحميل...')}</td>
+                                    <td colSpan={3} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading...', 'جارٍ التحميل...')}</td>
                                 </tr>
                             ) : filteredRoles.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} style={{ textAlign: 'center', padding: 48 }}>
+                                    <td colSpan={3} style={{ textAlign: 'center', padding: 48 }}>
                                         <div style={{ fontSize: 32, marginBottom: 8 }}>🎭</div>
                                         <div style={{ fontWeight: 600 }}>{t('No roles found', 'لا توجد أدوار')}</div>
                                     </td>
                                 </tr>
                             ) : (
-                                filteredRoles.slice((page - 1) * pageSize, page * pageSize).map((role, idx) => (
+                                filteredRoles.slice((page - 1) * pageSize, page * pageSize).map((role) => (
                                     <tr key={role.id}>
-                                        <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{(page - 1) * pageSize + idx + 1}</td>
                                         <td>
                                             <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{role.name}</div>
                                         </td>
@@ -360,7 +357,7 @@ const handleSavePerms = async () => {
                                         </td>
                                         <td>
                                             <div className="btn-group">
-                                                <button className="btn btn-secondary btn-sm" onClick={() => openPerms(role)}>✏️ {t('Edit', 'تعديل')}</button>
+                                                <button className="btn btn-secondary btn-sm" title={t('Edit', 'تعديل')} onClick={() => openPerms(role)}>✏️</button>
                                                 <button className="btn btn-danger btn-sm" onClick={() => handleDeleteRole(role.id, role.name)}>🗑️</button>
                                             </div>
                                         </td>

@@ -171,7 +171,7 @@ export default function SupervisorPage() {
             <div className="animate-in">
 
                 <div className="page-header">
-                    <h1>{t('Installations Supervisor', 'مشرف التركيبات')}</h1>
+                    <h1>{t('Installation Supervisor', 'مشرف تركيبات')}</h1>
                     <p>{t('Review orders, assign technicians, and manage installations', 'مراجعة الأوامر، تعيين الفنيين، وإدارة التركيبات')}</p>
                 </div>
 

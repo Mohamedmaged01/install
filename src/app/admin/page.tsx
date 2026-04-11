@@ -49,6 +49,8 @@ export default function AdminPage() {
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
     const [userDeptFilter, setUserDeptFilter] = useState(0);
+    const [appliedBranchFilter, setAppliedBranchFilter] = useState(0);
+    const [appliedDeptFilter, setAppliedDeptFilter] = useState(0);
     const [userFilterDepts, setUserFilterDepts] = useState<Department[]>([]);
     const [deptsList, setDeptsList] = useState<Department[]>([]);
 
@@ -498,14 +500,12 @@ export default function AdminPage() {
                                                 const bid = Number(e.target.value);
                                                 setUserBranchFilter(bid);
                                                 setUserDeptFilter(0);
-                                                setUsersPage(1);
                                                 if (bid) {
                                                     const d = await getDepartments(bid).catch(() => []);
                                                     setUserFilterDepts(Array.isArray(d) ? d : []);
                                                 } else {
                                                     setUserFilterDepts([]);
                                                 }
-                                                loadUsers(bid || undefined, undefined);
                                             }}
                                         >
                                             <option value={0}>{t('All Branches', 'كل الفروع')}</option>
@@ -516,12 +516,7 @@ export default function AdminPage() {
                                             style={{ fontSize: 13, padding: '4px 10px', minWidth: 160 }}
                                             value={userDeptFilter}
                                             disabled={!userBranchFilter}
-                                            onChange={e => {
-                                                const did = Number(e.target.value);
-                                                setUserDeptFilter(did);
-                                                setUsersPage(1);
-                                                loadUsers(userBranchFilter || undefined, did || undefined);
-                                            }}
+                                            onChange={e => setUserDeptFilter(Number(e.target.value))}
                                         >
                                             <option value={0}>{t('All Departments', 'كل الأقسام')}</option>
                                             {(userBranchFilter ? userFilterDepts : departments).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -535,10 +530,24 @@ export default function AdminPage() {
                                             placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
                                             value={userSearch}
                                             onChange={e => setUserSearch(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter') { setAppliedUserSearch(userSearch); setUsersPage(1); } }}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') {
+                                                    setAppliedUserSearch(userSearch);
+                                                    setAppliedBranchFilter(userBranchFilter);
+                                                    setAppliedDeptFilter(userDeptFilter);
+                                                    setUsersPage(1);
+                                                    loadUsers(userBranchFilter || undefined, userDeptFilter || undefined);
+                                                }
+                                            }}
                                         />
                                     </div>
-                                    <button className="btn btn-primary btn-sm" onClick={() => { setAppliedUserSearch(userSearch); setUsersPage(1); }}>
+                                    <button className="btn btn-primary btn-sm" onClick={() => {
+                                        setAppliedUserSearch(userSearch);
+                                        setAppliedBranchFilter(userBranchFilter);
+                                        setAppliedDeptFilter(userDeptFilter);
+                                        setUsersPage(1);
+                                        loadUsers(userBranchFilter || undefined, userDeptFilter || undefined);
+                                    }}>
                                         {t('Apply', 'تطبيق')}
                                     </button>
                                 </div>

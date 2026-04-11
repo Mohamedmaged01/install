@@ -191,7 +191,7 @@ export default function OrderDetailPage() {
         setNoteLoading(true);
         try {
             const note = await addOrderNote(id, newNoteText.trim());
-            setOrderNotes(prev => [note, ...prev]);
+            setOrderNotes(prev => [{ ...note, note: note.note || newNoteText.trim(), createdAt: note.createdAt || new Date().toISOString() }, ...prev]);
             setNewNoteText('');
             toast.success(t('Note added!', 'تمت إضافة الملاحظة!'));
         } catch (err) {
@@ -712,7 +712,7 @@ export default function OrderDetailPage() {
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 4 }}>{ev.note || t('Evidence', 'دليل')}</div>
+                                                            <div style={{ fontWeight: 500, fontSize: 13, marginBottom: 4 }}>{ev.note || '—'}</div>
                                                             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
                                                                 {ev.uploadedBy || '—'}
                                                             </div>
@@ -797,7 +797,7 @@ export default function OrderDetailPage() {
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                                                             {n.createdByName && <span>{n.createdByName} · </span>}
-                                                            {new Date(n.createdAt).toLocaleString()}
+                                                            {n.createdAt && !isNaN(new Date(n.createdAt).getTime()) ? new Date(n.createdAt).toLocaleString() : ''}
                                                         </div>
                                                         <div style={{ display: 'flex', gap: 6 }}>
                                                             <button className="btn btn-secondary btn-sm" onClick={() => { setEditingNoteId(n.id); setEditingNoteText(n.note); }}>✏️</button>

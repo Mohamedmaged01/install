@@ -192,7 +192,6 @@ export default function TasksPage() {
                 <table>
                     <thead>
                         <tr>
-                            <th>{t('Task', 'المهمة')}</th>
                             <th>{t('Order', 'الطلب')}</th>
                             <th>{t('Location', 'الموقع')}</th>
                             <th>{t('Priority', 'الأولوية')}</th>
@@ -203,10 +202,10 @@ export default function TasksPage() {
                     </thead>
                     <tbody>
                         {loading ? (
-                            <tr><td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading tasks...', 'جارٍ تحميل المهام...')}</td></tr>
+                            <tr><td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading tasks...', 'جارٍ تحميل المهام...')}</td></tr>
                         ) : filtered.length === 0 ? (
                             <tr>
-                                <td colSpan={7} style={{ textAlign: 'center', padding: 48 }}>
+                                <td colSpan={6} style={{ textAlign: 'center', padding: 48 }}>
                                     <div style={{ fontSize: 36, marginBottom: 8 }}>🔧</div>
                                     <div style={{ fontWeight: 600 }}>{t('No tasks found', 'لا توجد مهام')}</div>
                                 </td>
@@ -218,15 +217,12 @@ export default function TasksPage() {
                                 return (
                                     <tr key={task.id}>
                                         <td>
-                                            <div style={{ fontWeight: 600 }}>#{task.id}</div>
-                                            {task.scheduledDate && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(task.scheduledDate).toLocaleDateString()}</div>}
-                                        </td>
-                                        <td>
                                             {orderId ? (
                                                 <Link href={`/orders/${orderId}`} style={{ color: 'var(--accent-primary-hover)', fontWeight: 500 }}>
                                                     {t('Order', 'طلب')} #{orderId}
                                                 </Link>
                                             ) : '—'}
+                                            {task.scheduledDate && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(task.scheduledDate).toLocaleDateString()}</div>}
                                         </td>
                                         <td>
                                             <div style={{ fontSize: 13 }}>{task.city || '—'}</div>
@@ -234,8 +230,8 @@ export default function TasksPage() {
                                         </td>
                                         <td>
                                             {task.priority ? (
-                                                <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 12, fontWeight: 600, color: task.priority === 'Urgent' ? '#ef4444' : '#10b981', background: task.priority === 'Urgent' ? '#ef444415' : '#10b98115' }}>
-                                                    {task.priority === 'Urgent' ? `🔴 ${t('Urgent', 'عاجل')}` : `🟢 ${t('Normal', 'عادي')}`}
+                                                <span title={task.priority === 'Urgent' ? t('Urgent', 'عاجل') : t('Normal', 'عادي')}>
+                                                    {task.priority === 'Urgent' ? '🔴' : '🟢'}
                                                 </span>
                                             ) : '—'}
                                         </td>
@@ -250,7 +246,7 @@ export default function TasksPage() {
                                             </div>
                                         </td>
                                         <td>
-                                            <Link href={`/tasks/${task.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                                            <Link href={`/tasks/${task.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
                                         </td>
                                     </tr>
                                 );

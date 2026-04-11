@@ -11,8 +11,8 @@ export default function PriorityBadge({ priority, lang = 'en' }: { priority: Pri
     const config = priorityConfig[priority] ?? { icon: '⚪', color: '#94a3b8', en: priority, ar: priority };
 
     return (
-        <span className="priority-badge" style={{ color: config.color }}>
-            {config.icon} {lang === 'ar' ? config.ar : config.en}
+        <span className="priority-badge" style={{ color: config.color }} title={lang === 'ar' ? config.ar : config.en}>
+            {config.icon}
         </span>
     );
 }

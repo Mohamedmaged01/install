@@ -528,10 +528,19 @@ export async function deleteEvidence(id: number): Promise<void> {
 export async function getOrderEvidence(id: number): Promise<Evidence[]> {
     try {
         const raw = await api<unknown>(`/api/Orders/${id}/evidence`);
-        if (Array.isArray(raw)) return raw as Evidence[];
-        const obj = raw as Record<string, unknown>;
-        if (obj && Array.isArray(obj.data)) return obj.data as Evidence[];
-        return [];
+        const arr: unknown[] = Array.isArray(raw) ? raw
+            : Array.isArray((raw as Record<string, unknown>)?.data) ? (raw as Record<string, unknown>).data as unknown[]
+            : [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return arr.map((e: any) => ({
+            id: e.id ?? e.Id,
+            orderId: e.orderId ?? e.OrderId,
+            imagePath: e.imagePath ?? e.ImagePath,
+            imageUrl: e.imageUrl ?? e.ImageUrl,
+            note: e.note ?? e.Note ?? e.description ?? e.Description,
+            createdAt: e.createdAt ?? e.CreatedAt,
+            uploadedBy: e.uploadedBy ?? e.UploadedBy,
+        }));
     } catch {
         return [];
     }

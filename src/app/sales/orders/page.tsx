@@ -281,19 +281,20 @@ export default function SalesOrdersPage() {
                                         </td>
                                         <td>
                                             <div className="btn-group">
-                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View', 'عرض')}</Link>
+                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
                                                 {order.status === 'PendingSalesApproval' && (
                                                     <button
                                                         className="btn btn-success btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => handleApprove(order)}
+                                                        title={t('Approve', 'اعتماد')}
                                                     >
-                                                        {actionLoading === order.id ? '⏳' : `✅ ${t('Approve', 'اعتماد')}`}
+                                                        {actionLoading === order.id ? '⏳' : '✅'}
                                                     </button>
                                                 )}
                                                 {order.status === 'PendingSupervisorApproval' && (
-                                                    <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm">
-                                                        ✅ {t('Approve & Assign', 'اعتماد وتعيين')}
+                                                    <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" title={t('Approve & Assign', 'اعتماد وتعيين')}>
+                                                        ✅
                                                     </Link>
                                                 )}
                                                 {order.status === 'ReadyForInstallation' && (
@@ -301,8 +302,9 @@ export default function SalesOrdersPage() {
                                                         className="btn btn-primary btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => handleAcceptOutside(order)}
+                                                        title={t('Accept', 'قبول')}
                                                     >
-                                                        {actionLoading === order.id ? '⏳' : `🌐 ${t('Accept', 'قبول')}`}
+                                                        {actionLoading === order.id ? '⏳' : '🌐'}
                                                     </button>
                                                 )}
                                                 {hasPermission(PERMS.ORDERS_RETURN) && (
@@ -310,11 +312,12 @@ export default function SalesOrdersPage() {
                                                         className="btn btn-warning btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => { setReturnModal(order); setReturnReason(''); }}
+                                                        title={t('Return', 'إرجاع')}
                                                     >
-                                                        ↩️ {t('Return', 'إرجاع')}
+                                                        ↩️
                                                     </button>
                                                 )}
-                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)}>🗑️</button>
+                                                <button className="btn btn-danger btn-sm" title={t('Delete', 'حذف')} onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)}>🗑️</button>
                                             </div>
                                         </td>
                                     </tr>

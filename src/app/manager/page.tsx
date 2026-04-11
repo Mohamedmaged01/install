@@ -83,7 +83,7 @@ export default function ManagerPage() {
             <div className="animate-in">
 
                 <div className="page-header">
-                    <h1>{t('Pending Approvals', 'الموافقات المعلقة')}</h1>
+                    <h1>{t('Sales Supervisor', 'مشرف مبيعات')}</h1>
                     <p>{t('Orders waiting for Sales Supervisor approval', 'أوامر بانتظار موافقة مشرف المبيعات')}</p>
                 </div>
 
