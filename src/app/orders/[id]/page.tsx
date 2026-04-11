@@ -844,9 +844,14 @@ export default function OrderDetailPage() {
                             {(order.branches && order.branches.length > 0) && (
                                 <div><span style={{ color: 'var(--text-muted)' }}>{t('Branches', 'الفروع')}:</span> {order.branches.map(b => b.name).join(', ')}</div>
                             )}
-                            {(order.departmentName && order.departmentName !== 'string' || order.departmentId) && (
+                            {order.departmentNotes && order.departmentNotes.length > 0 ? (
+                                <div>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Departments', 'الأقسام')}:</span>{' '}
+                                    {order.departmentNotes.map(dn => dn.departmentName || `#${dn.departmentId}`).join(', ')}
+                                </div>
+                            ) : (order.departmentName && order.departmentName !== 'string' || order.departmentId) ? (
                                 <div><span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}:</span> {order.departmentName && order.departmentName !== 'string' ? order.departmentName : `#${order.departmentId}`}</div>
-                            )}
+                            ) : null}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Scheduled', 'الموعد المحدد')}:</span> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString() : '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Created by', 'أُنشئ بواسطة')}:</span> {order.salesRepresentative || order.createdByName || '—'}</div>
                             {(() => {
