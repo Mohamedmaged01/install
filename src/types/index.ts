@@ -169,10 +169,19 @@ export interface OrderNote {
     createdByName?: string;
 }
 
+export interface OrderDepartmentComment {
+    id?: number;
+    comment?: string;
+    note?: string;
+    createdAt?: string;
+    createdByName?: string;
+}
+
 export interface OrderDepartmentNote {
     departmentId: number;
     departmentName?: string;
     note?: string;
+    comments?: OrderDepartmentComment[];
 }
 
 export interface Order {

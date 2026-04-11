@@ -659,18 +659,6 @@ export default function OrderDetailPage() {
                                 </button>
                             </div>
 
-                            {/* Department Notes (from order creation) */}
-                            {order.departmentNotes && order.departmentNotes.some(dn => dn.note) && (
-                                <div style={{ marginBottom: 20, padding: 14, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10 }}>🏢 {t('Department Notes', 'ملاحظات الأقسام')}</div>
-                                    {order.departmentNotes.filter(dn => dn.note).map(dn => (
-                                        <div key={dn.departmentId} style={{ marginBottom: 6, fontSize: 13 }}>
-                                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{dn.departmentName || `#${dn.departmentId}`}: </span>
-                                            <span style={{ color: 'var(--text-secondary)' }}>{dn.note}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
 
                             {evidence.length > 0 ? (
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16 }}>
@@ -882,6 +870,40 @@ export default function OrderDetailPage() {
                             )}
                         </div>
                     </div>
+
+                    {/* Department Comments */}
+                    {order.departmentNotes && order.departmentNotes.length > 0 && (
+                        <div className="card">
+                            <div className="card-title" style={{ marginBottom: 16 }}>🏢 {t('Department Comments', 'تعليقات الأقسام')}</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {order.departmentNotes.map(dn => (
+                                    <div key={dn.departmentId}>
+                                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', marginBottom: 6 }}>
+                                            {dn.departmentName || `#${dn.departmentId}`}
+                                        </div>
+                                        {dn.comments && dn.comments.length > 0 ? (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                {dn.comments.map((c, i) => (
+                                                    <div key={c.id ?? i} style={{ fontSize: 13, padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--primary)' }}>
+                                                        <div style={{ color: 'var(--text-secondary)' }}>{c.comment}</div>
+                                                        {(c.createdByName || c.createdAt) && (
+                                                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                                                                {c.createdByName}{c.createdByName && c.createdAt ? ' · ' : ''}{c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : dn.note ? (
+                                            <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '6px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--primary)' }}>{dn.note}</div>
+                                        ) : (
+                                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Tasks (assigned technicians) */}
                     <div className="card">

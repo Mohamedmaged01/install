@@ -322,7 +322,23 @@ function normalizeOrder(o: any): Order {
         tasks: o.tasks ?? o.Tasks,
         items: o.items ?? o.Items,
         technicians: o.technicians ?? o.Technicians,
-        departmentNotes: o.departmentNotes ?? o.DepartmentNotes,
+        departmentNotes: (() => {
+            const depts = o.departments ?? o.Departments;
+            if (Array.isArray(depts) && depts.length > 0) {
+                return depts.map((d: any) => ({
+                    departmentId: d.id ?? d.Id ?? d.departmentId ?? d.DepartmentId,
+                    departmentName: d.name ?? d.Name ?? d.departmentName ?? d.DepartmentName,
+                    note: d.note ?? d.Note,
+                    comments: (d.comments ?? d.Comments ?? d.notes ?? d.Notes ?? []).map((c: any) => ({
+                        id: c.id ?? c.Id,
+                        comment: c.comment ?? c.Comment ?? c.note ?? c.Note,
+                        createdAt: c.createdAt ?? c.CreatedAt,
+                        createdByName: c.createdByName ?? c.CreatedByName,
+                    })),
+                }));
+            }
+            return o.departmentNotes ?? o.DepartmentNotes;
+        })(),
     };
 }
 
