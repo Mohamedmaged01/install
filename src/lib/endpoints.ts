@@ -218,11 +218,11 @@ function normalizeDepartment(d: any): Department {
 }
 
 export async function getDepartments(branchId?: number | number[]): Promise<Department[]> {
-    const id = branchId === undefined ? undefined
-        : Array.isArray(branchId) ? branchId[0]
-        : branchId;
-    const p: Record<string, number | undefined> = {};
-    if (id) p.branchId = id;
+    const p: Record<string, number | number[] | undefined> = {};
+    if (branchId !== undefined) {
+        const ids = (Array.isArray(branchId) ? branchId : [branchId]).filter(Boolean);
+        if (ids.length > 0) p.branchId = ids.length === 1 ? ids[0] : ids;
+    }
     const raw = await api<unknown>('/api/Departments', { params: p });
     const list: any[] = Array.isArray(raw) ? raw
         : Array.isArray((raw as any)?.data) ? (raw as any).data
