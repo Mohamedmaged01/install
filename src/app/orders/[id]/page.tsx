@@ -10,10 +10,10 @@ import {
     deleteOrder, deleteTask,
     getDepartmentUsers, assignTask, getApexDocumentItems, getRoles,
     getApexInvoices, getApexOffers, updateOrder, acceptFromOutside,
-    approveSalesManager, approveSupervisor, getBranchTechnicians, rejectOrder, getBranches
+    approveSalesManager, approveSupervisor, getBranchTechnicians, rejectOrder, getBranches, getDepartments
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
-import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto, Branch } from '@/types';
+import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto, Branch, Department } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
@@ -75,6 +75,7 @@ export default function OrderDetailPage() {
     const [editForm, setEditForm] = useState<Partial<Omit<UpdateOrderDto, 'branchIds'> & { branchIds: number[], location: string; notes: string }>>({});
 
     const [branches, setBranches] = useState<Branch[]>([]);
+    const [editDepts, setEditDepts] = useState<Department[]>([]);
 
     // Return Order state
     const [showReturnModal, setShowReturnModal] = useState(false);
@@ -135,6 +136,7 @@ export default function OrderDetailPage() {
     useEffect(() => {
         if (id) loadOrder();
         getBranches().then(setBranches).catch(() => {});
+        getDepartments().then(setEditDepts).catch(() => {});
     }, [id]);
 
     useEffect(() => {
@@ -454,14 +456,17 @@ export default function OrderDetailPage() {
                         )}
                     </div>
                     <div className="btn-group">
-                        <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {order.status === 'PendingSalesApproval'
-                                ? `✅ ${t('Approve', 'اعتماد')}`
-                                : order.status === 'PendingSupervisorApproval'
-                                    ? `✅ ${t('Approve & Assign', 'اعتماد وتعيين')}`
-                                    : `🌐 ${t('Accept', 'قبول')}`}
-                        </button>
-                        <button className="btn btn-secondary" onClick={() => {
+                        {order.status !== 'ReadyForInstallation' && (
+                            <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {order.status === 'PendingSalesApproval'
+                                    ? `✅ ${t('Approve', 'اعتماد')}`
+                                    : order.status === 'PendingSupervisorApproval'
+                                        ? `✅ ${t('Approve & Assign', 'اعتماد وتعيين')}`
+                                        : `🌐 ${t('Accept', 'قبول')}`}
+                            </button>
+                        )}
+                        <button className="btn btn-secondary" onClick={async () => {
+                            const branchIds = order.branches ? order.branches.map(b => b.id).filter(id => id !== 0) : [];
                             setEditForm({
                                 status: order.status,
                                 city: order.city || '',
@@ -474,9 +479,12 @@ export default function OrderDetailPage() {
                                 customerId: order.customerId || '',
                                 salesApprovalDate: (order as any).salesApprovalDate || '',
                                 priority: order.priority,
-                                branchIds: order.branches ? order.branches.map(b => b.id).filter(id => id !== 0) : [],
+                                branchIds,
                                 departmentId: order.departmentId,
                             });
+                            // Pre-load departments filtered by branch
+                            const depts = await getDepartments(branchIds.length ? branchIds : undefined).catch(() => [] as Department[]);
+                            setEditDepts(depts);
                             setShowEditModal(true);
                         }}>
                             ✏️ {t('Edit Order', 'تعديل الطلب')}
@@ -1134,14 +1142,22 @@ export default function OrderDetailPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                                 <div className="form-group">
                                     <label className="form-label">{t('Branch', 'الفرع')}</label>
-                                    <select className="form-input" value={editForm.branchIds?.[0] || ''} onChange={e => setEditForm(prev => ({ ...prev, branchIds: e.target.value ? [Number(e.target.value)] : [] }))}>
+                                    <select className="form-input" value={editForm.branchIds?.[0] || ''} onChange={async e => {
+                                        const bid = e.target.value ? Number(e.target.value) : undefined;
+                                        setEditForm(prev => ({ ...prev, branchIds: bid ? [bid] : [], departmentId: 0 }));
+                                        const depts = await getDepartments(bid).catch(() => [] as Department[]);
+                                        setEditDepts(depts);
+                                    }}>
                                         <option value="">{t('Select branch', 'اختر الفرع')}</option>
                                         {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label className="form-label">{t('Department ID', 'معرف القسم')}</label>
-                                    <input type="number" className="form-input" value={editForm.departmentId || ''} onChange={e => setEditForm(prev => ({ ...prev, departmentId: Number(e.target.value) }))} />
+                                    <label className="form-label">{t('Department', 'القسم')}</label>
+                                    <select className="form-input" value={editForm.departmentId || ''} onChange={e => setEditForm(prev => ({ ...prev, departmentId: Number(e.target.value) }))}>
+                                        <option value="">{t('Select department', 'اختر القسم')}</option>
+                                        {editDepts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
                                 </div>
                             </div>
                             <div className="form-group">

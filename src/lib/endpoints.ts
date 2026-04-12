@@ -217,18 +217,32 @@ function normalizeDepartment(d: any): Department {
     };
 }
 
-export async function getDepartments(branchId?: number | number[]): Promise<Department[]> {
-    const p: Record<string, number | number[] | undefined> = {};
-    if (branchId !== undefined) {
-        const ids = (Array.isArray(branchId) ? branchId : [branchId]).filter(Boolean);
-        if (ids.length > 0) p.branchId = ids.length === 1 ? ids[0] : ids;
-    }
+async function fetchDepartmentsForBranch(branchId?: number): Promise<Department[]> {
+    const p: Record<string, number | undefined> = {};
+    if (branchId) p.branchId = branchId;
     const raw = await api<unknown>('/api/Departments', { params: p });
     const list: any[] = Array.isArray(raw) ? raw
         : Array.isArray((raw as any)?.data) ? (raw as any).data
         : Array.isArray((raw as any)?.items) ? (raw as any).items
         : [];
     return list.map(normalizeDepartment);
+}
+
+export async function getDepartments(branchId?: number | number[]): Promise<Department[]> {
+    if (branchId === undefined) return fetchDepartmentsForBranch(undefined);
+
+    const ids = (Array.isArray(branchId) ? branchId : [branchId]).filter(Boolean);
+    if (ids.length === 0) return fetchDepartmentsForBranch(undefined);
+    if (ids.length === 1) return fetchDepartmentsForBranch(ids[0]);
+
+    // Multiple branch IDs: fetch in parallel and deduplicate by department id
+    const results = await Promise.all(ids.map(id => fetchDepartmentsForBranch(id).catch(() => [] as Department[])));
+    const seen = new Set<number>();
+    return results.flat().filter(d => {
+        if (seen.has(d.id)) return false;
+        seen.add(d.id);
+        return true;
+    });
 }
 
 export async function createDepartment(dto: { branchId: number; name: string }): Promise<Department> {
