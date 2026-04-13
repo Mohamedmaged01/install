@@ -352,7 +352,7 @@ export default function NewOrderPage() {
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label className="form-label">{t('Scheduled Date', 'التاريخ المجدول')}</label>
+                                    <label className="form-label">{t('Scheduled Date', 'التاريخ المناسب للعميل')}</label>
                                     <input className="form-input" type="datetime-local" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
                                 </div>
                                 <div className="form-group">
