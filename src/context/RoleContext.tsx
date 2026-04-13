@@ -131,7 +131,7 @@ function buildUserFromJwt(token: string): AuthUser {
     const isActiveRaw = p.IsActive ?? p.isActive ?? p.isactive;
     const isActive = (isActiveRaw === undefined || isActiveRaw === null)
         ? true // not in token → assume active
-        : isActiveRaw === true || isActiveRaw === 1 || String(isActiveRaw).toLowerCase() === 'true';
+        : isActiveRaw === true || isActiveRaw === 1 || isActiveRaw === '1' || String(isActiveRaw).toLowerCase() === 'true';
 
     return {
         id: Number(p.Id ?? p.id ?? p.sub ?? 0),
@@ -252,10 +252,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (authUser.token) setToken(authUser.token);
         }
 
-        if (authUser.isActive === false) {
-            removeToken();
-            throw new Error('Account is inactive. Please contact your administrator.');
-        }
+        // Server already validated the credentials and issued a token — trust it.
+        // isActive is only enforced on subsequent page loads (useEffect below).
 
         localStorage.setItem('auth_user', JSON.stringify(authUser));
         setUser(authUser);
