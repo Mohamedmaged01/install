@@ -100,7 +100,7 @@ export default function NewOrderPage() {
 
         try {
             const dto: AddOrderDto = {
-                status: asDraft ? 'Draft' : 'PendingSalesApproval',
+                status: asDraft ? 'Draft' : 'PendingSalesSupervisorApproval',
                 city: city || null,
                 address: address || null,
                 location: locationLink || null,

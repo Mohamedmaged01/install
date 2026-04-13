@@ -49,12 +49,12 @@ export interface ApexResponse<T> {
 
 export type OrderStatus =
     | 'Draft'
-    | 'PendingSalesApproval'
-    | 'PendingSupervisorApproval'
+    | 'PendingSalesSupervisorApproval'
+    | 'PendingInstallationSupervisorApproval'
     | 'ReadyForInstallation'
     | 'ReturnedToDraft'
     | 'ReturnedToSales'
-    | 'Complete'
+    | 'Completed'
     | 'Canceled';
 
 export type Priority = 'Urgent' | 'Normal';
@@ -382,12 +382,12 @@ export interface HomeTaskStatus {
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, { en: string; ar: string }> = {
     Draft: { en: 'Draft', ar: 'مسودة' },
-    PendingSalesApproval: { en: 'Pending Sales Approval', ar: 'انتظار موافقة المبيعات' },
-    PendingSupervisorApproval: { en: 'Pending Supervisor Approval', ar: 'انتظار موافقة المشرف' },
+    PendingSalesSupervisorApproval: { en: 'Pending Sales Approval', ar: 'انتظار موافقة مشرف المبيعات' },
+    PendingInstallationSupervisorApproval: { en: 'Pending Installation Approval', ar: 'انتظار موافقة مشرف التركيب' },
     ReadyForInstallation: { en: 'Ready for Installation', ar: 'جاهز للتركيب' },
     ReturnedToDraft: { en: 'Returned to Draft', ar: 'مُرتجع إلى مسودة' },
     ReturnedToSales: { en: 'Returned to Sales', ar: 'مُرتجع إلى المبيعات' },
-    Complete: { en: 'Complete', ar: 'مكتمل' },
+    Completed: { en: 'Completed', ar: 'مكتمل' },
     Canceled: { en: 'Canceled', ar: 'ملغي' },
 };
 

@@ -13,8 +13,8 @@ import { PERMS, useAuth } from '@/context/RoleContext';
 import Pagination from '@/components/Pagination';
 
 const allStatuses: OrderStatus[] = [
-    'Draft', 'PendingSalesApproval', 'PendingSupervisorApproval',
-    'ReadyForInstallation', 'ReturnedToDraft', 'ReturnedToSales', 'Complete', 'Canceled',
+    'Draft', 'PendingSalesSupervisorApproval', 'PendingInstallationSupervisorApproval',
+    'ReadyForInstallation', 'ReturnedToDraft', 'ReturnedToSales', 'Completed', 'Canceled',
 ];
 
 export default function SalesOrdersPage() {
@@ -37,6 +37,7 @@ export default function SalesOrdersPage() {
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [returnModal, setReturnModal] = useState<Order | null>(null);
     const [returnReason, setReturnReason] = useState('');
+    const [returnToRep, setReturnToRep] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -103,7 +104,7 @@ export default function SalesOrdersPage() {
         setActionLoading(order.id);
         try {
             await acceptFromOutside(order.id);
-            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Complete' as OrderStatus } : o));
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Completed' as OrderStatus } : o));
             toast.success(t('Order accepted from outside', 'تم قبول الطلب من الخارج'));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('Failed to accept from outside', 'فشل القبول من الخارج'));
@@ -116,10 +117,11 @@ export default function SalesOrdersPage() {
         if (!returnModal) return;
         setActionLoading(returnModal.id);
         try {
-            await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'));
+            await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'), returnToRep);
             setOrders(prev => prev.filter(o => o.id !== returnModal.id));
             setReturnModal(null);
             setReturnReason('');
+            setReturnToRep(false);
             toast.success(t('Order returned.', 'تم إرجاع الطلب.'));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('Return failed', 'فشل الإرجاع'));
@@ -291,7 +293,7 @@ export default function SalesOrdersPage() {
                                         <td>
                                             <div className="btn-group">
                                                 <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
-                                                {order.status === 'PendingSalesApproval' && (
+                                                {order.status === 'PendingSalesSupervisorApproval' && (
                                                     <button
                                                         className="btn btn-success btn-sm"
                                                         disabled={actionLoading === order.id}
@@ -301,7 +303,7 @@ export default function SalesOrdersPage() {
                                                         {actionLoading === order.id ? '⏳' : <>✅ {t('Approve', 'اعتماد')}</>}
                                                     </button>
                                                 )}
-                                                {order.status === 'PendingSupervisorApproval' && (
+                                                {order.status === 'PendingInstallationSupervisorApproval' && (
                                                     <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                                         ✅ {t('Approve & Assign', 'اعتماد وتعيين')}
                                                     </Link>
@@ -320,7 +322,7 @@ export default function SalesOrdersPage() {
                                                     <button
                                                         className="btn btn-warning btn-sm"
                                                         disabled={actionLoading === order.id}
-                                                        onClick={() => { setReturnModal(order); setReturnReason(''); }}
+                                                        onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(false); }}
                                                         style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                                     >
                                                         ↩️ {t('Return', 'إرجاع')}
@@ -358,6 +360,16 @@ export default function SalesOrdersPage() {
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
                                 {t('Returning order', 'إرجاع الطلب')} <strong>{returnModal.orderNumber || `#${returnModal.id}`}</strong>
                             </p>
+                            <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                    <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
+                                    {t('Return to Draft', 'إرجاع إلى مسودة')}
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                    <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                                    {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                                </label>
+                            </div>
                             <div className="form-group">
                                 <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
                                 <textarea

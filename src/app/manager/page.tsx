@@ -36,7 +36,7 @@ export default function ManagerPage() {
 
     useEffect(() => {
         setLoading(true);
-        const params: Record<string, unknown> = { status: 'PendingSalesApproval' };
+        const params: Record<string, unknown> = { status: 'PendingSalesSupervisorApproval' };
         if (appliedFilters.branchFilter) params.branchId = appliedFilters.branchFilter;
         if (appliedFilters.deptFilter) params.departmentId = appliedFilters.deptFilter;
         getOrders(params as Parameters<typeof getOrders>[0])

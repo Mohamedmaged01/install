@@ -491,8 +491,8 @@ export async function approveSupervisor(id: number, technicianIds: number[] = []
     return typeof result === 'string' ? result : null;
 }
 
-export async function rejectOrder(id: number, reason: string): Promise<void> {
-    return api<void>(`/api/Orders/${id}/reject`, {
+export async function rejectOrder(id: number, reason: string, returnedToRep = false): Promise<void> {
+    return api<void>(`/api/Orders/${id}/reject?returnedToRep=${returnedToRep}`, {
         method: 'POST',
         body: reason,
     });

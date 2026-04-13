@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [returnModal, setReturnModal] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState('');
+  const [returnToRep, setReturnToRep] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [branchFilter, setBranchFilter] = useState<number[]>([]);
@@ -83,7 +84,7 @@ export default function DashboardPage() {
     setActionLoading(order.id);
     try {
       await acceptFromOutside(order.id);
-      setRecentOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Complete' as OrderStatus } : o));
+      setRecentOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Completed' as OrderStatus } : o));
     } catch { /* silent */ } finally { setActionLoading(null); }
   };
 
@@ -100,10 +101,11 @@ export default function DashboardPage() {
     if (!returnModal) return;
     setActionLoading(returnModal.id);
     try {
-      await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'));
+      await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'), returnToRep);
       setRecentOrders(prev => prev.filter(o => o.id !== returnModal.id));
       setReturnModal(null);
       setReturnReason('');
+      setReturnToRep(false);
     } catch { /* silent */ } finally { setActionLoading(null); }
   };
 
@@ -322,12 +324,12 @@ export default function DashboardPage() {
                     <td>
                       <div className="btn-group">
                         <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
-                        {order.status === 'PendingSalesApproval' && (
+                        {order.status === 'PendingSalesSupervisorApproval' && (
                           <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} title={t('Approve', 'اعتماد')}>
                             {actionLoading === order.id ? '⏳' : '✅'}
                           </button>
                         )}
-                        {order.status === 'PendingSupervisorApproval' && (
+                        {order.status === 'PendingInstallationSupervisorApproval' && (
                           <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" title={t('Approve & Assign', 'اعتماد وتعيين')}>✅</Link>
                         )}
                         {order.status === 'ReadyForInstallation' && (
@@ -336,7 +338,7 @@ export default function DashboardPage() {
                           </button>
                         )}
                         {hasPermission(PERMS.ORDERS_RETURN) && (
-                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); }} title={t('Return', 'إرجاع')}>
+                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(false); }} title={t('Return', 'إرجاع')}>
                             ↩️
                           </button>
                         )}
@@ -363,6 +365,16 @@ export default function DashboardPage() {
               <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
                 {t('Returning order', 'إرجاع الطلب')} <strong>{returnModal.orderNumber || `#${returnModal.id}`}</strong>
               </p>
+              <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                  <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
+                  {t('Return to Draft', 'إرجاع إلى مسودة')}
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                  <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                  {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                </label>
+              </div>
               <div className="form-group">
                 <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
                 <textarea

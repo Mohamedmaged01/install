@@ -26,10 +26,10 @@ export default function SupervisorPage() {
     const [assignNotes, setAssignNotes] = useState('');
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [rolesMap, setRolesMap] = useState<Record<number, string>>({});
-    const [statusFilter, setStatusFilter] = useState<string>('PendingSupervisorApproval');
+    const [statusFilter, setStatusFilter] = useState<string>('PendingInstallationSupervisorApproval');
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
-    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: string; deptFilter: number | ''; branchFilter: number | '' }>({ statusFilter: 'PendingSupervisorApproval', deptFilter: '', branchFilter: '' });
+    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: string; deptFilter: number | ''; branchFilter: number | '' }>({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '' });
     const [rejectModal, setRejectModal] = useState<Order | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [page, setPage] = useState(1);
@@ -163,7 +163,7 @@ export default function SupervisorPage() {
         }
     };
 
-    const pendingCount = orders.filter(o => o.status === 'PendingSupervisorApproval').length;
+    const pendingCount = orders.filter(o => o.status === 'PendingInstallationSupervisorApproval').length;
     const readyCount = orders.filter(o => o.status === 'ReadyForInstallation').length;
 
     return (
@@ -204,17 +204,17 @@ export default function SupervisorPage() {
                         </select>
                         <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ minWidth: 200 }}>
                             <option value="">{t('All Statuses', 'جميع الحالات')}</option>
-                            <option value="PendingSupervisorApproval">{t('Pending Supervisor', 'بانتظار المشرف')}</option>
+                            <option value="PendingInstallationSupervisorApproval">{t('Pending Supervisor', 'بانتظار المشرف')}</option>
                             <option value="ReadyForInstallation">{t('Ready for Installation', 'جاهز للتركيب')}</option>
                             <option value="ReturnedToSales">{t('Returned to Sales', 'مُرتجع للمبيعات')}</option>
-                            <option value="Complete">{t('Complete', 'مكتمل')}</option>
+                            <option value="Completed">{t('Completed', 'مكتمل')}</option>
                             <option value="Canceled">{t('Canceled', 'ملغي')}</option>
                         </select>
                         <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter }); setPage(1); }}>
                             {t('Apply', 'تطبيق')}
                         </button>
                         {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
-                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setStatusFilter('PendingSupervisorApproval'); setAppliedFilters({ statusFilter: 'PendingSupervisorApproval', deptFilter: '', branchFilter: '' }); setPage(1); }}>
+                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setStatusFilter('PendingInstallationSupervisorApproval'); setAppliedFilters({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '' }); setPage(1); }}>
                                 {t('Clear', 'مسح')}
                             </button>
                         )}
@@ -256,7 +256,7 @@ export default function SupervisorPage() {
                                         <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                                         <td>
                                             <div className="btn-group">
-                                                {order.status === 'PendingSupervisorApproval' && (
+                                                {order.status === 'PendingInstallationSupervisorApproval' && (
                                                     <>
                                                         <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} title={t('Approve', 'اعتماد')}>
                                                             {actionLoading === order.id ? '⏳' : '✅'}

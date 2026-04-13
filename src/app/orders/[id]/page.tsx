@@ -81,6 +81,7 @@ export default function OrderDetailPage() {
     const [showReturnModal, setShowReturnModal] = useState(false);
     const [returnReason, setReturnReason] = useState('');
     const [returnLoading, setReturnLoading] = useState(false);
+    const [returnToRep, setReturnToRep] = useState(false);
 
     const loadOrder = async () => {
         try {
@@ -349,7 +350,7 @@ export default function OrderDetailPage() {
         if (!order) return;
         setReturnLoading(true);
         try {
-            await rejectOrder(order.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'));
+            await rejectOrder(order.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'), returnToRep);
             toast.success(t('Order returned successfully.', 'تم إرجاع الطلب بنجاح.'));
             setShowReturnModal(false);
             setReturnReason('');
@@ -363,7 +364,7 @@ export default function OrderDetailPage() {
 
     const handleAccept = async () => {
         if (!order) return;
-        if (order.status === 'PendingSalesApproval') {
+        if (order.status === 'PendingSalesSupervisorApproval') {
             if (!confirm(t('Approve this order?', 'هل تريد اعتماد هذا الطلب؟'))) return;
             try {
                 await approveSalesManager(id);
@@ -372,7 +373,7 @@ export default function OrderDetailPage() {
             } catch (err) {
                 toast.error( err instanceof Error ? err.message : t('Approval failed', 'فشل الاعتماد'));
             }
-        } else if (order.status === 'PendingSupervisorApproval') {
+        } else if (order.status === 'PendingInstallationSupervisorApproval') {
             await openAssignModal(true);
         } else {
             if (!confirm(t('Accept this order from outside? This will mark it as accepted by an external party.', 'هل تريد قبول هذا الطلب من الخارج؟ سيتم تسجيله كمقبول من جهة خارجية.'))) return;
@@ -459,9 +460,9 @@ export default function OrderDetailPage() {
                     <div className="btn-group">
                         {order.status !== 'ReadyForInstallation' && (
                             <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                {order.status === 'PendingSalesApproval'
+                                {order.status === 'PendingSalesSupervisorApproval'
                                     ? `✅ ${t('Approve', 'اعتماد')}`
-                                    : order.status === 'PendingSupervisorApproval'
+                                    : order.status === 'PendingInstallationSupervisorApproval'
                                         ? `✅ ${t('Approve & Assign', 'اعتماد وتعيين')}`
                                         : `🌐 ${t('Accept', 'قبول')}`}
                             </button>
@@ -500,7 +501,7 @@ export default function OrderDetailPage() {
                         <button className="btn btn-danger" onClick={handleDeleteOrder} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             🗑️ {t('Delete Order', 'حذف الطلب')}
                         </button>
-                        {order.status === 'Complete' && (
+                        {order.status === 'Completed' && (
                             <Link href="/qr/verify" className="btn btn-success">📱 {t('Verify QR', 'تحقق QR')}</Link>
                         )}
                     </div>
@@ -1105,6 +1106,16 @@ export default function OrderDetailPage() {
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
                                 {t('Returning order', 'إرجاع الطلب')} <strong>{order?.orderNumber || `#${order?.id}`}</strong>
                             </p>
+                            <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                    <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
+                                    {t('Return to Draft', 'إرجاع إلى مسودة')}
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                    <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                                    {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                                </label>
+                            </div>
                             <div className="form-group">
                                 <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
                                 <textarea
@@ -1137,7 +1148,7 @@ export default function OrderDetailPage() {
                             <div className="form-group">
                                 <label className="form-label">{t('Status', 'الحالة')}</label>
                                 <select className="form-input" value={editForm.status || 'Draft'} onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value as any }))}>
-                                    {(['Draft', 'PendingSalesApproval', 'PendingSupervisorApproval', 'ReadyForInstallation', 'ReturnedToDraft', 'ReturnedToSales', 'Complete', 'Canceled'] as OrderStatus[]).map(s => (
+                                    {(['Draft', 'PendingSalesSupervisorApproval', 'PendingInstallationSupervisorApproval', 'ReadyForInstallation', 'ReturnedToDraft', 'ReturnedToSales', 'Completed', 'Canceled'] as OrderStatus[]).map(s => (
                                         <option key={s} value={s}>{getOrderStatusLabel(s, lang)}</option>
                                     ))}
                                 </select>
