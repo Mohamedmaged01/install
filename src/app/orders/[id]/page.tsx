@@ -873,7 +873,7 @@ export default function OrderDetailPage() {
                             ) : (order.departmentName && order.departmentName !== 'string' || order.departmentId) ? (
                                 <div><span style={{ color: 'var(--text-muted)' }}>{t('Department', 'القسم')}:</span> {order.departmentName && order.departmentName !== 'string' ? order.departmentName : `#${order.departmentId}`}</div>
                             ) : null}
-                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Scheduled', 'الموعد المحدد')}:</span> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString() : '—'}</div>
+                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Scheduled', ' الموعد المناسب للعميل')}:</span> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString() : '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Created by', 'أُنشئ بواسطة')}:</span> {order.salesRepresentative || order.createdByName || '—'}</div>
                             {order.salesManager && <div><span style={{ color: 'var(--text-muted)' }}>{t('Sales Manager', 'مدير المبيعات')}:</span> {order.salesManager}</div>}
                             {order.supervisor && <div><span style={{ color: 'var(--text-muted)' }}>{t('Supervisor', 'المشرف')}:</span> {order.supervisor}</div>}
@@ -1157,7 +1157,7 @@ export default function OrderDetailPage() {
                                 </div>
                                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                                     <label className="form-label">{t('Departments', 'الأقسام')}</label>
-                                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', maxHeight: 240, overflowY: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg-secondary)' }}>
+                                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg-secondary)' }}>
                                         {editDepts.length === 0 && (
                                             <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('Select a branch first', 'اختر الفرع أولاً')}</span>
                                         )}

@@ -236,7 +236,7 @@ export default function SalesOrdersPage() {
                                 <th>{t('Department', 'القسم')}</th>
                                 <th>{t('Priority', 'الأولوية')}</th>
                                 <th>{t('Status', 'الحالة')}</th>
-                                <th>{t('Scheduled Date', 'الموعد المحدد')}</th>
+                                <th>{t('Scheduled Date', 'الموعد المناسب للعميل')}</th>
                                 <th>{t('Actions', 'الإجراءات')}</th>
                             </tr>
                         </thead>
