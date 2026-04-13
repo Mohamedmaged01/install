@@ -302,7 +302,7 @@ export default function AdminPage() {
             await createDepartmentUser(fd);
             setUserForm({ DepartmentId: 0, Name: '', Email: '', Phone: '', Password: '', RoleId: 0, IsSuperAdmin: false, Type: '' });
             toast.success(t('User created successfully!', 'تم إنشاء المستخدم بنجاح!'));
-            setShowAddUser(false);
+            setShowAddUserModal(false);
             loadUsers();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('Failed to create user', 'فشل إنشاء المستخدم'));
