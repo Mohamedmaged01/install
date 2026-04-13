@@ -56,7 +56,7 @@ export default function AdminPage() {
     const [appliedUserSearch, setAppliedUserSearch] = useState('');
     const [userActiveFilter, setUserActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [appliedActiveFilter, setAppliedActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
-    const [showAddUser, setShowAddUser] = useState(false);
+    const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [showAddBranchModal, setShowAddBranchModal] = useState(false);
     const [showAddDeptModal, setShowAddDeptModal] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
@@ -494,54 +494,12 @@ export default function AdminPage() {
                     {/* ══════════════ USERS ══════════════ */}
                     {activeTab === 'users' && (
                         <div>
-                            {/* ── Add User Form ── */}
+                            {/* ── Add User Button ── */}
                             <div style={{ marginBottom: 16 }}>
-                                <button className="btn btn-primary" onClick={() => setShowAddUser(v => !v)}>
-                                    {showAddUser ? `➖ ${t('Cancel', 'إلغاء')}` : `➕ ${t('Add User', 'إضافة مستخدم')}`}
+                                <button className="btn btn-primary" onClick={() => setShowAddUserModal(true)}>
+                                    ➕ {t('Add User', 'إضافة مستخدم')}
                                 </button>
                             </div>
-                            {showAddUser && <div className="card" style={{ marginBottom: 16 }}>
-                                <div className="card-title" style={{ marginBottom: 16 }}>{t('Add New User', 'إضافة مستخدم جديد')}</div>
-                                <div className="form-row">
-                                    <div className="form-group"><label className="form-label">{t('Name', 'الاسم')} *</label><input className="form-input" value={userForm.Name} onChange={e => setUserForm({ ...userForm, Name: e.target.value })} /></div>
-                                    <div className="form-group"><label className="form-label">{t('Email', 'البريد')} *</label><input className="form-input" type="email" value={userForm.Email} onChange={e => setUserForm({ ...userForm, Email: e.target.value })} /></div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group"><label className="form-label">{t('Phone', 'الهاتف')}</label><input className="form-input" value={userForm.Phone} onChange={e => setUserForm({ ...userForm, Phone: e.target.value })} /></div>
-                                    <div className="form-group"><label className="form-label">{t('Password', 'كلمة المرور')} *</label><input className="form-input" type="password" value={userForm.Password} onChange={e => setUserForm({ ...userForm, Password: e.target.value })} /></div>
-                                </div>
-                                <div className="form-row">
-                                    <div className="form-group">
-                                        <label className="form-label">{t('Type', 'النوع')} *</label>
-                                        <select className="form-select" value={userForm.Type} onChange={e => setUserForm({ ...userForm, Type: e.target.value })}>
-                                            <option value="">— {t('Select Type', 'اختر النوع')} —</option>
-                                            {userTypes.map(ut => <option key={ut.value} value={ut.text}>{ut.text}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">{t('Department', 'القسم')}</label>
-                                        <select className="form-select" value={userForm.DepartmentId} onChange={e => setUserForm({ ...userForm, DepartmentId: Number(e.target.value) })}>
-                                            <option value={0}>— {t('Select', 'اختر')} —</option>
-                                            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="form-group">
-                                        <label className="form-label">{t('Role', 'الدور')}</label>
-                                        <select className="form-select" value={userForm.RoleId} onChange={e => setUserForm({ ...userForm, RoleId: Number(e.target.value) })}>
-                                            <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
-                                            {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
-
-
-
-                                <div style={{ marginTop: 16 }}>
-                                    <button className="btn btn-primary" disabled={actionLoading || !userForm.Name || !userForm.Email || !userForm.Password || !userForm.Type} onClick={handleCreateUser}>
-                                        {actionLoading ? `⏳ ${t('Creating...', 'إنشاء...')}` : `✅ ${t('Create User', 'إنشاء مستخدم')}`}
-                                    </button>
-                                </div>
-                            </div>}
 
                             {/* ── Users List ── */}
                             <div className="card">
@@ -1096,6 +1054,69 @@ export default function AdminPage() {
                 </div>
             </div>
         )}
+            {/* ══════════ ADD USER MODAL ══════════ */}
+            {showAddUserModal && (
+                <div className="modal-overlay" onClick={() => setShowAddUserModal(false)}>
+                    <div className="modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>👤 {t('Add New User', 'إضافة مستخدم جديد')}</h2>
+                            <button className="modal-close" onClick={() => setShowAddUserModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">{t('Name', 'الاسم')} *</label>
+                                    <input className="form-input" placeholder={t('Enter name', 'أدخل الاسم')} value={userForm.Name} onChange={e => setUserForm({ ...userForm, Name: e.target.value })} autoFocus />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Email', 'البريد')} *</label>
+                                    <input className="form-input" type="email" placeholder={t('Enter email', 'أدخل البريد')} value={userForm.Email} onChange={e => setUserForm({ ...userForm, Email: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">{t('Phone', 'الهاتف')}</label>
+                                    <input className="form-input" placeholder={t('Enter phone', 'أدخل الهاتف')} value={userForm.Phone} onChange={e => setUserForm({ ...userForm, Phone: e.target.value })} />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Password', 'كلمة المرور')} *</label>
+                                    <input className="form-input" type="password" placeholder={t('Enter password', 'أدخل كلمة المرور')} value={userForm.Password} onChange={e => setUserForm({ ...userForm, Password: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label className="form-label">{t('Type', 'النوع')} *</label>
+                                    <select className="form-select" value={userForm.Type} onChange={e => setUserForm({ ...userForm, Type: e.target.value })}>
+                                        <option value="">— {t('Select Type', 'اختر النوع')} —</option>
+                                        {userTypes.map(ut => <option key={ut.value} value={ut.text}>{ut.text}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Department', 'القسم')}</label>
+                                    <select className="form-select" value={userForm.DepartmentId} onChange={e => setUserForm({ ...userForm, DepartmentId: Number(e.target.value) })}>
+                                        <option value={0}>— {t('Select', 'اختر')} —</option>
+                                        {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">{t('Role', 'الدور')}</label>
+                                    <select className="form-select" value={userForm.RoleId} onChange={e => setUserForm({ ...userForm, RoleId: Number(e.target.value) })}>
+                                        <option value={0}>— {t('Select Role', 'اختر الدور')} —</option>
+                                        {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setShowAddUserModal(false)}>{t('Cancel', 'إلغاء')}</button>
+                            <button className="btn btn-primary" disabled={actionLoading || !userForm.Name || !userForm.Email || !userForm.Password || !userForm.Type} onClick={async () => { await handleCreateUser(); if (!actionLoading) setShowAddUserModal(false); }}>
+                                {actionLoading ? `⏳ ${t('Creating...', 'إنشاء...')}` : `✅ ${t('Create User', 'إنشاء مستخدم')}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ══════════ ADD BRANCH MODAL ══════════ */}
             {showAddBranchModal && (
                 <div className="modal-overlay" onClick={() => setShowAddBranchModal(false)}>
