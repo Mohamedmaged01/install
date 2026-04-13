@@ -224,7 +224,7 @@ export default function NewOrderPage() {
                                     </div>
                                 );
                             })()}
-                            {!apexApplied && <span className="form-hint">{t('Type a code or customer name and press Apply to search APEX', 'اكتب رمزاً أو اسم عميل ثم اضغط تطبيق للبحث في APEX')}</span>{/* spacer */}
+                            {!apexApplied && <span className="form-hint">{t('Type a code or customer name and press Apply to search APEX', 'اكتب رمزاً أو اسم عميل ثم اضغط تطبيق للبحث في APEX')}</span>}
 
                             {/* Selected doc preview */}
                             {selectedDoc && (
