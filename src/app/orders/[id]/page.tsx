@@ -319,7 +319,8 @@ export default function OrderDetailPage() {
                 salesApprovalDate: editForm.salesApprovalDate || null,
                 priority: editForm.priority || order.priority,
                 branchIds: editForm.branchIds ? editForm.branchIds.map(id => ({ id })) : (order.branches ? order.branches.map(b => ({ id: b.id })) : []),
-                departmentId: editForm.departmentId || order.departmentId,
+                departmentId: editForm.departmentIds?.[0]?.idd || editForm.departmentId || order.departmentId,
+                departmentIds: editForm.departmentIds?.length ? editForm.departmentIds : (order.departmentNotes?.map(dn => ({ idd: dn.departmentId, note: dn.note })) || []),
                 notes: editForm.notes ?? order.notes ?? null,
             };
 
@@ -481,6 +482,8 @@ export default function OrderDetailPage() {
                                 priority: order.priority,
                                 branchIds,
                                 departmentId: order.departmentId,
+                                departmentIds: order.departmentNotes?.map(dn => ({ idd: dn.departmentId, note: dn.note || '' }))
+                                    || (order.departmentId ? [{ idd: order.departmentId, note: '' }] : []),
                             });
                             // Pre-load departments filtered by branch
                             const depts = await getDepartments(branchIds.length ? branchIds : undefined).catch(() => [] as Department[]);
@@ -1152,12 +1155,49 @@ export default function OrderDetailPage() {
                                         {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                     </select>
                                 </div>
-                                <div className="form-group">
-                                    <label className="form-label">{t('Department', 'القسم')}</label>
-                                    <select className="form-input" value={editForm.departmentId || ''} onChange={e => setEditForm(prev => ({ ...prev, departmentId: Number(e.target.value) }))}>
-                                        <option value="">{t('Select department', 'اختر القسم')}</option>
-                                        {editDepts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                    </select>
+                                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                                    <label className="form-label">{t('Departments', 'الأقسام')}</label>
+                                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', maxHeight: 240, overflowY: 'auto', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 10, background: 'var(--bg-secondary)' }}>
+                                        {editDepts.length === 0 && (
+                                            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('Select a branch first', 'اختر الفرع أولاً')}</span>
+                                        )}
+                                        {editDepts.map(d => {
+                                            const sel = (editForm.departmentIds || []).find(x => x.idd === d.id);
+                                            return (
+                                                <div key={d.id} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, fontWeight: sel ? 600 : 400 }}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={!!sel}
+                                                            onChange={e => {
+                                                                const cur = editForm.departmentIds || [];
+                                                                setEditForm(prev => ({
+                                                                    ...prev,
+                                                                    departmentIds: e.target.checked
+                                                                        ? [...cur, { idd: d.id, note: '' }]
+                                                                        : cur.filter(x => x.idd !== d.id),
+                                                                }));
+                                                            }}
+                                                        />
+                                                        {d.name}
+                                                    </label>
+                                                    {sel && (
+                                                        <textarea
+                                                            className="form-textarea"
+                                                            placeholder={t('Note for this department (optional)', 'ملاحظة لهذا القسم (اختياري)')}
+                                                            rows={2}
+                                                            style={{ marginInlineStart: 24, fontSize: 13 }}
+                                                            value={sel.note || ''}
+                                                            onChange={e => setEditForm(prev => ({
+                                                                ...prev,
+                                                                departmentIds: (prev.departmentIds || []).map(x => x.idd === d.id ? { ...x, note: e.target.value } : x),
+                                                            }))}
+                                                        />
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                             <div className="form-group">
