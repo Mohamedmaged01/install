@@ -322,7 +322,7 @@ export default function SalesOrdersPage() {
                                                     <button
                                                         className="btn btn-warning btn-sm"
                                                         disabled={actionLoading === order.id}
-                                                        onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(false); }}
+                                                        onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }}
                                                         style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                                     >
                                                         ↩️ {t('Return', 'إرجاع')}
@@ -360,16 +360,29 @@ export default function SalesOrdersPage() {
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
                                 {t('Returning order', 'إرجاع الطلب')} <strong>{returnModal.orderNumber || `#${returnModal.id}`}</strong>
                             </p>
-                            <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                                    <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
-                                    {t('Return to Draft', 'إرجاع إلى مسودة')}
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                                    <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
-                                    {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
-                                </label>
-                            </div>
+                            {returnModal?.status === 'PendingInstallationSupervisorApproval' ? (
+                                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                        <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                                        {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                        <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
+                                        {t('Return to Sales Supervisor', 'إرجاع إلى مشرف المبيعات')}
+                                    </label>
+                                </div>
+                            ) : returnModal?.status !== 'PendingSalesSupervisorApproval' ? (
+                                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                        <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
+                                        {t('Return to Draft', 'إرجاع إلى مسودة')}
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                        <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                                        {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                                    </label>
+                                </div>
+                            ) : null}
                             <div className="form-group">
                                 <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
                                 <textarea
