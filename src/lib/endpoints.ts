@@ -429,7 +429,6 @@ export async function createOrder(dto: AddOrderDto): Promise<Order> {
     fd.append('CreatedAt', dto.createdAt);
     fd.append('Priority', dto.priority);
     fd.append('BranchId', String(dto.branchId));
-    if (dto.notes)         fd.append('Notes', dto.notes);
     dto.departmentIds.forEach((d, i) => {
         fd.append(`DepartmentIds[${i}][Idd]`, String(d.idd));
         fd.append(`DepartmentIds[${i}][Note]`, d.note ?? '');

@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createOrder, getBranches, getDepartments, getAllApexInvoices, getAllApexOffers, uploadEvidence } from '@/lib/endpoints';
+import { createOrder, updateOrder, getBranches, getDepartments, getAllApexInvoices, getAllApexOffers, uploadEvidence } from '@/lib/endpoints';
 import { Branch, Department, AddOrderDto, ApexInvoice, ApexOffer } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
@@ -116,6 +116,26 @@ export default function NewOrderPage() {
             };
 
             const newOrder = await createOrder(dto);
+            // The create endpoint has no Notes field — patch via PUT immediately after
+            if (notes) {
+                await updateOrder(newOrder.id, {
+                    status: dto.status,
+                    city: dto.city ?? null,
+                    address: dto.address ?? null,
+                    location: dto.location ?? null,
+                    scheduledDate: dto.scheduledDate ?? null,
+                    quotationId: dto.quotationId ?? null,
+                    invoiceId: dto.invoiceId ?? null,
+                    customerId: dto.customerId ?? null,
+                    createdAt: dto.createdAt,
+                    salesApprovalDate: null,
+                    priority: dto.priority,
+                    branchIds: [{ id: dto.branchId }],
+                    departmentId: dto.departmentIds[0]?.idd ?? 0,
+                    departmentIds: dto.departmentIds.map(d => ({ idd: d.idd, note: d.note ?? undefined })),
+                    notes,
+                }).catch(() => {});
+            }
             if (evidenceFiles.length > 0) {
                 await uploadEvidence(newOrder.id, evidenceFiles, evidenceNote || undefined).catch(() => {});
             }
