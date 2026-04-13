@@ -129,9 +129,9 @@ function buildUserFromJwt(token: string): AuthUser {
     }
 
     const isActiveRaw = p.IsActive ?? p.isActive ?? p.isactive;
-    const isActive = isActiveRaw === undefined
+    const isActive = (isActiveRaw === undefined || isActiveRaw === null)
         ? true // not in token → assume active
-        : isActiveRaw === true || String(isActiveRaw).toLowerCase() === 'true';
+        : isActiveRaw === true || isActiveRaw === 1 || String(isActiveRaw).toLowerCase() === 'true';
 
     return {
         id: Number(p.Id ?? p.id ?? p.sub ?? 0),
@@ -181,7 +181,7 @@ function normaliseUser(raw: any): AuthUser {
             String(raw.type) === 'SuperAdmin' ||
             String(raw.Type) === 'SuperAdmin'
         ),
-        isActive: raw.isActive !== undefined ? !!raw.isActive : (raw.IsActive !== undefined ? !!raw.IsActive : true),
+        isActive: (() => { const v = raw.isActive ?? raw.IsActive; return (v === undefined || v === null) ? true : v === true || v === 1 || String(v).toLowerCase() === 'true'; })(),
         token: raw.token ?? raw.Token ?? '',
         image: toImageUrl(raw.imagePath ?? raw.ImagePath ?? raw.image ?? raw.Image),
         type: String(raw.type || raw.Type || ''),
