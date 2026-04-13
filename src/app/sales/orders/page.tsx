@@ -134,6 +134,7 @@ export default function SalesOrdersPage() {
         return (
             (o.orderNumber || '').toLowerCase().includes(q) ||
             (o.customerName || '').toLowerCase().includes(q) ||
+            (o.customerId || '').toLowerCase().includes(q) ||
             (o.city || '').toLowerCase().includes(q) ||
             (o.invoiceId || '').toLowerCase().includes(q) ||
             (o.quotationId || '').toLowerCase().includes(q)
@@ -230,24 +231,25 @@ export default function SalesOrdersPage() {
                     <table>
                         <thead>
                             <tr>
+                                <th>{t('Order #', 'رقم الطلب')}</th>
                                 <th>{t('Customer', 'العميل')}</th>
                                 <th>{t('Department', 'القسم')}</th>
                                 <th>{t('Priority', 'الأولوية')}</th>
                                 <th>{t('Status', 'الحالة')}</th>
-                                <th>{t('Date', 'التاريخ')}</th>
+                                <th>{t('Scheduled Date', 'الموعد المحدد')}</th>
                                 <th>{t('Actions', 'الإجراءات')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
+                                    <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
                                         {t('Loading orders...', 'جارٍ تحميل الأوامر...')}
                                     </td>
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} style={{ textAlign: 'center', padding: 48 }}>
+                                    <td colSpan={7} style={{ textAlign: 'center', padding: 48 }}>
                                         <div style={{ fontSize: 40, marginBottom: 8 }}>📭</div>
                                         <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('No orders found', 'لا توجد أوامر')}</div>
                                         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
@@ -260,10 +262,13 @@ export default function SalesOrdersPage() {
                             ) : (
                                 filtered.slice((page - 1) * pageSize, page * pageSize).map(order => (
                                     <tr key={order.id}>
-                                        <td>
-                                            <Link href={`/orders/${order.id}`} style={{ fontWeight: 500, color: 'var(--accent-primary-hover)' }}>
-                                                {order.customerName || '—'}
+                                        <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
+                                            <Link href={`/orders/${order.id}`} style={{ color: 'var(--accent-primary-hover)' }}>
+                                                {order.orderNumber || `#${order.id}`}
                                             </Link>
+                                        </td>
+                                        <td>
+                                            <div style={{ fontWeight: 500 }}>{order.customerName || '—'}</div>
                                             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city || ''}</div>
                                         </td>
                                         <td>
@@ -279,24 +284,26 @@ export default function SalesOrdersPage() {
                                         <td><PriorityBadge priority={order.priority} /></td>
                                         <td><StatusBadge status={order.status} lang={lang} /></td>
                                         <td style={{ fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                                            {new Date(order.createdAt).toLocaleDateString()}
+                                            {order.scheduledDate
+                                                ? new Date(order.scheduledDate).toLocaleDateString()
+                                                : new Date(order.createdAt).toLocaleDateString()}
                                         </td>
                                         <td>
                                             <div className="btn-group">
-                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
+                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
                                                 {order.status === 'PendingSalesApproval' && (
                                                     <button
                                                         className="btn btn-success btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => handleApprove(order)}
-                                                        title={t('Approve', 'اعتماد')}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                                     >
-                                                        {actionLoading === order.id ? '⏳' : '✅'}
+                                                        {actionLoading === order.id ? '⏳' : <>✅ {t('Approve', 'اعتماد')}</>}
                                                     </button>
                                                 )}
                                                 {order.status === 'PendingSupervisorApproval' && (
-                                                    <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" title={t('Approve & Assign', 'اعتماد وتعيين')}>
-                                                        ✅
+                                                    <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        ✅ {t('Approve & Assign', 'اعتماد وتعيين')}
                                                     </Link>
                                                 )}
                                                 {order.status === 'ReadyForInstallation' && (
@@ -304,9 +311,9 @@ export default function SalesOrdersPage() {
                                                         className="btn btn-primary btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => handleAcceptOutside(order)}
-                                                        title={t('Accept', 'قبول')}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                                     >
-                                                        {actionLoading === order.id ? '⏳' : '🌐'}
+                                                        {actionLoading === order.id ? '⏳' : <>🌐 {t('Accept', 'قبول')}</>}
                                                     </button>
                                                 )}
                                                 {hasPermission(PERMS.ORDERS_RETURN) && (
@@ -314,12 +321,12 @@ export default function SalesOrdersPage() {
                                                         className="btn btn-warning btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => { setReturnModal(order); setReturnReason(''); }}
-                                                        title={t('Return', 'إرجاع')}
+                                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                                     >
-                                                        ↩️
+                                                        ↩️ {t('Return', 'إرجاع')}
                                                     </button>
                                                 )}
-                                                <button className="btn btn-danger btn-sm" title={t('Delete', 'حذف')} onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)}>🗑️</button>
+                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
                                             </div>
                                         </td>
                                     </tr>

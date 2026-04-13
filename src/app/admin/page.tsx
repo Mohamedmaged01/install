@@ -57,6 +57,8 @@ export default function AdminPage() {
     const [userActiveFilter, setUserActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [appliedActiveFilter, setAppliedActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [showAddUser, setShowAddUser] = useState(false);
+    const [showAddBranchModal, setShowAddBranchModal] = useState(false);
+    const [showAddDeptModal, setShowAddDeptModal] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
     const [userDeptFilter, setUserDeptFilter] = useState(0);
@@ -384,12 +386,9 @@ export default function AdminPage() {
                     {/* ══════════════ BRANCHES ══════════════ */}
                     {activeTab === 'branches' && (
                         <div className="card">
-                            <div className="card-title" style={{ marginBottom: 20 }}>{t('Branches', 'الفروع')}</div>
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-                                <input className="form-input" placeholder={t('Branch name', 'اسم الفرع')} value={newBranch.name} onChange={e => setNewBranch({ ...newBranch, name: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
-                                <input className="form-input" placeholder={t('Email', 'البريد')} value={newBranch.email} onChange={e => setNewBranch({ ...newBranch, email: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
-                                <input className="form-input" placeholder={t('Phone', 'الهاتف')} value={newBranch.phone} onChange={e => setNewBranch({ ...newBranch, phone: e.target.value })} style={{ flex: 1, minWidth: 120 }} />
-                                <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateBranch}>+ {t('Add', 'إضافة')}</button>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                <div className="card-title">{t('Branches', 'الفروع')}</div>
+                                <button className="btn btn-primary btn-sm" onClick={() => { setNewBranch({ name: '', email: '', phone: '' }); setShowAddBranchModal(true); }}>+ {t('Add Branch', 'إضافة فرع')}</button>
                             </div>
                             {branches.slice((branchesPage - 1) * branchesPageSize, branchesPage * branchesPageSize).map(b => (
                                 <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
@@ -431,15 +430,9 @@ export default function AdminPage() {
                     {/* ══════════════ DEPARTMENTS ══════════════ */}
                     {activeTab === 'departments' && (
                         <div className="card">
-                            <div className="card-title" style={{ marginBottom: 16 }}>{t('Departments', 'الأقسام')}</div>
-                            {/* Add new dept form */}
-                            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-                                <select className="form-select" value={newDept.branchId} onChange={e => setNewDept({ ...newDept, branchId: Number(e.target.value) })} style={{ minWidth: 160 }}>
-                                    <option value={0}>— {t('Branch', 'الفرع')} —</option>
-                                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                </select>
-                                <input className="form-input" placeholder={t('Department name', 'اسم القسم')} value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} style={{ flex: 1, minWidth: 160 }} />
-                                <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleCreateDept}>+ {t('Add', 'إضافة')}</button>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                                <div className="card-title">{t('Departments', 'الأقسام')}</div>
+                                <button className="btn btn-primary btn-sm" onClick={() => { setNewDept({ branchId: 0, name: '' }); setShowAddDeptModal(true); }}>+ {t('Add Department', 'إضافة قسم')}</button>
                             </div>
                             {/* Filter by branch */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -473,7 +466,10 @@ export default function AdminPage() {
                                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchName || (d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—')}</div>
                                             </div>
                                             <div className="btn-group">
-                                                <button className="btn btn-secondary btn-sm" onClick={() => setEditDept({ id: d.id, name: d.name, branchId: d.branchId })}>✏️</button>
+                                                <button className="btn btn-secondary btn-sm" onClick={() => {
+                                                    const matchedBranchId = d.branchId || branches.find(b => b.name === d.branchName)?.id || 0;
+                                                    setEditDept({ id: d.id, name: d.name, branchId: matchedBranchId });
+                                                }}>✏️</button>
                                                 <button className="btn btn-danger btn-sm" onClick={() => handleDeleteDept(d.id)}>🗑️</button>
                                             </div>
                                         </div>
@@ -631,13 +627,12 @@ export default function AdminPage() {
                                             <th>{t('Phone', 'الهاتف')}</th>
                                             <th>{t('Department', 'القسم')}</th>
                                             <th>{t('Role', 'الدور')}</th>
-                                            <th>{t('Type', 'النوع')}</th>
                                             <th>{t('Status', 'الحالة')}</th>
                                             <th style={{ whiteSpace: 'nowrap', width: 1 }}>{t('Actions', 'الإجراءات')}</th>
                                         </tr></thead>
                                         <tbody>
                                             {users.length === 0 ? (
-                                                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>
+                                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>
                                             ) : (
                                                 users.filter(u => {
                                                     const q = appliedUserSearch.toLowerCase();
@@ -665,7 +660,6 @@ export default function AdminPage() {
                                                                 : <span style={{ color: 'var(--text-muted)' }}>—</span>
                                                             }
                                                         </td>
-                                                        <td>{u.type || '—'}</td>
                                                         <td>
                                                             {u.isActive === undefined ? (
                                                                 <span style={{ color: 'var(--text-muted)' }}>—</span>
@@ -1102,6 +1096,68 @@ export default function AdminPage() {
                 </div>
             </div>
         )}
+            {/* ══════════ ADD BRANCH MODAL ══════════ */}
+            {showAddBranchModal && (
+                <div className="modal-overlay" onClick={() => setShowAddBranchModal(false)}>
+                    <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>🏢 {t('Add Branch', 'إضافة فرع')}</h2>
+                            <button className="modal-close" onClick={() => setShowAddBranchModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div className="form-group">
+                                <label className="form-label">{t('Branch Name', 'اسم الفرع')} *</label>
+                                <input className="form-input" placeholder={t('Enter branch name', 'أدخل اسم الفرع')} value={newBranch.name} onChange={e => setNewBranch({ ...newBranch, name: e.target.value })} autoFocus />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Email', 'البريد')}</label>
+                                <input className="form-input" type="email" placeholder={t('Enter email', 'أدخل البريد')} value={newBranch.email} onChange={e => setNewBranch({ ...newBranch, email: e.target.value })} />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Phone', 'الهاتف')}</label>
+                                <input className="form-input" placeholder={t('Enter phone', 'أدخل الهاتف')} value={newBranch.phone} onChange={e => setNewBranch({ ...newBranch, phone: e.target.value })} />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setShowAddBranchModal(false)}>{t('Cancel', 'إلغاء')}</button>
+                            <button className="btn btn-primary" disabled={actionLoading} onClick={async () => { await handleCreateBranch(); if (!actionLoading) setShowAddBranchModal(false); }}>
+                                {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `+ ${t('Add Branch', 'إضافة فرع')}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════ ADD DEPARTMENT MODAL ══════════ */}
+            {showAddDeptModal && (
+                <div className="modal-overlay" onClick={() => setShowAddDeptModal(false)}>
+                    <div className="modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h2>🏗️ {t('Add Department', 'إضافة قسم')}</h2>
+                            <button className="modal-close" onClick={() => setShowAddDeptModal(false)}>×</button>
+                        </div>
+                        <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div className="form-group">
+                                <label className="form-label">{t('Branch', 'الفرع')} *</label>
+                                <select className="form-select" value={newDept.branchId} onChange={e => setNewDept({ ...newDept, branchId: Number(e.target.value) })}>
+                                    <option value={0}>— {t('Select Branch', 'اختر الفرع')} —</option>
+                                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Department Name', 'اسم القسم')} *</label>
+                                <input className="form-input" placeholder={t('Enter department name', 'أدخل اسم القسم')} value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} autoFocus />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => setShowAddDeptModal(false)}>{t('Cancel', 'إلغاء')}</button>
+                            <button className="btn btn-primary" disabled={actionLoading} onClick={async () => { await handleCreateDept(); if (!actionLoading) setShowAddDeptModal(false); }}>
+                                {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `+ ${t('Add Department', 'إضافة قسم')}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

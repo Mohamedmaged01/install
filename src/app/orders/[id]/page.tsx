@@ -13,7 +13,7 @@ import {
     approveSalesManager, approveSupervisor, getBranchTechnicians, rejectOrder, getBranches, getDepartments
 } from '@/lib/endpoints';
 import { API_BASE } from '@/lib/api';
-import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto, Branch, Department } from '@/types';
+import { Order, OrderHistoryEntry, OrderNote, Evidence, DepartmentUser, AssignTaskDto, ApexItem, Role, ApexCustomer, UpdateOrderDto, Branch, Department, OrderStatus, getOrderStatusLabel } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
@@ -423,7 +423,7 @@ export default function OrderDetailPage() {
     const tabs: { key: TabType; label: string; icon: string }[] = [
         { key: 'timeline', label: t('Timeline', 'الجدول الزمني'), icon: '📅' },
         { key: 'items', label: t('Items', 'العناصر'), icon: '📦' },
-        { key: 'evidence', label: t('Evidence', 'الأدلة'), icon: '📸' },
+        { key: 'evidence', label: t('Attachments', 'المرفقات'), icon: '📎' },
         { key: 'notes', label: t('Notes', 'الملاحظات'), icon: '📝' },
     ];
 
@@ -643,7 +643,7 @@ export default function OrderDetailPage() {
                     {/* Evidence */}
                     {activeTab === 'evidence' && (
                         <div className="card">
-                            <div className="card-title" style={{ marginBottom: 20 }}>📸 {t('Evidence & Attachments', 'الأدلة والمرفقات')}</div>
+                            <div className="card-title" style={{ marginBottom: 20 }}>📎 {t('Attachments', 'المرفقات')}</div>
 
                             {/* Upload Section */}
                             <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
@@ -884,10 +884,10 @@ export default function OrderDetailPage() {
                         </div>
                     </div>
 
-                    {/* Department Comments */}
+                    {/* Department Notes */}
                     {order.departmentNotes && order.departmentNotes.length > 0 && (
                         <div className="card">
-                            <div className="card-title" style={{ marginBottom: 16 }}>🏢 {t('Department Comments', 'تعليقات الأقسام')}</div>
+                            <div className="card-title" style={{ marginBottom: 16 }}>🏢 {t('Department Notes', 'ملاحظات الأقسام')}</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                                 {order.departmentNotes.map(dn => (
                                     <div key={dn.departmentId}>
@@ -1134,8 +1134,8 @@ export default function OrderDetailPage() {
                             <div className="form-group">
                                 <label className="form-label">{t('Status', 'الحالة')}</label>
                                 <select className="form-input" value={editForm.status || 'Draft'} onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value as any }))}>
-                                    {['Draft', 'PendingSalesApproval', 'PendingSupervisorApproval', 'ReadyForInstallation', 'ReturnedToDraft', 'ReturnedToSales', 'Complete', 'Canceled'].map(s => (
-                                        <option key={s} value={s}>{s}</option>
+                                    {(['Draft', 'PendingSalesApproval', 'PendingSupervisorApproval', 'ReadyForInstallation', 'ReturnedToDraft', 'ReturnedToSales', 'Complete', 'Canceled'] as OrderStatus[]).map(s => (
+                                        <option key={s} value={s}>{getOrderStatusLabel(s, lang)}</option>
                                     ))}
                                 </select>
                             </div>

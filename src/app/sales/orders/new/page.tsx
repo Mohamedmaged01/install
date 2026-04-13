@@ -19,7 +19,11 @@ export default function NewOrderPage() {
     const [invoices, setInvoices] = useState<ApexInvoice[]>([]);
     const [offers, setOffers] = useState<ApexOffer[]>([]);
     const [apexError, setApexError] = useState('');
+    const [apexLoading, setApexLoading] = useState(false);
+    const [apexApplied, setApexApplied] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [createdOrderId, setCreatedOrderId] = useState(0);
 
     // Form state
     const [docType, setDocType] = useState<'invoice' | 'quotation'>('invoice');
@@ -48,20 +52,28 @@ export default function NewOrderPage() {
             } catch (err) {
                 console.error('Failed to load form data:', err);
             }
-            // Load APEX docs separately so branch/dept failure doesn't block them
-            try {
-                const [inv, off] = await Promise.all([
-                    getAllApexInvoices().catch((e) => { setApexError(String(e?.message || e)); return []; }),
-                    getAllApexOffers().catch(() => []),
-                ]);
-                setInvoices(inv);
-                setOffers(off);
-            } catch {
-                // APEX is optional — form still works with manual entry
-            }
         }
         load();
     }, []);
+
+    const handleApexSearch = async () => {
+        setApexApplied(apexSearch);
+        if (!apexSearch.trim()) { setInvoices([]); setOffers([]); return; }
+        setApexLoading(true);
+        setApexError('');
+        try {
+            const [inv, off] = await Promise.all([
+                getAllApexInvoices().catch((e) => { setApexError(String(e?.message || e)); return [] as ApexInvoice[]; }),
+                getAllApexOffers().catch(() => [] as ApexOffer[]),
+            ]);
+            setInvoices(inv);
+            setOffers(off);
+        } catch {
+            // APEX is optional
+        } finally {
+            setApexLoading(false);
+        }
+    };
 
     // Reload departments when branch changes
     useEffect(() => {
@@ -107,7 +119,8 @@ export default function NewOrderPage() {
             if (evidenceFiles.length > 0) {
                 await uploadEvidence(newOrder.id, evidenceFiles, evidenceNote || undefined).catch(() => {});
             }
-            router.push(`/orders/${newOrder.id}`);
+            setCreatedOrderId(newOrder.id);
+            setShowSuccessModal(true);
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : t('Failed to create order', 'فشل إنشاء الطلب'));
         } finally {
@@ -165,23 +178,34 @@ export default function NewOrderPage() {
                                 </div>
                                 <div className="form-group">
                                     <label className="form-label">{t('Search APEX Code', 'البحث برمز APEX')}</label>
-                                    <input
-                                        className="form-input"
-                                        placeholder={t('Search by code or customer...', 'ابحث بالرمز أو العميل...')}
-                                        value={apexSearch}
-                                        onChange={e => setApexSearch(e.target.value)}
-                                    />
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            className="form-input"
+                                            placeholder={t('Search by code or customer...', 'ابحث بالرمز أو العميل...')}
+                                            value={apexSearch}
+                                            onChange={e => setApexSearch(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleApexSearch()}
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button type="button" className="btn btn-secondary btn-sm" onClick={handleApexSearch} disabled={apexLoading} style={{ whiteSpace: 'nowrap' }}>
+                                            {apexLoading ? '⏳' : t('Apply', 'تطبيق')}
+                                        </button>
+                                        {(invoices.length > 0 || offers.length > 0) && (
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setApexSearch(''); setApexApplied(''); setInvoices([]); setOffers([]); setSelectedDocId(''); }}>{t('Clear', 'مسح')}</button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            {(() => {
-                                const q = apexSearch.toLowerCase();
+                            {apexLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>⏳ {t('Loading APEX documents...', 'جارٍ تحميل مستندات APEX...')}</p>}
+                            {!apexLoading && apexApplied && (() => {
+                                const q = apexApplied.toLowerCase();
                                 const docs = docType === 'invoice'
                                     ? invoices.filter(inv => !q || inv.code.toLowerCase().includes(q) || (inv.customer?.latinName || inv.customer?.arabicName || '').toLowerCase().includes(q))
                                     : offers.filter(off => !q || off.code.toLowerCase().includes(q) || (off.customer?.latinName || off.customer?.arabicName || '').toLowerCase().includes(q));
-                                if (invoices.length === 0 && offers.length === 0) return <span className="form-hint">{t('No APEX documents loaded — enter ID manually below', 'لم يتم تحميل مستندات APEX — أدخل المعرف يدوياً أدناه')}</span>;
+                                if (docs.length === 0) return <span className="form-hint">{t('No matching APEX documents — enter ID manually below', 'لا توجد مستندات APEX مطابقة — أدخل المعرف يدوياً أدناه')}</span>;
                                 return (
                                     <div className="form-group">
-                                        <label className="form-label">{t('Select from APEX', 'اختر من APEX')} {docs.length > 0 && <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({docs.length})</span>}</label>
+                                        <label className="form-label">{t('Select from APEX', 'اختر من APEX')} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({docs.length})</span></label>
                                         <select className="form-select" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
                                             <option value="">— {t('Select', 'اختر')} —</option>
                                             {docType === 'invoice'
@@ -200,6 +224,7 @@ export default function NewOrderPage() {
                                     </div>
                                 );
                             })()}
+                            {!apexApplied && <span className="form-hint">{t('Type a code or customer name and press Apply to search APEX', 'اكتب رمزاً أو اسم عميل ثم اضغط تطبيق للبحث في APEX')}</span>{/* spacer */}
 
                             {/* Selected doc preview */}
                             {selectedDoc && (
@@ -231,9 +256,9 @@ export default function NewOrderPage() {
                             </div>
                         </div>
 
-                        {/* Evidence (optional) */}
+                        {/* Attachments (optional) */}
                         <div className="card" style={{ marginBottom: 20 }}>
-                            <div className="card-title" style={{ marginBottom: 16 }}>📸 {t('Evidence', 'الأدلة')} <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>({t('optional', 'اختياري')})</span></div>
+                            <div className="card-title" style={{ marginBottom: 16 }}>📎 {t('Attachments', 'المرفقات')} <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>({t('optional', 'اختياري')})</span></div>
                             <div className="form-group">
                                 <label className="form-label">{t('Attach Images', 'إرفاق صور')}</label>
                                 <input
@@ -251,10 +276,10 @@ export default function NewOrderPage() {
                                 )}
                             </div>
                             <div className="form-group">
-                                <label className="form-label">{t('Evidence Note', 'ملاحظة الدليل')}</label>
+                                <label className="form-label">{t('Attachment Note', 'ملاحظة المرفق')}</label>
                                 <input
                                     className="form-input"
-                                    placeholder={t('Optional note for the evidence...', 'ملاحظة اختيارية للدليل...')}
+                                    placeholder={t('Optional note for the attachment...', 'ملاحظة اختيارية للمرفق...')}
                                     value={evidenceNote}
                                     onChange={e => setEvidenceNote(e.target.value)}
                                 />
@@ -396,6 +421,26 @@ export default function NewOrderPage() {
                     </div>
                 </div>
             </div>
+            {/* ══════════ SUCCESS MODAL ══════════ */}
+            {showSuccessModal && (
+                <div className="modal-overlay">
+                    <div className="modal" style={{ maxWidth: 400, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                        <div className="modal-body" style={{ padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+                            <div style={{ fontSize: 48 }}>✅</div>
+                            <h2 style={{ fontSize: 20, fontWeight: 700 }}>{t('Order Created!', 'تم إنشاء الطلب!')}</h2>
+                            <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>{t('Your installation order has been successfully created.', 'تم إنشاء أمر التركيب بنجاح.')}</p>
+                            <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+                                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setShowSuccessModal(false); }}>
+                                    {t('New Order', 'طلب جديد')}
+                                </button>
+                                <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => router.push(`/orders/${createdOrderId}`)}>
+                                    {t('View Order', 'عرض الطلب')} →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </PermissionGuard>
     );
 }
