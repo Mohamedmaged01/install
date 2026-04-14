@@ -15,7 +15,7 @@ export const PERMS = {
 
     // Orders — actions
     ORDERS_APPROVE_SALES:      'موافقة مشرف المبيعات',   // id 122
-    ORDERS_APPROVE_SUPERVISOR: 'SupervisorApprove',       // id 64 (API uses English)
+    ORDERS_APPROVE_SUPERVISOR: 'موافقة مشرف التركيب',     // id 136
     ORDERS_RETURN:             'ارجاع الطلب',             // id 123
     ORDERS_VIEW_HISTORY:       'عرض سجل الطلب',          // id 124
 

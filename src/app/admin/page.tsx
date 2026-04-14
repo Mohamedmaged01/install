@@ -14,6 +14,7 @@ import { API_BASE } from '@/lib/api';
 import { useLang } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import { useAuth, PERMS } from '@/context/RoleContext';
+import PermissionGuard from '@/components/PermissionGuard';
 import Pagination from '@/components/Pagination';
 
 type AdminTab = 'branches' | 'departments' | 'users' | 'roles' | 'permissions';
@@ -374,6 +375,7 @@ export default function AdminPage() {
     const selectedRole = roles.find(r => r.id === selectedRoleId);
 
     return (
+        <PermissionGuard requiredPerms={[PERMS.ROLES_MANAGE, PERMS.SETTINGS_MANAGE]}>
         <div className="animate-in">
             <div className="page-header">
                 <h1>⚙️ {t('Admin Settings', 'إعدادات الإدارة')}</h1>
@@ -1244,5 +1246,6 @@ export default function AdminPage() {
                 </div>
             )}
         </div>
+        </PermissionGuard>
     );
 }

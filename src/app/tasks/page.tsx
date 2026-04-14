@@ -7,6 +7,8 @@ import { Task, TaskStatus, Branch, Department } from '@/types';
 import MultiSelect from '@/components/MultiSelect';
 import { useLang } from '@/context/LanguageContext';
 import Pagination from '@/components/Pagination';
+import PermissionGuard from '@/components/PermissionGuard';
+import { PERMS } from '@/context/RoleContext';
 
 const TASK_LABELS: Record<TaskStatus, { en: string; ar: string }> = {
     Assigned: { en: 'Assigned', ar: 'مُعيَّن' },
@@ -89,6 +91,7 @@ export default function TasksPage() {
     });
 
     return (
+        <PermissionGuard requiredPerms={[PERMS.TASKS_VIEW, PERMS.TASKS_VIEW_BRANCH, PERMS.TASKS_VIEW_ALL, PERMS.TASKS_MANAGE]}>
         <div className="animate-in">
             <div className="page-header">
                 <div>
@@ -265,5 +268,6 @@ export default function TasksPage() {
                 />
             )}
         </div>
+        </PermissionGuard>
     );
 }

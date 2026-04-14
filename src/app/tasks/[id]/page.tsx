@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { getMyTasks, updateTaskStatus, getTaskHistory, getTaskNotes } from '@/lib/endpoints';
 import { Task, TaskStatus, TaskHistoryEntry, TaskNote } from '@/types';
 import { useLang } from '@/context/LanguageContext';
+import PermissionGuard from '@/components/PermissionGuard';
+import { PERMS } from '@/context/RoleContext';
 
 const API_BASE = 'https://apiorders.runasp.net';
 
@@ -156,6 +158,7 @@ export default function TaskDetailPage() {
     const statusColor = STATUS_COLORS[task.status] || '#94a3b8';
 
     return (
+        <PermissionGuard requiredPerms={[PERMS.TASKS_VIEW, PERMS.TASKS_VIEW_BRANCH, PERMS.TASKS_VIEW_ALL, PERMS.TASKS_MANAGE]}>
         <div className="animate-in">
             {/* Header */}
             <div className="page-header">
@@ -378,5 +381,6 @@ export default function TaskDetailPage() {
                 </div>
             </div>
         </div>
+        </PermissionGuard>
     );
 }
