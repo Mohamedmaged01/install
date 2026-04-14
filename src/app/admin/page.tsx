@@ -59,8 +59,13 @@ export default function AdminPage() {
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [showAddBranchModal, setShowAddBranchModal] = useState(false);
     const [showAddDeptModal, setShowAddDeptModal] = useState(false);
-    const [deptModalUsers, setDeptModalUsers] = useState<DepartmentUser[]>([]);
-    const [deptModalUsersLoading, setDeptModalUsersLoading] = useState(false);
+    const [deptUsersPool, setDeptUsersPool] = useState<DepartmentUser[]>([]);
+    const [salesSupSearch, setSalesSupSearch] = useState('');
+    const [salesSupResults, setSalesSupResults] = useState<DepartmentUser[]>([]);
+    const [salesSupLoading, setSalesSupLoading] = useState(false);
+    const [instSupSearch, setInstSupSearch] = useState('');
+    const [instSupResults, setInstSupResults] = useState<DepartmentUser[]>([]);
+    const [instSupLoading, setInstSupLoading] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
     const [userDeptFilter, setUserDeptFilter] = useState(0);
@@ -436,9 +441,10 @@ export default function AdminPage() {
                                 <div className="card-title">{t('Departments', 'الأقسام')}</div>
                                 <button className="btn btn-primary btn-sm" onClick={() => {
                                     setNewDept({ branchId: 0, name: '', salesSupervisiorId: 0, installationSupervisiorId: 0 });
+                                    setSalesSupSearch(''); setSalesSupResults([]); setSalesSupLoading(false);
+                                    setInstSupSearch(''); setInstSupResults([]); setInstSupLoading(false);
+                                    setDeptUsersPool([]);
                                     setShowAddDeptModal(true);
-                                    setDeptModalUsersLoading(true);
-                                    fetchAllUsers().then(u => { setDeptModalUsers(u); setDeptModalUsersLoading(false); }).catch(() => setDeptModalUsersLoading(false));
                                 }}>+ {t('Add Department', 'إضافة قسم')}</button>
                             </div>
                             {/* Filter by branch */}
@@ -1176,20 +1182,49 @@ export default function AdminPage() {
                                 <label className="form-label">{t('Department Name', 'اسم القسم')} *</label>
                                 <input className="form-input" placeholder={t('Enter department name', 'أدخل اسم القسم')} value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} autoFocus />
                             </div>
-                            {deptModalUsersLoading && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>⏳ {t('Loading users...', 'جارٍ تحميل المستخدمين...')}</p>}
                             <div className="form-group">
                                 <label className="form-label">{t('Sales Supervisor', 'مشرف المبيعات')}</label>
-                                <select className="form-select" value={newDept.salesSupervisiorId} onChange={e => setNewDept({ ...newDept, salesSupervisiorId: Number(e.target.value) })}>
-                                    <option value={0}>— {t('None', 'بدون')} —</option>
-                                    {deptModalUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                </select>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <input
+                                        className="form-input"
+                                        style={{ flex: 1 }}
+                                        placeholder={t('Search by name...', 'ابحث بالاسم...')}
+                                        value={salesSupSearch}
+                                        onChange={e => setSalesSupSearch(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { setSalesSupLoading(true); const pool = deptUsersPool; (pool.length > 0 ? Promise.resolve(pool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = salesSupSearch.toLowerCase(); setSalesSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setSalesSupLoading(false)); } }}
+                                    />
+                                    <button type="button" className="btn btn-secondary btn-sm" disabled={salesSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setSalesSupLoading(true); (deptUsersPool.length > 0 ? Promise.resolve(deptUsersPool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = salesSupSearch.toLowerCase(); setSalesSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setSalesSupLoading(false)); }}>
+                                        {salesSupLoading ? '⏳' : t('Apply', 'تطبيق')}
+                                    </button>
+                                </div>
+                                {salesSupResults.length > 0 && (
+                                    <select className="form-select" style={{ marginTop: 6 }} value={newDept.salesSupervisiorId} onChange={e => setNewDept({ ...newDept, salesSupervisiorId: Number(e.target.value) })}>
+                                        <option value={0}>— {t('Select', 'اختر')} —</option>
+                                        {salesSupResults.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                    </select>
+                                )}
                             </div>
                             <div className="form-group">
                                 <label className="form-label">{t('Installation Supervisor', 'مشرف التركيبات')}</label>
-                                <select className="form-select" value={newDept.installationSupervisiorId} onChange={e => setNewDept({ ...newDept, installationSupervisiorId: Number(e.target.value) })}>
-                                    <option value={0}>— {t('None', 'بدون')} —</option>
-                                    {deptModalUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                                </select>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <input
+                                        className="form-input"
+                                        style={{ flex: 1 }}
+                                        placeholder={t('Search by name...', 'ابحث بالاسم...')}
+                                        value={instSupSearch}
+                                        onChange={e => setInstSupSearch(e.target.value)}
+                                        onKeyDown={e => { if (e.key === 'Enter') { setInstSupLoading(true); (deptUsersPool.length > 0 ? Promise.resolve(deptUsersPool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = instSupSearch.toLowerCase(); setInstSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setInstSupLoading(false)); } }}
+                                    />
+                                    <button type="button" className="btn btn-secondary btn-sm" disabled={instSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setInstSupLoading(true); (deptUsersPool.length > 0 ? Promise.resolve(deptUsersPool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = instSupSearch.toLowerCase(); setInstSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setInstSupLoading(false)); }}>
+                                        {instSupLoading ? '⏳' : t('Apply', 'تطبيق')}
+                                    </button>
+                                </div>
+                                {instSupResults.length > 0 && (
+                                    <select className="form-select" style={{ marginTop: 6 }} value={newDept.installationSupervisiorId} onChange={e => setNewDept({ ...newDept, installationSupervisiorId: Number(e.target.value) })}>
+                                        <option value={0}>— {t('Select', 'اختر')} —</option>
+                                        {instSupResults.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                    </select>
+                                )}
                             </div>
                         </div>
                         <div className="modal-footer">
