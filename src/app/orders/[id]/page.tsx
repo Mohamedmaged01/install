@@ -508,7 +508,7 @@ export default function OrderDetailPage() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+            <div className="detail-grid">
                 {/* Main Content */}
                 <div>
                     <div className="tabs">
@@ -1166,7 +1166,7 @@ export default function OrderDetailPage() {
                                     ))}
                                 </select>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                            <div className="two-col-form">
                                 <div className="form-group">
                                     <label className="form-label">{t('Branch', 'الفرع')}</label>
                                     <select className="form-input" value={editForm.branchIds?.[0] || ''} onChange={async e => {

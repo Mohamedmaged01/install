@@ -175,7 +175,7 @@ export default function NewOrderPage() {
                 </div>
 
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+                <div className="detail-grid">
                     {/* Form */}
                     <div>
                         {/* Sales Document */}
@@ -188,58 +188,59 @@ export default function NewOrderPage() {
                                 </div>
                             )}
 
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label className="form-label">{t('Document Type', 'نوع المستند')} *</label>
-                                    <select className="form-select" value={docType} onChange={e => { setDocType(e.target.value as 'invoice' | 'quotation'); setSelectedDocId(''); setApexSearch(''); }}>
-                                        <option value="invoice">{t('Invoice', 'فاتورة')}</option>
-                                        <option value="quotation">{t('Quotation / Offer', 'عرض سعر')}</option>
-                                    </select>
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">{t('Search APEX Code', 'البحث برمز APEX')}</label>
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <input
-                                            className="form-input"
-                                            placeholder={t('Search by code or customer...', 'ابحث بالرمز أو العميل...')}
-                                            value={apexSearch}
-                                            onChange={e => setApexSearch(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && handleApexSearch()}
-                                            style={{ flex: 1 }}
-                                        />
-                                        <button type="button" className="btn btn-secondary btn-sm" onClick={handleApexSearch} disabled={apexLoading} style={{ whiteSpace: 'nowrap' }}>
-                                            {apexLoading ? '⏳' : t('Apply', 'تطبيق')}
-                                        </button>
-                                        {(invoices.length > 0 || offers.length > 0) && (
-                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setApexSearch(''); setApexApplied(''); setInvoices([]); setOffers([]); setSelectedDocId(''); }}>{t('Clear', 'مسح')}</button>
-                                        )}
-                                    </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Search APEX Code', 'البحث برمز APEX')}</label>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <input
+                                        className="form-input"
+                                        placeholder={t('Search by code or customer...', 'ابحث بالرمز أو العميل...')}
+                                        value={apexSearch}
+                                        onChange={e => setApexSearch(e.target.value)}
+                                        onKeyDown={e => e.key === 'Enter' && handleApexSearch()}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button type="button" className="btn btn-secondary btn-sm" onClick={handleApexSearch} disabled={apexLoading} style={{ whiteSpace: 'nowrap' }}>
+                                        {apexLoading ? '⏳' : t('Apply', 'تطبيق')}
+                                    </button>
+                                    {(invoices.length > 0 || offers.length > 0) && (
+                                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setApexSearch(''); setApexApplied(''); setInvoices([]); setOffers([]); setSelectedDocId(''); }}>{t('Clear', 'مسح')}</button>
+                                    )}
                                 </div>
                             </div>
                             {apexLoading && <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>⏳ {t('Loading APEX documents...', 'جارٍ تحميل مستندات APEX...')}</p>}
                             {!apexLoading && apexApplied && (() => {
                                 const q = apexApplied.toLowerCase();
-                                const docs = docType === 'invoice'
-                                    ? invoices.filter(inv => !q || inv.code.toLowerCase().includes(q) || (inv.customer?.latinName || inv.customer?.arabicName || '').toLowerCase().includes(q))
-                                    : offers.filter(off => !q || off.code.toLowerCase().includes(q) || (off.customer?.latinName || off.customer?.arabicName || '').toLowerCase().includes(q));
-                                if (docs.length === 0) return <span className="form-hint">{t('No matching APEX documents — enter ID manually below', 'لا توجد مستندات APEX مطابقة — أدخل المعرف يدوياً أدناه')}</span>;
+                                const invDocs = invoices.filter(inv => !q || inv.code.toLowerCase().includes(q) || (inv.customer?.latinName || inv.customer?.arabicName || '').toLowerCase().includes(q));
+                                const offDocs = offers.filter(off => !q || off.code.toLowerCase().includes(q) || (off.customer?.latinName || off.customer?.arabicName || '').toLowerCase().includes(q));
+                                if (invDocs.length === 0 && offDocs.length === 0) return <span className="form-hint">{t('No matching APEX documents — enter ID manually below', 'لا توجد مستندات APEX مطابقة — أدخل المعرف يدوياً أدناه')}</span>;
                                 return (
                                     <div className="form-group">
-                                        <label className="form-label">{t('Select from APEX', 'اختر من APEX')} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({docs.length})</span></label>
-                                        <select className="form-select" value={selectedDocId} onChange={e => setSelectedDocId(e.target.value)}>
+                                        <label className="form-label">{t('Select from APEX', 'اختر من APEX')} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>({invDocs.length + offDocs.length})</span></label>
+                                        <select className="form-select" value={selectedDocId} onChange={e => {
+                                            const code = e.target.value;
+                                            setSelectedDocId(code);
+                                            if (invDocs.find(i => i.code === code)) setDocType('invoice');
+                                            else if (offDocs.find(o => o.code === code)) setDocType('quotation');
+                                        }}>
                                             <option value="">— {t('Select', 'اختر')} —</option>
-                                            {docType === 'invoice'
-                                                ? (docs as typeof invoices).map(inv => (
-                                                    <option key={inv.code} value={inv.code}>
-                                                        {inv.code} — {inv.customer?.latinName || inv.customer?.arabicName || '—'} ({new Date(inv.invoiceDate).toLocaleDateString()})
-                                                    </option>
-                                                ))
-                                                : (docs as typeof offers).map(off => (
-                                                    <option key={off.code} value={off.code}>
-                                                        {off.code} — {off.customer?.latinName || off.customer?.arabicName || '—'}
-                                                    </option>
-                                                ))
-                                            }
+                                            {invDocs.length > 0 && (
+                                                <optgroup label={t('Invoices', 'الفواتير')}>
+                                                    {invDocs.map(inv => (
+                                                        <option key={inv.code} value={inv.code}>
+                                                            {inv.code} — {inv.customer?.latinName || inv.customer?.arabicName || '—'} ({new Date(inv.invoiceDate).toLocaleDateString()})
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            )}
+                                            {offDocs.length > 0 && (
+                                                <optgroup label={t('Offers', 'العروض')}>
+                                                    {offDocs.map(off => (
+                                                        <option key={off.code} value={off.code}>
+                                                            {off.code} — {off.customer?.latinName || off.customer?.arabicName || '—'}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            )}
                                         </select>
                                     </div>
                                 );
@@ -248,7 +249,7 @@ export default function NewOrderPage() {
 
                             {/* Selected doc preview */}
                             {selectedDoc && (
-                                <div style={{ padding: '12px 16px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 'var(--radius-md)', marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', fontSize: 13 }}>
+                                <div className="doc-preview-grid" style={{ padding: '12px 16px', background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 'var(--radius-md)', marginBottom: 16 }}>
                                     <div><span style={{ color: 'var(--text-muted)' }}>{t('Customer', 'العميل')}: </span><strong>{selectedDoc.customer?.latinName || selectedDoc.customer?.arabicName}</strong></div>
                                     <div><span style={{ color: 'var(--text-muted)' }}>{t('Net Total', 'الإجمالي الصافي')}: </span><strong>SAR {selectedDoc.net?.toLocaleString()}</strong></div>
                                     <div><span style={{ color: 'var(--text-muted)' }}>{t('VAT', 'الضريبة')}: </span>SAR {selectedDoc.totalVat?.toLocaleString()}</div>
@@ -260,7 +261,7 @@ export default function NewOrderPage() {
                                 <label className="form-label">{t('Document ID (manual override)', 'معرف المستند (إدخال يدوي)')}</label>
                                 <input
                                     className="form-input"
-                                    placeholder={docType === 'invoice' ? 'e.g. INV-2026-001' : 'e.g. OP-2026-001'}
+                                    placeholder="e.g. INV-2026-001 or OP-2026-001"
                                     value={selectedDocId}
                                     onChange={e => setSelectedDocId(e.target.value)}
                                 />
@@ -387,14 +388,10 @@ export default function NewOrderPage() {
                     </div>
 
                     {/* Sidebar Summary */}
-                    <div style={{ position: 'sticky', top: 24 }}>
+                    <div className="detail-grid-side">
                         <div className="card">
                             <div className="card-title" style={{ marginBottom: 16 }}>📝 {t('Summary', 'الملخص')}</div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14, marginBottom: 20 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ color: 'var(--text-muted)' }}>{t('Type', 'النوع')}</span>
-                                    <span>{docType === 'invoice' ? t('Invoice', 'فاتورة') : t('Quotation', 'عرض سعر')}</span>
-                                </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ color: 'var(--text-muted)' }}>{t('Doc ID', 'معرف المستند')}</span>
                                     <span>{selectedDocId || '—'}</span>

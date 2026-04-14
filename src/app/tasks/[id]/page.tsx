@@ -182,7 +182,7 @@ export default function TaskDetailPage() {
                 )}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 24, alignItems: 'start' }}>
+            <div className="detail-grid-narrow">
                 {/* Main - Tabs */}
                 <div>
                     {/* Tab bar */}
@@ -288,7 +288,7 @@ export default function TaskDetailPage() {
 
                             <div style={{ marginBottom: 16 }}>
                                 <label className="form-label" style={{ marginBottom: 10, display: 'block' }}>{t('Select new status', 'اختر الحالة الجديدة')}</label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                                <div className="status-btn-grid">
                                     {allStatuses.map(status => {
                                         const color = STATUS_COLORS[status];
                                         return (

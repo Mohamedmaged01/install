@@ -325,7 +325,7 @@ export default function TechnicianPage() {
             </div>
 
             {/* Quick Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+            <div className="stat-grid-3">
                 <div className="stat-card" style={{ padding: 16, textAlign: 'center', flexDirection: 'column', alignItems: 'center' }}>
                     <div className="stat-value" style={{ fontSize: 24 }}>{statsLoading ? '…' : (filteredStats?.active ?? activeTasks.length)}</div>
                     <div className="stat-label">{t('Active', 'نشطة')}</div>

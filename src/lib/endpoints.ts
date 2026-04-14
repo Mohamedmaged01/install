@@ -245,8 +245,21 @@ export async function getDepartments(branchId?: number | number[]): Promise<Depa
     });
 }
 
-export async function createDepartment(dto: { branchId: number; name: string }): Promise<Department> {
-    return api<Department>('/api/Departments', { method: 'POST', body: { BranchId: dto.branchId, Name: dto.name } });
+export async function createDepartment(dto: {
+    branchId: number;
+    name: string;
+    salesSupervisiorId?: number;
+    installationSupervisiorId?: number;
+}): Promise<Department> {
+    return api<Department>('/api/Departments', {
+        method: 'POST',
+        body: {
+            BranchId: dto.branchId,
+            Name: dto.name,
+            SalesSupervisiorId: dto.salesSupervisiorId || 0,
+            InstallationSupervisiorId: dto.installationSupervisiorId || 0,
+        },
+    });
 }
 
 export async function getDepartmentUsers(branchId?: number, departmentId?: number): Promise<DepartmentUser[]> {

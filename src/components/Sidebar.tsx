@@ -80,7 +80,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     return (
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-            {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
+            <div className={`sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onClose} />
 
             <div className="sidebar-brand">
                 <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

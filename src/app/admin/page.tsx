@@ -31,7 +31,7 @@ export default function AdminPage() {
 
     // Forms
     const [newBranch, setNewBranch] = useState({ name: '', email: '', phone: '' });
-    const [newDept, setNewDept] = useState({ branchId: 0, name: '' });
+    const [newDept, setNewDept] = useState({ branchId: 0, name: '', salesSupervisiorId: 0, installationSupervisiorId: 0 });
     const [editBranch, setEditBranch] = useState<{ id: number; name: string; email: string; phone: string } | null>(null);
     const [editDept, setEditDept] = useState<{ id: number; name: string; branchId: number } | null>(null);
     const [editUser, setEditUser] = useState<{ id: number; name: string; email: string; phone: string; branchId: number; departmentId: number; roleId: number; isActive: boolean; currentImageUrl?: string; password: string } | null>(null);
@@ -59,6 +59,8 @@ export default function AdminPage() {
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [showAddBranchModal, setShowAddBranchModal] = useState(false);
     const [showAddDeptModal, setShowAddDeptModal] = useState(false);
+    const [deptModalUsers, setDeptModalUsers] = useState<DepartmentUser[]>([]);
+    const [deptModalUsersLoading, setDeptModalUsersLoading] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
     const [userDeptFilter, setUserDeptFilter] = useState(0);
@@ -432,7 +434,12 @@ export default function AdminPage() {
                         <div className="card">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                                 <div className="card-title">{t('Departments', 'الأقسام')}</div>
-                                <button className="btn btn-primary btn-sm" onClick={() => { setNewDept({ branchId: 0, name: '' }); setShowAddDeptModal(true); }}>+ {t('Add Department', 'إضافة قسم')}</button>
+                                <button className="btn btn-primary btn-sm" onClick={() => {
+                                    setNewDept({ branchId: 0, name: '', salesSupervisiorId: 0, installationSupervisiorId: 0 });
+                                    setShowAddDeptModal(true);
+                                    setDeptModalUsersLoading(true);
+                                    fetchAllUsers().then(u => { setDeptModalUsers(u); setDeptModalUsersLoading(false); }).catch(() => setDeptModalUsersLoading(false));
+                                }}>+ {t('Add Department', 'إضافة قسم')}</button>
                             </div>
                             {/* Filter by branch */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
@@ -1168,6 +1175,21 @@ export default function AdminPage() {
                             <div className="form-group">
                                 <label className="form-label">{t('Department Name', 'اسم القسم')} *</label>
                                 <input className="form-input" placeholder={t('Enter department name', 'أدخل اسم القسم')} value={newDept.name} onChange={e => setNewDept({ ...newDept, name: e.target.value })} autoFocus />
+                            </div>
+                            {deptModalUsersLoading && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>⏳ {t('Loading users...', 'جارٍ تحميل المستخدمين...')}</p>}
+                            <div className="form-group">
+                                <label className="form-label">{t('Sales Supervisor', 'مشرف المبيعات')}</label>
+                                <select className="form-select" value={newDept.salesSupervisiorId} onChange={e => setNewDept({ ...newDept, salesSupervisiorId: Number(e.target.value) })}>
+                                    <option value={0}>— {t('None', 'بدون')} —</option>
+                                    {deptModalUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">{t('Installation Supervisor', 'مشرف التركيبات')}</label>
+                                <select className="form-select" value={newDept.installationSupervisiorId} onChange={e => setNewDept({ ...newDept, installationSupervisiorId: Number(e.target.value) })}>
+                                    <option value={0}>— {t('None', 'بدون')} —</option>
+                                    {deptModalUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
                             </div>
                         </div>
                         <div className="modal-footer">
