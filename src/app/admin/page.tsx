@@ -63,7 +63,6 @@ export default function AdminPage() {
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [showAddBranchModal, setShowAddBranchModal] = useState(false);
     const [showAddDeptModal, setShowAddDeptModal] = useState(false);
-    const [deptUsersPool, setDeptUsersPool] = useState<DepartmentUser[]>([]);
     const [salesSupSearch, setSalesSupSearch] = useState('');
     const [salesSupResults, setSalesSupResults] = useState<DepartmentUser[]>([]);
     const [salesSupLoading, setSalesSupLoading] = useState(false);
@@ -227,22 +226,6 @@ export default function AdminPage() {
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to delete role', 'فشل حذف الدور')); }
     };
 
-    const fetchAllUsers = async (): Promise<DepartmentUser[]> => {
-        // getDepartmentUsers requires a branchId filter; fetch for each branch in parallel and deduplicate
-        const branchList = branches.length > 0 ? branches : await getBranches().catch(() => []);
-        if (branchList.length === 0) {
-            // Fallback: try without filter (may work on some server configs)
-            return getDepartmentUsers().catch(() => []);
-        }
-        const results = await Promise.all(
-            branchList.map(b => getDepartmentUsers(b.id).catch(() => [] as DepartmentUser[]))
-        );
-        const merged = results.flat();
-        // Deduplicate by user id
-        const seen = new Set<number>();
-        return merged.filter(u => { if (seen.has(u.id)) return false; seen.add(u.id); return true; });
-    };
-
     const openViewUsers = async (role: Role) => {
         setViewUsersRole(role);
         setRoleUsersLoading(true);
@@ -258,7 +241,7 @@ export default function AdminPage() {
         setAssignSearch('');
         setAppliedAssignSearch('');
         try {
-            const all = await fetchAllUsers();
+            const all = await getDepartmentUsers(undefined, undefined, { pageSize: 200 });
             setAllUsersForAssign(all);
         } catch { setAllUsersForAssign([]); }
     };
@@ -269,7 +252,7 @@ export default function AdminPage() {
         try {
             await updateDepartmentUser(u.id, { RoleId: assignUserRole.id }, null);
             toast.success(t(`${u.name} assigned to ${assignUserRole.name}`, `تم تعيين ${u.name} في ${assignUserRole.name}`));
-            const all = await fetchAllUsers();
+            const all = await getDepartmentUsers(undefined, undefined, { pageSize: 200 });
             setAllUsersForAssign(all);
             setUsers(all);
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to assign user', 'فشل تعيين المستخدم')); }
@@ -450,7 +433,6 @@ export default function AdminPage() {
                                     setNewDept({ branchId: 0, name: '', salesSupervisiorId: 0, installationSupervisiorId: 0 });
                                     setSalesSupSearch(''); setSalesSupResults([]); setSalesSupLoading(false);
                                     setInstSupSearch(''); setInstSupResults([]); setInstSupLoading(false);
-                                    setDeptUsersPool([]);
                                     setShowAddDeptModal(true);
                                 }}>+ {t('Add Department', 'إضافة قسم')}</button>
                             </div>
@@ -1200,9 +1182,9 @@ export default function AdminPage() {
                                         placeholder={t('Search by name...', 'ابحث بالاسم...')}
                                         value={salesSupSearch}
                                         onChange={e => setSalesSupSearch(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') { setSalesSupLoading(true); const pool = deptUsersPool; (pool.length > 0 ? Promise.resolve(pool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = salesSupSearch.toLowerCase(); setSalesSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setSalesSupLoading(false)); } }}
+                                        onKeyDown={e => { if (e.key === 'Enter') { setSalesSupLoading(true); getDepartmentUsers(undefined, undefined, { username: salesSupSearch || undefined }).then(setSalesSupResults).catch(() => setSalesSupResults([])).finally(() => setSalesSupLoading(false)); } }}
                                     />
-                                    <button type="button" className="btn btn-secondary btn-sm" disabled={salesSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setSalesSupLoading(true); (deptUsersPool.length > 0 ? Promise.resolve(deptUsersPool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = salesSupSearch.toLowerCase(); setSalesSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setSalesSupLoading(false)); }}>
+                                    <button type="button" className="btn btn-secondary btn-sm" disabled={salesSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setSalesSupLoading(true); getDepartmentUsers(undefined, undefined, { username: salesSupSearch || undefined }).then(setSalesSupResults).catch(() => setSalesSupResults([])).finally(() => setSalesSupLoading(false)); }}>
                                         {salesSupLoading ? '⏳' : t('Apply', 'تطبيق')}
                                     </button>
                                 </div>
@@ -1222,9 +1204,9 @@ export default function AdminPage() {
                                         placeholder={t('Search by name...', 'ابحث بالاسم...')}
                                         value={instSupSearch}
                                         onChange={e => setInstSupSearch(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') { setInstSupLoading(true); (deptUsersPool.length > 0 ? Promise.resolve(deptUsersPool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = instSupSearch.toLowerCase(); setInstSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setInstSupLoading(false)); } }}
+                                        onKeyDown={e => { if (e.key === 'Enter') { setInstSupLoading(true); getDepartmentUsers(undefined, undefined, { username: instSupSearch || undefined }).then(setInstSupResults).catch(() => setInstSupResults([])).finally(() => setInstSupLoading(false)); } }}
                                     />
-                                    <button type="button" className="btn btn-secondary btn-sm" disabled={instSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setInstSupLoading(true); (deptUsersPool.length > 0 ? Promise.resolve(deptUsersPool) : fetchAllUsers().then(u => { setDeptUsersPool(u); return u; })).then(all => { const q = instSupSearch.toLowerCase(); setInstSupResults(q ? all.filter(u => u.name.toLowerCase().includes(q)) : all); }).finally(() => setInstSupLoading(false)); }}>
+                                    <button type="button" className="btn btn-secondary btn-sm" disabled={instSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setInstSupLoading(true); getDepartmentUsers(undefined, undefined, { username: instSupSearch || undefined }).then(setInstSupResults).catch(() => setInstSupResults([])).finally(() => setInstSupLoading(false)); }}>
                                         {instSupLoading ? '⏳' : t('Apply', 'تطبيق')}
                                     </button>
                                 </div>

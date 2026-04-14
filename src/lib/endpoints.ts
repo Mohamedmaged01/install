@@ -262,9 +262,20 @@ export async function createDepartment(dto: {
     });
 }
 
-export async function getDepartmentUsers(branchId?: number, departmentId?: number): Promise<DepartmentUser[]> {
+export async function getDepartmentUsers(
+    branchId?: number,
+    departmentId?: number,
+    options?: { username?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }
+): Promise<DepartmentUser[]> {
     const raw = await api<unknown>('/api/Departments/users', {
-        params: { branchId, departmentId },
+        params: {
+            branchId,
+            departmentId,
+            username: options?.username,
+            isActive: options?.isActive,
+            pageNumber: options?.pageNumber ?? 1,
+            pageSize: options?.pageSize ?? 50,
+        },
     });
     const arr = Array.isArray(raw) ? raw : Array.isArray((raw as any)?.data) ? (raw as any).data : [];
     return arr.map(normalizeDepartmentUser);
