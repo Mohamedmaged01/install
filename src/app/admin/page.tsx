@@ -54,7 +54,7 @@ export default function AdminPage() {
     const [assignUserRole, setAssignUserRole] = useState<Role | null>(null);
     const [allUsersForAssign, setAllUsersForAssign] = useState<DepartmentUser[]>([]);
     const [assignSearch, setAssignSearch] = useState('');
-    const [appliedAssignSearch, setAppliedAssignSearch] = useState('');
+    const [assignSearchLoading, setAssignSearchLoading] = useState(false);
     const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
     const [userSearch, setUserSearch] = useState('');
     const [appliedUserSearch, setAppliedUserSearch] = useState('');
@@ -945,13 +945,13 @@ export default function AdminPage() {
                                         placeholder={t('Search by name, email, phone...', 'ابحث بالاسم أو البريد أو الهاتف...')}
                                         value={assignSearch}
                                         onChange={e => setAssignSearch(e.target.value)}
-                                        onKeyDown={e => { if (e.key === 'Enter') setAppliedAssignSearch(assignSearch); }}
+                                        onKeyDown={e => { if (e.key === 'Enter') { setAssignSearchLoading(true); getDepartmentUsers(undefined, undefined, { username: assignSearch || undefined, pageSize: 200 }).then(setAllUsersForAssign).catch(() => setAllUsersForAssign([])).finally(() => setAssignSearchLoading(false)); } }}
                                         autoFocus
                                     />
                                 </div>
-                                <button className="btn btn-primary btn-sm" onClick={() => setAppliedAssignSearch(assignSearch)}>{t('Apply', 'تطبيق')}</button>
-                                {(assignSearch || appliedAssignSearch) && (
-                                    <button className="btn btn-secondary btn-sm" onClick={() => { setAssignSearch(''); setAppliedAssignSearch(''); }}>{t('Clear', 'مسح')}</button>
+                                <button className="btn btn-primary btn-sm" disabled={assignSearchLoading} onClick={() => { setAssignSearchLoading(true); getDepartmentUsers(undefined, undefined, { username: assignSearch || undefined, pageSize: 200 }).then(setAllUsersForAssign).catch(() => setAllUsersForAssign([])).finally(() => setAssignSearchLoading(false)); }}>{assignSearchLoading ? '⏳' : t('Apply', 'تطبيق')}</button>
+                                {assignSearch && (
+                                    <button className="btn btn-secondary btn-sm" onClick={() => { setAssignSearch(''); setAssignSearchLoading(true); getDepartmentUsers(undefined, undefined, { pageSize: 200 }).then(setAllUsersForAssign).catch(() => setAllUsersForAssign([])).finally(() => setAssignSearchLoading(false)); }}>{t('Clear', 'مسح')}</button>
                                 )}
                             </div>
                             <div className="table-container" style={{ border: 'none', maxHeight: 420, overflowY: 'auto' }}>
@@ -963,15 +963,11 @@ export default function AdminPage() {
                                         <th style={{ width: 100 }}>{t('Action', 'الإجراء')}</th>
                                     </tr></thead>
                                     <tbody>
-                                        {allUsersForAssign.filter(u => {
-                                            const q = appliedAssignSearch.toLowerCase();
-                                            return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
-                                        }).length === 0 ? (
+                                        {assignSearchLoading ? (
+                                            <tr><td colSpan={4} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>⏳ {t('Searching...', 'جارٍ البحث...')}</td></tr>
+                                        ) : allUsersForAssign.length === 0 ? (
                                             <tr><td colSpan={4} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>{t('No users found', 'لا يوجد مستخدمون')}</td></tr>
-                                        ) : allUsersForAssign.filter(u => {
-                                            const q = appliedAssignSearch.toLowerCase();
-                                            return !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
-                                        }).map(u => {
+                                        ) : allUsersForAssign.map(u => {
                                             const alreadyInRole = u.roleId === assignUserRole.id || u.roleName === assignUserRole.name;
                                             const displayRole = u.roleName || roles.find(r => r.id === u.roleId)?.name;
                                             return (

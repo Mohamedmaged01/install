@@ -655,7 +655,7 @@ table {
 
 thead th {
   text-align: start;
-  padding: 12px 20px;
+  padding: 7px 12px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
@@ -668,8 +668,8 @@ thead th {
 }
 
 tbody td {
-  padding: 14px 20px;
-  font-size: 14px;
+  padding: 8px 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
@@ -1529,7 +1529,7 @@ tbody tr:last-child td {
 
 /* ==================== TABLE CONTAINER OVERFLOW ==================== */
 .table-container table {
-  min-width: 700px;
+  min-width: 500px;
 }
 
 /* ==================== PAGINATION ==================== */

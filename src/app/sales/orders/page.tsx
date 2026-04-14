@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { getOrders, getDepartments, getBranches, deleteOrder, approveSalesManager, rejectOrder } from '@/lib/endpoints';
 import { Order, OrderStatus, Department, Branch, getOrderStatusLabel } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
-import PriorityBadge from '@/components/PriorityBadge';
 import { useLang } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
 import PermissionGuard from '@/components/PermissionGuard';
@@ -221,10 +220,8 @@ export default function SalesOrdersPage() {
                     <table>
                         <thead>
                             <tr>
-                                <th>{t('Order #', 'رقم الطلب')}</th>
                                 <th>{t('Customer', 'العميل')}</th>
                                 <th>{t('Department', 'القسم')}</th>
-                                <th>{t('Priority', 'الأولوية')}</th>
                                 <th>{t('Status', 'الحالة')}</th>
                                 <th>{t('Scheduled Date', 'الموعد المناسب للعميل')}</th>
                                 <th>{t('Actions', 'الإجراءات')}</th>
@@ -233,13 +230,13 @@ export default function SalesOrdersPage() {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
+                                    <td colSpan={5} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
                                         {t('Loading orders...', 'جارٍ تحميل الأوامر...')}
                                     </td>
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} style={{ textAlign: 'center', padding: 48 }}>
+                                    <td colSpan={5} style={{ textAlign: 'center', padding: 48 }}>
                                         <div style={{ fontSize: 40, marginBottom: 8 }}>📭</div>
                                         <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('No orders found', 'لا توجد أوامر')}</div>
                                         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
@@ -252,11 +249,6 @@ export default function SalesOrdersPage() {
                             ) : (
                                 filtered.slice((page - 1) * pageSize, page * pageSize).map(order => (
                                     <tr key={order.id}>
-                                        <td style={{ whiteSpace: 'nowrap', fontWeight: 600 }}>
-                                            <Link href={`/orders/${order.id}`} style={{ color: 'var(--accent-primary-hover)' }}>
-                                                {order.orderNumber || `#${order.id}`}
-                                            </Link>
-                                        </td>
                                         <td>
                                             <div style={{ fontWeight: 500 }}>{order.customerName || '—'}</div>
                                             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city || ''}</div>
@@ -271,7 +263,6 @@ export default function SalesOrdersPage() {
                                                 : <span style={{ color: 'var(--text-muted)' }}>—</span>
                                             }
                                         </td>
-                                        <td><PriorityBadge priority={order.priority} /></td>
                                         <td><StatusBadge status={order.status} lang={lang} /></td>
                                         <td style={{ fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                             {order.scheduledDate
