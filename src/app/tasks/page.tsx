@@ -246,7 +246,7 @@ export default function TasksPage() {
                                             </div>
                                         </td>
                                         <td>
-                                            <Link href={`/tasks/${task.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
+                                            <Link href={`/tasks/${task.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
                                         </td>
                                     </tr>
                                 );

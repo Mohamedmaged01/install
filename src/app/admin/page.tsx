@@ -13,6 +13,7 @@ import { Branch, Department, DepartmentUser, Role, Permission } from '@/types';
 import { API_BASE } from '@/lib/api';
 import { useLang } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
+import { useAuth, PERMS } from '@/context/RoleContext';
 import Pagination from '@/components/Pagination';
 
 type AdminTab = 'branches' | 'departments' | 'users' | 'roles' | 'permissions';
@@ -20,6 +21,8 @@ type AdminTab = 'branches' | 'departments' | 'users' | 'roles' | 'permissions';
 export default function AdminPage() {
     const { t } = useLang();
     const toast = useToast();
+    const { user, hasPermission } = useAuth();
+    const isSuper = user?.isSuperAdmin ?? false;
     const [activeTab, setActiveTab] = useState<AdminTab>('branches');
     const [branches, setBranches] = useState<Branch[]>([]);
     const [departments, setDepartments] = useState<Department[]>([]);
@@ -413,10 +416,12 @@ export default function AdminPage() {
                                                 <div style={{ fontWeight: 600 }}>{b.name}</div>
                                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{b.email || '—'} • {b.phone || '—'}</div>
                                             </div>
-                                            <div className="btn-group">
-                                                <button className="btn btn-secondary btn-sm" onClick={() => setEditBranch({ id: b.id, name: b.name, email: b.email || '', phone: b.phone || '' })}>✏️</button>
-                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteBranch(b.id)}>🗑️</button>
-                                            </div>
+                                            {(isSuper || hasPermission(PERMS.BRANCH_EDIT)) && (
+                                                <div className="btn-group">
+                                                    <button className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => setEditBranch({ id: b.id, name: b.name, email: b.email || '', phone: b.phone || '' })}>✏️ {t('Edit', 'تعديل')}</button>
+                                                    <button className="btn btn-danger btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => handleDeleteBranch(b.id)}>🗑️ {t('Delete', 'حذف')}</button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -478,13 +483,15 @@ export default function AdminPage() {
                                                 <div style={{ fontWeight: 600 }}>{d.name}</div>
                                                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchName || (d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—')}</div>
                                             </div>
-                                            <div className="btn-group">
-                                                <button className="btn btn-secondary btn-sm" onClick={() => {
-                                                    const matchedBranchId = d.branchId || branches.find(b => b.name === d.branchName)?.id || 0;
-                                                    setEditDept({ id: d.id, name: d.name, branchId: matchedBranchId });
-                                                }}>✏️</button>
-                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteDept(d.id)}>🗑️</button>
-                                            </div>
+                                            {(isSuper || hasPermission(PERMS.DEPT_EDIT)) && (
+                                                <div className="btn-group">
+                                                    <button className="btn btn-secondary btn-sm" onClick={() => {
+                                                        const matchedBranchId = d.branchId || branches.find(b => b.name === d.branchName)?.id || 0;
+                                                        setEditDept({ id: d.id, name: d.name, branchId: matchedBranchId });
+                                                    }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>✏️ {t('Edit', 'تعديل')}</button>
+                                                    <button className="btn btn-danger btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => handleDeleteDept(d.id)}>🗑️ {t('Delete', 'حذف')}</button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -650,8 +657,8 @@ export default function AdminPage() {
                                                                     setEditUserDepts(resolvedBranchId ? departments.filter(d => d.branchId === resolvedBranchId) : departments);
                                                                     setEditUserImage(null);
                                                                     setEditUserShowPassword(false);
-                                                                }}>✏️</button>
-                                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id, u.name)}>🗑️</button>
+                                                                }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>✏️ {t('Edit', 'تعديل')}</button>
+                                                                <button className="btn btn-danger btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => handleDeleteUser(u.id, u.name)}>🗑️ {t('Delete', 'حذف')}</button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -685,10 +692,10 @@ export default function AdminPage() {
                                 <div key={role.id} style={{ padding: '12px 16px', background: selectedRoleId === role.id ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)', border: selectedRoleId === role.id ? '1px solid rgba(99,102,241,0.3)' : '1px solid transparent', borderRadius: 'var(--radius-md)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }} onClick={() => handleSelectRole(role.id)}>
                                     <div style={{ fontWeight: 600, fontSize: 15 }}>{role.name}</div>
                                     <div className="btn-group">
-                                        <button className="btn btn-secondary btn-sm" title={t('View Users', 'عرض المستخدمين')} onClick={e => { e.stopPropagation(); openViewUsers(role); }}>👥</button>
-                                        <button className="btn btn-secondary btn-sm" title={t('Assign User', 'تعيين مستخدم')} onClick={e => { e.stopPropagation(); openAssignUser(role); }}>➕</button>
-                                        <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); handleSelectRole(role.id); setPermSearch(''); setShowPermModal(true); }}>🛡️</button>
-                                        <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); handleDeleteRole(role.id); }}>🗑️</button>
+                                        <button className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => { e.stopPropagation(); openViewUsers(role); }}>👥 {t('Users', 'المستخدمون')}</button>
+                                        <button className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => { e.stopPropagation(); openAssignUser(role); }}>➕ {t('Assign', 'تعيين')}</button>
+                                        <button className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => { e.stopPropagation(); handleSelectRole(role.id); setPermSearch(''); setShowPermModal(true); }}>🛡️ {t('Permissions', 'الصلاحيات')}</button>
+                                        <button className="btn btn-danger btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={e => { e.stopPropagation(); handleDeleteRole(role.id); }}>🗑️ {t('Delete', 'حذف')}</button>
                                     </div>
                                 </div>
                             ))}

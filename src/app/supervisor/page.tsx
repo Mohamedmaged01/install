@@ -258,15 +258,15 @@ export default function SupervisorPage() {
                                             <div className="btn-group">
                                                 {order.status === 'PendingInstallationSupervisorApproval' && (
                                                     <>
-                                                        <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} title={t('Approve', 'اعتماد')}>
-                                                            {actionLoading === order.id ? '⏳' : '✅'}
+                                                        <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                            {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
                                                         </button>
-                                                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => { setRejectModal(order); setRejectReason(''); }} title={t('Return', 'إرجاع')}>
-                                                            ↩️
+                                                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => { setRejectModal(order); setRejectReason(''); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                            ↩️ {t('Return', 'إرجاع')}
                                                         </button>
                                                     </>
                                                 )}
-                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
+                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
                                             </div>
                                         </td>
                                     </tr>

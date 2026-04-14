@@ -323,26 +323,26 @@ export default function DashboardPage() {
                     <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div className="btn-group">
-                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" title={t('View', 'عرض')}>👁️</Link>
+                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
                         {order.status === 'PendingSalesSupervisorApproval' && (
-                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} title={t('Approve', 'اعتماد')}>
-                            {actionLoading === order.id ? '⏳' : '✅'}
+                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
                           </button>
                         )}
                         {order.status === 'PendingInstallationSupervisorApproval' && (
-                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" title={t('Approve & Assign', 'اعتماد وتعيين')}>✅</Link>
+                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>✅ {t('Approve & Assign', 'اعتماد وتعيين')}</Link>
                         )}
                         {order.status === 'ReadyForInstallation' && (
-                          <button className="btn btn-primary btn-sm" disabled={actionLoading === order.id} onClick={() => handleAcceptOutside(order)} title={t('Accept', 'قبول')}>
-                            {actionLoading === order.id ? '⏳' : '🌐'}
+                          <button className="btn btn-primary btn-sm" disabled={actionLoading === order.id} onClick={() => handleAcceptOutside(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {actionLoading === order.id ? '⏳' : '🌐'} {t('Accept', 'قبول')}
                           </button>
                         )}
                         {hasPermission(PERMS.ORDERS_RETURN) && (
-                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }} title={t('Return', 'إرجاع')}>
-                            ↩️
+                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            ↩️ {t('Return', 'إرجاع')}
                           </button>
                         )}
-                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => handleDeleteOrder(order)} title={t('Delete', 'حذف')}>🗑️</button>
+                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => handleDeleteOrder(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
                       </div>
                     </td>
                   </tr>

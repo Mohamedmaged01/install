@@ -6,31 +6,40 @@ import { getToken, removeToken, setToken } from '@/lib/api';
 
 // ─── Permission helpers ───────────────────────────────────────────────
 export const PERMS = {
-    // Orders
-    ORDERS_VIEW_ALL: 'ViewAllOrders',
-    ORDERS_VIEW_BRANCH: 'ViewBranchOrders',
-    ORDERS_VIEW_MINE: 'ViewMyOrders',
-    ORDERS_CREATE: 'CreateOrder',
-    ORDERS_EDIT: 'EditOrders',
-    ORDERS_DELETE: 'DeleteOrders',
+    // Orders — visibility
+    ORDERS_VIEW_ALL:           'عرض كل الطلبات',        // id 117
+    ORDERS_VIEW_BRANCH:        'عرض طلبات الفرع',       // id 118
+    ORDERS_CREATE:             'انشاء طلب',              // id 119
+    ORDERS_EDIT:               'تعديل طلب',              // id 120
+    ORDERS_DELETE:             'حذف طلب',               // id 121
 
-    // Approvals
-    ORDERS_APPROVE_SALES: 'SalesApprove',
-    ORDERS_APPROVE_SUPERVISOR: 'SupervisorApprove',
-    ORDERS_RETURN: 'ReturnOrders',
+    // Orders — actions
+    ORDERS_APPROVE_SALES:      'موافقة مشرف المبيعات',   // id 122
+    ORDERS_APPROVE_SUPERVISOR: 'SupervisorApprove',       // id 64 (API uses English)
+    ORDERS_RETURN:             'ارجاع الطلب',             // id 123
+    ORDERS_VIEW_HISTORY:       'عرض سجل الطلب',          // id 124
 
-    // Tasks & Technical
-    ORDERS_VIEW_HISTORY: 'ViewOrdersHistory',
-    TASKS_ASSIGN: 'InstallOrders',
-    TASKS_VIEW_ALL: 'ViewAllTasks',
-    TASKS_VIEW: 'ViewMyTasks',
-    TASKS_MANAGE: 'UpdateTaskStatus',
-    TASKS_EVIDENCE: 'UploadEvidence',
+    // Tasks
+    TASKS_ASSIGN:              'تركيب عناصر الطلب',     // id 125
+    TASKS_VIEW_ALL:            'عرض كل المهام',          // id 130
+    TASKS_VIEW_BRANCH:         'عرض مهام الفرع',         // id 131
+    TASKS_VIEW:                'عرض مهامي',              // id 132
+    TASKS_MANAGE:              'تحديث حالة المهمة',      // id 133
 
-    // Admin (fallback or expected future)
-    USERS_MANAGE: 'ManageUsers',
-    ROLES_MANAGE: 'ManageRoles',
-    SETTINGS_MANAGE: 'ManageSettings',
+    // Attachments / Evidence
+    ATTACHMENTS_UPLOAD:        'رفع المرفقات',           // id 126
+    ATTACHMENTS_VIEW:          'عرض المرفقات',           // id 127
+    EVIDENCE_UPLOAD:           'رفع الأدلة',             // id 134
+    EVIDENCE_VIEW:             'عرض الأدلة',             // id 135
+
+    // Admin
+    BRANCH_EDIT:               'تعديل الفرع',            // id 128
+    DEPT_EDIT:                 'تعديل القسم',            // id 129
+
+    // Superadmin-only (not in API list — kept for backward compat)
+    USERS_MANAGE:              'ManageUsers',
+    ROLES_MANAGE:              'ManageRoles',
+    SETTINGS_MANAGE:           'ManageSettings',
 } as const;
 
 // ─── Context type ─────────────────────────────────────────────────────

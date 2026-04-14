@@ -56,7 +56,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             href: '/tasks',
             label: t('My Tasks', 'مهامي'),
             icon: '🔧',
-            show: hasAnyPermission(PERMS.TASKS_VIEW, PERMS.TASKS_MANAGE),
+            show: hasAnyPermission(PERMS.TASKS_VIEW, PERMS.TASKS_VIEW_BRANCH, PERMS.TASKS_VIEW_ALL, PERMS.TASKS_MANAGE),
         },
         {
             href: '/admin',
