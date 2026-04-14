@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getStatistics, getBranches, getDepartments, approveSalesManager, acceptFromOutside, rejectOrder, deleteOrder } from '@/lib/endpoints';
-import { Statistics, Order, Branch, Department, OrderStatus } from '@/types';
+import { getStatistics, getBranches, getDepartments, approveSalesManager, rejectOrder, deleteOrder } from '@/lib/endpoints';
+import { Statistics, Order, Branch, Department } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import MultiSelect from '@/components/MultiSelect';
 import { useLang } from '@/context/LanguageContext';
@@ -76,15 +76,6 @@ export default function DashboardPage() {
       await approveSalesManager(order.id);
       setRecentOrders(prev => prev.filter(o => o.id !== order.id));
       // toast not available on dashboard but order is removed from list
-    } catch { /* silent */ } finally { setActionLoading(null); }
-  };
-
-  const handleAcceptOutside = async (order: Order) => {
-    if (!confirm(t('Accept this order from outside?', 'هل تريد قبول هذا الطلب من الخارج؟'))) return;
-    setActionLoading(order.id);
-    try {
-      await acceptFromOutside(order.id);
-      setRecentOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Completed' as OrderStatus } : o));
     } catch { /* silent */ } finally { setActionLoading(null); }
   };
 
@@ -324,25 +315,22 @@ export default function DashboardPage() {
                     <td>
                       <div className="btn-group">
                         <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
-                        {order.status === 'PendingSalesSupervisorApproval' && (
+                        {order.status === 'PendingSalesSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
                           <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
                           </button>
                         )}
-                        {order.status === 'PendingInstallationSupervisorApproval' && (
+                        {order.status === 'PendingInstallationSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR) && (
                           <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>✅ {t('Approve & Assign', 'اعتماد وتعيين')}</Link>
-                        )}
-                        {order.status === 'ReadyForInstallation' && (
-                          <button className="btn btn-primary btn-sm" disabled={actionLoading === order.id} onClick={() => handleAcceptOutside(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {actionLoading === order.id ? '⏳' : '🌐'} {t('Accept', 'قبول')}
-                          </button>
                         )}
                         {hasPermission(PERMS.ORDERS_RETURN) && (
                           <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                             ↩️ {t('Return', 'إرجاع')}
                           </button>
                         )}
-                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => handleDeleteOrder(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
+                        {hasPermission(PERMS.ORDERS_DELETE) && (
+                          <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => handleDeleteOrder(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
+                        )}
                       </div>
                     </td>
                   </tr>

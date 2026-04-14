@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getOrders, getDepartments, getBranches, deleteOrder, approveSalesManager, acceptFromOutside, rejectOrder } from '@/lib/endpoints';
+import { getOrders, getDepartments, getBranches, deleteOrder, approveSalesManager, rejectOrder } from '@/lib/endpoints';
 import { Order, OrderStatus, Department, Branch, getOrderStatusLabel } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
@@ -99,20 +99,6 @@ export default function SalesOrdersPage() {
         }
     };
 
-    const handleAcceptOutside = async (order: Order) => {
-        if (!confirm(t('Accept this order from outside?', 'هل تريد قبول هذا الطلب من الخارج؟'))) return;
-        setActionLoading(order.id);
-        try {
-            await acceptFromOutside(order.id);
-            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Completed' as OrderStatus } : o));
-            toast.success(t('Order accepted from outside', 'تم قبول الطلب من الخارج'));
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : t('Failed to accept from outside', 'فشل القبول من الخارج'));
-        } finally {
-            setActionLoading(null);
-        }
-    };
-
     const handleConfirmReturn = async () => {
         if (!returnModal) return;
         setActionLoading(returnModal.id);
@@ -151,7 +137,9 @@ export default function SalesOrdersPage() {
                         <h1>{t('Installation Orders', 'أوامر التركيب')}</h1>
                         <p>{t('Manage all installation orders', 'إدارة جميع أوامر التركيب')}</p>
                     </div>
-                    <Link href="/sales/orders/new" className="btn btn-primary">+ {t('New Order', 'طلب جديد')}</Link>
+                    {hasPermission(PERMS.ORDERS_CREATE) && (
+                        <Link href="/sales/orders/new" className="btn btn-primary">+ {t('New Order', 'طلب جديد')}</Link>
+                    )}
                 </div>
 
                 {/* Filters */}
@@ -293,7 +281,7 @@ export default function SalesOrdersPage() {
                                         <td>
                                             <div className="btn-group">
                                                 <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
-                                                {order.status === 'PendingSalesSupervisorApproval' && (
+                                                {order.status === 'PendingSalesSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
                                                     <button
                                                         className="btn btn-success btn-sm"
                                                         disabled={actionLoading === order.id}
@@ -303,20 +291,10 @@ export default function SalesOrdersPage() {
                                                         {actionLoading === order.id ? '⏳' : <>✅ {t('Approve', 'اعتماد')}</>}
                                                     </button>
                                                 )}
-                                                {order.status === 'PendingInstallationSupervisorApproval' && (
+                                                {order.status === 'PendingInstallationSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR) && (
                                                     <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                                         ✅ {t('Approve & Assign', 'اعتماد وتعيين')}
                                                     </Link>
-                                                )}
-                                                {order.status === 'ReadyForInstallation' && (
-                                                    <button
-                                                        className="btn btn-primary btn-sm"
-                                                        disabled={actionLoading === order.id}
-                                                        onClick={() => handleAcceptOutside(order)}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                                                    >
-                                                        {actionLoading === order.id ? '⏳' : <>🌐 {t('Accept', 'قبول')}</>}
-                                                    </button>
                                                 )}
                                                 {hasPermission(PERMS.ORDERS_RETURN) && (
                                                     <button
@@ -328,7 +306,9 @@ export default function SalesOrdersPage() {
                                                         ↩️ {t('Return', 'إرجاع')}
                                                     </button>
                                                 )}
-                                                <button className="btn btn-danger btn-sm" onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
+                                                {hasPermission(PERMS.ORDERS_DELETE) && (
+                                                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

@@ -423,9 +423,9 @@ export default function OrderDetailPage() {
     }
 
     const tabs: { key: TabType; label: string; icon: string }[] = [
-        { key: 'timeline', label: t('Timeline', 'الجدول الزمني'), icon: '📅' },
+        ...(hasPermission(PERMS.ORDERS_VIEW_HISTORY) ? [{ key: 'timeline' as TabType, label: t('Timeline', 'الجدول الزمني'), icon: '📅' }] : []),
         { key: 'items', label: t('Items', 'العناصر'), icon: '📦' },
-        { key: 'evidence', label: t('Attachments', 'المرفقات'), icon: '📎' },
+        ...(hasPermission(PERMS.EVIDENCE_VIEW) ? [{ key: 'evidence' as TabType, label: t('Attachments', 'المرفقات'), icon: '📎' }] : []),
         { key: 'notes', label: t('Notes', 'الملاحظات'), icon: '📝' },
     ];
 
@@ -458,16 +458,17 @@ export default function OrderDetailPage() {
                         )}
                     </div>
                     <div className="btn-group">
-                        {order.status !== 'ReadyForInstallation' && (
+                        {order.status === 'PendingSalesSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
                             <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                {order.status === 'PendingSalesSupervisorApproval'
-                                    ? `✅ ${t('Approve', 'اعتماد')}`
-                                    : order.status === 'PendingInstallationSupervisorApproval'
-                                        ? `✅ ${t('Approve & Assign', 'اعتماد وتعيين')}`
-                                        : `🌐 ${t('Accept', 'قبول')}`}
+                                ✅ {t('Approve', 'اعتماد')}
                             </button>
                         )}
-                        <button className="btn btn-secondary" onClick={async () => {
+                        {order.status === 'PendingInstallationSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR) && (
+                            <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                ✅ {t('Approve & Assign', 'اعتماد وتعيين')}
+                            </button>
+                        )}
+                        {hasPermission(PERMS.ORDERS_EDIT) && <button className="btn btn-secondary" onClick={async () => {
                             const branchIds = order.branches ? order.branches.map(b => b.id).filter(id => id !== 0) : [];
                             setEditForm({
                                 status: order.status,
@@ -492,15 +493,17 @@ export default function OrderDetailPage() {
                             setShowEditModal(true);
                         }}>
                             ✏️ {t('Edit Order', 'تعديل الطلب')}
-                        </button>
+                        </button>}
                         {hasPermission(PERMS.ORDERS_RETURN) && (
                             <button className="btn btn-warning" onClick={() => { setReturnReason(''); setReturnToRep(order?.status === 'PendingSalesSupervisorApproval'); setShowReturnModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 ↩️ {t('Return Order', 'إرجاع الطلب')}
                             </button>
                         )}
-                        <button className="btn btn-danger" onClick={handleDeleteOrder} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            🗑️ {t('Delete Order', 'حذف الطلب')}
-                        </button>
+                        {hasPermission(PERMS.ORDERS_DELETE) && (
+                            <button className="btn btn-danger" onClick={handleDeleteOrder} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                🗑️ {t('Delete Order', 'حذف الطلب')}
+                            </button>
+                        )}
                         {order.status === 'Completed' && (
                             <Link href="/qr/verify" className="btn btn-success">📱 {t('Verify QR', 'تحقق QR')}</Link>
                         )}
@@ -650,6 +653,7 @@ export default function OrderDetailPage() {
                             <div className="card-title" style={{ marginBottom: 20 }}>📎 {t('Attachments', 'المرفقات')}</div>
 
                             {/* Upload Section */}
+                            {hasPermission(PERMS.EVIDENCE_UPLOAD) && (
                             <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
                                 <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>⬆️ {t('Upload Evidence', 'رفع دليل')}</div>
                                 <input
@@ -680,6 +684,7 @@ export default function OrderDetailPage() {
                                     {uploading ? `⏳ ${t('Uploading...', 'جارٍ الرفع...')}` : `⬆️ ${t('Upload', 'رفع')}`}
                                 </button>
                             </div>
+                            )}
 
 
                             {evidence.length > 0 ? (
@@ -932,7 +937,7 @@ export default function OrderDetailPage() {
                                         <span style={{ fontWeight: 600 }}>👷 {task.technicianName || `Tech #${task.technicianId}`}</span>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                                             <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', background: 'rgba(99,102,241,0.12)', borderRadius: 12, color: '#818cf8' }}>{task.status}</span>
-                                            <button className="btn btn-danger btn-sm" style={{ padding: '2px 6px', fontSize: 12 }} onClick={() => handleDeleteTask(task.id)}>🗑️</button>
+                                            {hasPermission(PERMS.TASKS_ASSIGN) && <button className="btn btn-danger btn-sm" style={{ padding: '2px 6px', fontSize: 12 }} onClick={() => handleDeleteTask(task.id)}>🗑️</button>}
                                         </div>
                                     </div>
                                     {task.notes && <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>{task.notes}</div>}

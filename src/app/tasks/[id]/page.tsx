@@ -7,7 +7,7 @@ import { getMyTasks, updateTaskStatus, getTaskHistory, getTaskNotes } from '@/li
 import { Task, TaskStatus, TaskHistoryEntry, TaskNote } from '@/types';
 import { useLang } from '@/context/LanguageContext';
 import PermissionGuard from '@/components/PermissionGuard';
-import { PERMS } from '@/context/RoleContext';
+import { PERMS, useAuth } from '@/context/RoleContext';
 
 const API_BASE = 'https://apiorders.runasp.net';
 
@@ -39,6 +39,7 @@ function formatDate(dateStr: string, lang: string) {
 
 export default function TaskDetailPage() {
     const { lang, t } = useLang();
+    const { hasPermission } = useAuth();
     const params = useParams();
     const id = Number(params.id);
 
@@ -193,7 +194,7 @@ export default function TaskDetailPage() {
                         {([
                             { key: 'notes', label: `📝 ${t('Notes', 'الملاحظات')}` },
                             { key: 'timeline', label: `📅 ${t('Timeline', 'السجل')}` },
-                            { key: 'update', label: `🔄 ${t('Update Status', 'تحديث الحالة')}` },
+                            ...(hasPermission(PERMS.TASKS_MANAGE) ? [{ key: 'update', label: `🔄 ${t('Update Status', 'تحديث الحالة')}` }] : []),
                         ] as { key: TabType; label: string }[]).map(tab => (
                             <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
                                 padding: '12px 20px', fontSize: 13, fontWeight: 600, background: 'none', border: 'none',
