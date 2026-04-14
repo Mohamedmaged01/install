@@ -67,8 +67,8 @@ function LoginForm() {
                                 padding: '7px 18px',
                                 borderRadius: 24,
                                 border: 'none',
-                                background: lang === 'en' ? 'var(--primary)' : 'transparent',
-                                color: lang === 'en' ? '#fff' : 'var(--text-primary)',
+                                background: lang === 'en' ? '#3b82f6' : 'transparent',
+                                color: lang === 'en' ? '#fff' : '#64748b',
                                 fontWeight: 600,
                                 fontSize: 13,
                                 cursor: lang === 'en' ? 'default' : 'pointer',
@@ -76,7 +76,7 @@ function LoginForm() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 6,
-                                boxShadow: lang === 'en' ? '0 2px 6px rgba(var(--primary-rgb, 59,130,246), 0.35)' : 'none',
+                                boxShadow: lang === 'en' ? '0 2px 6px rgba(59,130,246,0.35)' : 'none',
                             }}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -90,8 +90,8 @@ function LoginForm() {
                                 padding: '7px 18px',
                                 borderRadius: 24,
                                 border: 'none',
-                                background: lang === 'ar' ? 'var(--primary)' : 'transparent',
-                                color: lang === 'ar' ? '#fff' : 'var(--text-primary)',
+                                background: lang === 'ar' ? '#3b82f6' : 'transparent',
+                                color: lang === 'ar' ? '#fff' : '#64748b',
                                 fontWeight: 600,
                                 fontSize: 13,
                                 cursor: lang === 'ar' ? 'default' : 'pointer',
@@ -99,7 +99,7 @@ function LoginForm() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 6,
-                                boxShadow: lang === 'ar' ? '0 2px 6px rgba(var(--primary-rgb, 59,130,246), 0.35)' : 'none',
+                                boxShadow: lang === 'ar' ? '0 2px 6px rgba(59,130,246,0.35)' : 'none',
                             }}
                         >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
