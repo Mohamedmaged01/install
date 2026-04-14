@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getStatistics, getBranches, getDepartments, approveSalesManager, rejectOrder, deleteOrder } from '@/lib/endpoints';
 import { Statistics, Order, Branch, Department } from '@/types';
@@ -15,7 +16,8 @@ import {
 
 export default function DashboardPage() {
   const { lang, t } = useLang();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user, isLoading } = useAuth();
+  const router = useRouter();
   const [stats, setStats] = useState<Statistics | null>(null);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +32,18 @@ export default function DashboardPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number[]; deptFilter: number[]; dateFrom: string; dateTo: string }>({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' });
+
+  // Redirect technicians to their tasks page
+  useEffect(() => {
+    if (isLoading) return;
+    const isTechnician =
+      user?.roleName?.toLowerCase().includes('technician') ||
+      user?.roleName === 'فني' ||
+      user?.type === 'Technician';
+    if (isTechnician) {
+      router.replace('/tasks');
+    }
+  }, [isLoading, user, router]);
 
   useEffect(() => {
     getBranches().then(setBranches).catch(() => {});

@@ -930,33 +930,26 @@ export default function OrderDetailPage() {
                     {/* Tasks (assigned technicians) */}
                     <div className="card">
                         <div className="card-title" style={{ marginBottom: 16 }}>🔧 {t('Assigned Technicians', 'الفنيون المعيَّنون')}</div>
-                        {order.tasks && order.tasks.length > 0 ? (
-                            order.tasks.map(task => (
+                        {(() => {
+                            const techRows =
+                                (order.tasks?.length ?? 0) > 0 ? order.tasks! :
+                                (order.technicianAssignments?.length ?? 0) > 0 ? order.technicianAssignments!.map((t: any) => ({ id: t.id, technicianName: t.name, technicianId: t.id, status: null, notes: null })) :
+                                (order.technicians?.length ?? 0) > 0 ? order.technicians!.map((t: any) => ({ id: t.id, technicianName: t.name, technicianId: t.id, status: null, notes: null })) :
+                                null;
+                            if (!techRows) return <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('No technicians assigned yet.', 'لم يتم تعيين أي فني بعد.')}</p>;
+                            return techRows.map((task: any) => (
                                 <div key={task.id} style={{ padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8, fontSize: 13 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <span style={{ fontWeight: 600 }}>👷 {task.technicianName || `Tech #${task.technicianId}`}</span>
                                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', background: 'rgba(99,102,241,0.12)', borderRadius: 12, color: '#818cf8' }}>{task.status}</span>
-                                            {hasPermission(PERMS.TASKS_ASSIGN) && <button className="btn btn-danger btn-sm" style={{ padding: '2px 6px', fontSize: 12 }} onClick={() => handleDeleteTask(task.id)}>🗑️</button>}
+                                            {task.status && <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', background: 'rgba(99,102,241,0.12)', borderRadius: 12, color: '#818cf8' }}>{task.status}</span>}
+                                            {task.status && hasPermission(PERMS.TASKS_ASSIGN) && <button className="btn btn-danger btn-sm" style={{ padding: '2px 6px', fontSize: 12 }} onClick={() => handleDeleteTask(task.id)}>🗑️</button>}
                                         </div>
                                     </div>
                                     {task.notes && <div style={{ color: 'var(--text-muted)', marginTop: 4 }}>{task.notes}</div>}
                                 </div>
-                            ))
-                        ) : order.technicians && order.technicians.length > 0 ? (
-                            order.technicians.map((tech: any) => (
-                                <div key={tech.id} style={{ padding: '10px 12px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8, fontSize: 13 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontWeight: 600 }}>👷 {tech.name || `Tech #${tech.id}`}</span>
-                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                            <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', background: 'rgba(99,102,241,0.12)', borderRadius: 12, color: '#818cf8' }}>{t('Assigned', 'مُعيَّن')}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>{t('No technicians assigned yet.', 'لم يتم تعيين أي فني بعد.')}</p>
-                        )}
+                            ));
+                        })()}
                     </div>
 
                     {/* QR */}

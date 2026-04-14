@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { verifyQr } from '@/lib/endpoints';
+import PermissionGuard from '@/components/PermissionGuard';
+import { PERMS } from '@/context/RoleContext';
 
 type VerifyStep = 'scan' | 'verifying' | 'success' | 'error';
 
@@ -124,6 +126,7 @@ export default function QRVerifyPage() {
     useEffect(() => () => stopScanner(), []);
 
     return (
+        <PermissionGuard requiredPerms={[PERMS.TASKS_MANAGE, PERMS.TASKS_ASSIGN]}>
         <div className="animate-in" style={{ maxWidth: 500, margin: '0 auto' }}>
             <div className="page-header" style={{ textAlign: 'center' }}>
                 <h1>📱 QR Verification</h1>
@@ -251,5 +254,6 @@ export default function QRVerifyPage() {
                 </div>
             )}
         </div>
+        </PermissionGuard>
     );
 }

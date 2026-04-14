@@ -21,12 +21,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     // Super-admin shorthand
     const isSuper = user?.isSuperAdmin ?? false;
 
+    const isTechnician =
+        user?.roleName?.toLowerCase().includes('technician') ||
+        user?.roleName === 'فني' ||
+        user?.type === 'Technician';
+
     const navItems = useMemo(() => [
         {
             href: '/',
             label: t('Dashboard', 'لوحة التحكم'),
             icon: '🏠',
-            show: true,
+            show: !isTechnician,
         },
         {
             href: '/sales/orders',
@@ -64,16 +69,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             icon: '⚙️',
             show: isSuper || hasAnyPermission(PERMS.ROLES_MANAGE, PERMS.SETTINGS_MANAGE),
         },
-    ], [t, hasAnyPermission, hasPermission, isSuper]);
+    ], [t, hasAnyPermission, hasPermission, isSuper, isTechnician]);
 
     const quickItems = useMemo(() => [
         {
             href: '/qr/verify',
             label: t('QR Verification', 'التحقق من QR'),
             icon: '📱',
-            show: true,
+            show: hasAnyPermission(PERMS.TASKS_MANAGE, PERMS.TASKS_ASSIGN),
         },
-    ], [t]);
+    ], [t, hasAnyPermission]);
 
     const filteredNav = useMemo(() => navItems.filter(i => i.show), [navItems]);
     const filteredQuick = useMemo(() => quickItems.filter(i => i.show), [quickItems]);
