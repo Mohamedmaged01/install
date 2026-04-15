@@ -33,15 +33,19 @@ export default function DashboardPage() {
   const [dateTo, setDateTo] = useState('');
   const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number[]; deptFilter: number[]; dateFrom: string; dateTo: string }>({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' });
 
-  // Redirect technicians to their tasks page
+  // Only super admins can access the dashboard
   useEffect(() => {
     if (isLoading) return;
+    if (user?.isSuperAdmin) return; // Super admins stay on dashboard
+
     const isTechnician =
       user?.roleName?.toLowerCase().includes('technician') ||
       user?.roleName === 'فني' ||
       user?.type === 'Technician';
     if (isTechnician) {
       router.replace('/tasks');
+    } else {
+      router.replace('/sales/orders');
     }
   }, [isLoading, user, router]);
 

@@ -31,7 +31,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             href: '/',
             label: t('Dashboard', 'لوحة التحكم'),
             icon: '🏠',
-            show: !isTechnician,
+            show: isSuper,
         },
         {
             href: '/sales/orders',
