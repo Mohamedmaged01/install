@@ -57,7 +57,7 @@ export default function AdminPage() {
     const [assignSearchLoading, setAssignSearchLoading] = useState(false);
     const [assigningUserId, setAssigningUserId] = useState<number | null>(null);
     const [userSearch, setUserSearch] = useState('');
-    const [appliedUserSearch, setAppliedUserSearch] = useState('');
+    const [usersLoading, setUsersLoading] = useState(false);
     const [userActiveFilter, setUserActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [appliedActiveFilter, setAppliedActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
     const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -114,11 +114,13 @@ export default function AdminPage() {
         finally { setLoading(false); }
     };
 
-    const loadUsers = async (branchId?: number, departmentId?: number) => {
+    const loadUsers = async (branchId?: number, departmentId?: number, username?: string) => {
+        setUsersLoading(true);
         try {
-            const u = await getDepartmentUsers(branchId, departmentId);
+            const u = await getDepartmentUsers(branchId, departmentId, { username: username || undefined });
             setUsers(Array.isArray(u) ? u : []);
         } catch { setUsers([]); }
+        finally { setUsersLoading(false); }
     };
 
     const loadDeptsByBranch = async (branchId: number) => {
@@ -559,26 +561,27 @@ export default function AdminPage() {
                                             onChange={e => setUserSearch(e.target.value)}
                                             onKeyDown={e => {
                                                 if (e.key === 'Enter') {
-                                                    setAppliedUserSearch(userSearch);
                                                     setAppliedBranchFilter(userBranchFilter);
                                                     setAppliedDeptFilter(userDeptFilter);
                                                     setAppliedActiveFilter(userActiveFilter);
                                                     setUsersPage(1);
-                                                    loadUsers(userBranchFilter || undefined, userDeptFilter || undefined);
+                                                    loadUsers(userBranchFilter || undefined, userDeptFilter || undefined, userSearch);
                                                 }
                                             }}
                                         />
                                     </div>
-                                    <button className="btn btn-primary btn-sm" onClick={() => {
-                                        setAppliedUserSearch(userSearch);
+                                    <button className="btn btn-primary btn-sm" disabled={usersLoading} onClick={() => {
                                         setAppliedBranchFilter(userBranchFilter);
                                         setAppliedDeptFilter(userDeptFilter);
                                         setAppliedActiveFilter(userActiveFilter);
                                         setUsersPage(1);
-                                        loadUsers(userBranchFilter || undefined, userDeptFilter || undefined);
+                                        loadUsers(userBranchFilter || undefined, userDeptFilter || undefined, userSearch);
                                     }}>
-                                        {t('Apply', 'تطبيق')}
+                                        {usersLoading ? '⏳' : t('Apply', 'تطبيق')}
                                     </button>
+                                    {userSearch && (
+                                        <button className="btn btn-secondary btn-sm" onClick={() => { setUserSearch(''); setUsersPage(1); loadUsers(userBranchFilter || undefined, userDeptFilter || undefined, undefined); }}>{t('Clear', 'مسح')}</button>
+                                    )}
                                 </div>
                                 <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
                                     <table style={{ tableLayout: 'auto' }}>
@@ -592,14 +595,14 @@ export default function AdminPage() {
                                             <th style={{ whiteSpace: 'nowrap', width: 1 }}>{t('Actions', 'الإجراءات')}</th>
                                         </tr></thead>
                                         <tbody>
-                                            {users.length === 0 ? (
+                                            {usersLoading ? (
+                                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)' }}>⏳ {t('Loading...', 'جارٍ التحميل...')}</td></tr>
+                                            ) : users.length === 0 ? (
                                                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', whiteSpace: 'normal' }}>{t('Click a filter above to load users', 'انقر على فلتر أعلاه لتحميل المستخدمين')}</td></tr>
                                             ) : (
                                                 users.filter(u => {
-                                                    const q = appliedUserSearch.toLowerCase();
-                                                    const matchesSearch = !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q);
                                                     const matchesActive = appliedActiveFilter === 'all' || (appliedActiveFilter === 'active' ? u.isActive !== false : u.isActive === false);
-                                                    return matchesSearch && matchesActive;
+                                                    return matchesActive;
                                                 }).slice((usersPage - 1) * usersPageSize, usersPage * usersPageSize).map(u => (
                                                     <tr key={u.id}>
                                                         <td className="table-cell-main" title={u.name}>
@@ -653,7 +656,7 @@ export default function AdminPage() {
                                 {users.length > 0 && (
                                     <Pagination
                                         currentPage={usersPage}
-                                        totalItems={users.filter(u => { const q = appliedUserSearch.toLowerCase(); const matchesSearch = !q || u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q) || u.phone?.toLowerCase().includes(q); const matchesActive = appliedActiveFilter === 'all' || (appliedActiveFilter === 'active' ? u.isActive !== false : u.isActive === false); return matchesSearch && matchesActive; }).length}
+                                        totalItems={users.filter(u => { const matchesActive = appliedActiveFilter === 'all' || (appliedActiveFilter === 'active' ? u.isActive !== false : u.isActive === false); return matchesActive; }).length}
                                         pageSize={usersPageSize}
                                         onPageChange={setUsersPage}
                                         onPageSizeChange={setUsersPageSize}
