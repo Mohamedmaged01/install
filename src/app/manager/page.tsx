@@ -88,7 +88,7 @@ export default function ManagerPage() {
                 </div>
 
                 {/* Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 24 }}>
+                <div className="dashboard-stat-grid">
                     <div className="stat-card">
                         <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>⏳</div>
                         <div>
@@ -100,23 +100,25 @@ export default function ManagerPage() {
 
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 20, padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <select className="form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
+                    <div className="dashboard-filters">
+                        <select className="form-select dashboard-filter-item" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}>
                             <option value="">{t('All Branches', 'جميع الفروع')}</option>
                             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
-                        <select className="form-select" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
+                        <select className="form-select dashboard-filter-item" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')}>
                             <option value="">{t('All Departments', 'جميع الأقسام')}</option>
                             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
-                        <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter }); setPage(1); }}>
-                            {t('Apply', 'تطبيق')}
-                        </button>
-                        {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
-                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setAppliedFilters({ branchFilter: '', deptFilter: '' }); setPage(1); }}>
-                                {t('Clear', 'مسح')}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter }); setPage(1); }}>
+                                {t('Apply', 'تطبيق')}
                             </button>
-                        )}
+                            {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setAppliedFilters({ branchFilter: '', deptFilter: '' }); setPage(1); }}>
+                                    {t('Clear', 'مسح')}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -165,16 +167,16 @@ export default function ManagerPage() {
                                                 disabled={actionLoading === order.id}
                                                 onClick={() => handleApprove(order.id)}
                                             >
-                                                {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
+                                                {actionLoading === order.id ? '⏳' : '✅'} <span className="btn-label">{t('Approve', 'اعتماد')}</span>
                                             </button>
                                             <button
                                                 className="btn btn-danger btn-sm"
                                                 disabled={actionLoading === order.id}
                                                 onClick={() => { setRejectModal(order); setRejectReason(''); }}
                                             >
-                                                ❌ {t('Reject', 'رفض')}
+                                                ❌ <span className="btn-label">{t('Reject', 'رفض')}</span>
                                             </button>
-                                            <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">{t('View Details', 'عرض التفاصيل')}</Link>
+                                            <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">👁️ <span className="btn-label">{t('View Details', 'عرض التفاصيل')}</span></Link>
                                         </div>
                                     </div>
                                 </div>

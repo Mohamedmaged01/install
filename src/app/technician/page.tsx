@@ -296,31 +296,33 @@ export default function TechnicianPage() {
 
             {/* Filters */}
             <div className="card" style={{ marginBottom: 20, padding: '14px 16px' }}>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <select className="form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 130 }}>
+                <div className="dashboard-filters">
+                    <select className="form-select dashboard-filter-item" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}>
                         <option value="">{t('All Branches', 'جميع الفروع')}</option>
                         {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                     </select>
-                    <select className="form-select" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 140 }}>
+                    <select className="form-select dashboard-filter-item" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')}>
                         <option value="">{t('All Departments', 'جميع الأقسام')}</option>
                         {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="dashboard-filter-item dashboard-filter-date" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
-                        <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ minWidth: 140 }} />
+                        <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="dashboard-filter-item dashboard-filter-date" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
-                        <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 140 }} />
+                        <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                     </div>
-                    <button className="btn btn-primary btn-sm" onClick={() => setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo })}>
-                        {t('Apply', 'تطبيق')}
-                    </button>
-                    {(hasFilters || appliedFilters.branchFilter || appliedFilters.deptFilter || appliedFilters.dateFrom || appliedFilters.dateTo) && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: '', deptFilter: '', dateFrom: '', dateTo: '' }); }}>
-                            {t('Clear', 'مسح')}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo })}>
+                            {t('Apply', 'تطبيق')}
                         </button>
-                    )}
+                        {(hasFilters || appliedFilters.branchFilter || appliedFilters.deptFilter || appliedFilters.dateFrom || appliedFilters.dateTo) && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: '', deptFilter: '', dateFrom: '', dateTo: '' }); }}>
+                                {t('Clear', 'مسح')}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 

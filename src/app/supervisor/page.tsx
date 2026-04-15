@@ -176,7 +176,7 @@ export default function SupervisorPage() {
                 </div>
 
                 {/* Stats */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 16, marginBottom: 24 }}>
+                <div className="dashboard-stat-grid">
                     <div className="stat-card">
                         <div className="stat-icon" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>👷</div>
                         <div><div className="stat-value">{pendingCount}</div><div className="stat-label">{t('Pending Review', 'بانتظار المراجعة')}</div></div>
@@ -193,16 +193,16 @@ export default function SupervisorPage() {
 
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 20, padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <select className="form-select" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
+                    <div className="dashboard-filters">
+                        <select className="form-select dashboard-filter-item" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}>
                             <option value="">{t('All Branches', 'جميع الفروع')}</option>
                             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
-                        <select className="form-select" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')} style={{ minWidth: 160 }}>
+                        <select className="form-select dashboard-filter-item" value={deptFilter} onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')}>
                             <option value="">{t('All Departments', 'جميع الأقسام')}</option>
                             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
-                        <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ minWidth: 200 }}>
+                        <select className="form-select dashboard-filter-item" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                             <option value="">{t('All Statuses', 'جميع الحالات')}</option>
                             <option value="PendingInstallationSupervisorApproval">{t('Pending Supervisor', 'بانتظار المشرف')}</option>
                             <option value="ReadyForInstallation">{t('Ready for Installation', 'جاهز للتركيب')}</option>
@@ -210,14 +210,16 @@ export default function SupervisorPage() {
                             <option value="Completed">{t('Completed', 'مكتمل')}</option>
                             <option value="Canceled">{t('Canceled', 'ملغي')}</option>
                         </select>
-                        <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter }); setPage(1); }}>
-                            {t('Apply', 'تطبيق')}
-                        </button>
-                        {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
-                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setStatusFilter('PendingInstallationSupervisorApproval'); setAppliedFilters({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '' }); setPage(1); }}>
-                                {t('Clear', 'مسح')}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter }); setPage(1); }}>
+                                {t('Apply', 'تطبيق')}
                             </button>
-                        )}
+                            {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setStatusFilter('PendingInstallationSupervisorApproval'); setAppliedFilters({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '' }); setPage(1); }}>
+                                    {t('Clear', 'مسح')}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -228,9 +230,9 @@ export default function SupervisorPage() {
                             <tr>
                                 <th>{t('Order', 'الطلب')}</th>
                                 <th>{t('Customer', 'العميل')}</th>
-                                <th>{t('Department', 'القسم')}</th>
+                                <th className="resp-hide">{t('Department', 'القسم')}</th>
                                 <th>{t('Status', 'الحالة')}</th>
-                                <th>{t('Date', 'التاريخ')}</th>
+                                <th className="resp-hide">{t('Date', 'التاريخ')}</th>
                                 <th>{t('Actions', 'الإجراءات')}</th>
                             </tr>
                         </thead>
@@ -251,22 +253,22 @@ export default function SupervisorPage() {
                                             </Link>
                                         </td>
                                         <td>{order.customerName || '—'}<div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city}</div></td>
-                                        <td>{order.departmentName || `#${order.departmentId}`}</td>
+                                        <td className="resp-hide">{order.departmentName || `#${order.departmentId}`}</td>
                                         <td><StatusBadge status={order.status} lang={lang} /></td>
-                                        <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
+                                        <td className="resp-hide" style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                                         <td>
                                             <div className="btn-group">
                                                 {order.status === 'PendingInstallationSupervisorApproval' && (
                                                     <>
-                                                        <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                            {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
+                                                        <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)}>
+                                                            {actionLoading === order.id ? '⏳' : '✅'} <span className="btn-label">{t('Approve', 'اعتماد')}</span>
                                                         </button>
-                                                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => { setRejectModal(order); setRejectReason(''); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                            ↩️ {t('Return', 'إرجاع')}
+                                                        <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => { setRejectModal(order); setRejectReason(''); }}>
+                                                            ↩️ <span className="btn-label">{t('Return', 'إرجاع')}</span>
                                                         </button>
                                                     </>
                                                 )}
-                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
+                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">👁️ <span className="btn-label">{t('View', 'عرض')}</span></Link>
                                             </div>
                                         </td>
                                     </tr>

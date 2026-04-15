@@ -101,7 +101,7 @@ export default function TasksPage() {
             </div>
 
             {/* Stats */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div className="dashboard-stat-grid">
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#3b82f620', color: '#3b82f6' }}>📋</div>
                     <div><div className="stat-value">{stats?.totalTasks ?? tasks.length}</div><div className="stat-label">{t('Total', 'المجموع')}</div></div>
@@ -134,59 +134,59 @@ export default function TasksPage() {
 
             {/* Filters */}
             <div className="card" style={{ marginBottom: 24, padding: '14px 20px' }}>
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1, minWidth: 200 }}>
-                        <input
-                            className="form-input"
-                            placeholder={`🔍 ${t('Search by order, city, address...', 'ابحث بالطلب، المدينة، العنوان...')}`}
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            style={{ width: '100%' }}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div className="dashboard-filters">
+                    <input
+                        className="form-input dashboard-filter-item"
+                        placeholder={`🔍 ${t('Search by order, city, address...', 'ابحث بالطلب، المدينة، العنوان...')}`}
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        style={{ flex: '2 1 180px' }}
+                    />
+                    <div className="dashboard-filter-item" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('Branch', 'الفرع')}</label>
                         <MultiSelect
                             options={branches}
                             value={branchFilter}
                             onChange={ids => { setBranchFilter(ids); setDeptFilter([]); }}
                             placeholder={t('All Branches', 'جميع الفروع')}
-                            style={{ minWidth: 160 }}
+                            style={{ minWidth: 0, width: '100%' }}
                         />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="dashboard-filter-item" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('Department', 'القسم')}</label>
                         <MultiSelect
                             options={deptOptions}
                             value={deptFilter}
                             onChange={setDeptFilter}
                             placeholder={t('All Departments', 'جميع الأقسام')}
-                            style={{ minWidth: 180 }}
+                            style={{ minWidth: 0, width: '100%' }}
                         />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="dashboard-filter-item" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('Status', 'الحالة')}</label>
-                        <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as TaskStatus | '')} style={{ minWidth: 150 }}>
+                        <select className="form-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as TaskStatus | '')}>
                             <option value="">{t('All Statuses', 'جميع الحالات')}</option>
                             {allStatuses.map(s => <option key={s} value={s}>{taskLabel(s)}</option>)}
                         </select>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="dashboard-filter-item dashboard-filter-date" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
-                        <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ minWidth: 150 }} />
+                        <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="dashboard-filter-item dashboard-filter-date" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
-                        <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} />
+                        <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                     </div>
-                    <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo }); setPage(1); }}>
-                        {t('Apply', 'تطبيق')}
-                    </button>
-                    {(appliedFilters.branchFilter.length > 0 || appliedFilters.deptFilter.length > 0 || appliedFilters.dateFrom || appliedFilters.dateTo || branchFilter.length > 0 || deptFilter.length > 0 || statusFilter || search || dateFrom || dateTo) && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setStatusFilter(''); setSearch(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' }); setPage(1); }}>
-                            {t('Clear', 'مسح')}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo }); setPage(1); }}>
+                            {t('Apply', 'تطبيق')}
                         </button>
-                    )}
+                        {(appliedFilters.branchFilter.length > 0 || appliedFilters.deptFilter.length > 0 || appliedFilters.dateFrom || appliedFilters.dateTo || branchFilter.length > 0 || deptFilter.length > 0 || statusFilter || search || dateFrom || dateTo) && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setStatusFilter(''); setSearch(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' }); setPage(1); }}>
+                                {t('Clear', 'مسح')}
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -196,10 +196,10 @@ export default function TasksPage() {
                     <thead>
                         <tr>
                             <th>{t('Order', 'الطلب')}</th>
-                            <th>{t('Location', 'الموقع')}</th>
-                            <th>{t('Priority', 'الأولوية')}</th>
+                            <th className="resp-hide">{t('Location', 'الموقع')}</th>
+                            <th className="resp-hide">{t('Priority', 'الأولوية')}</th>
                             <th>{t('Status', 'الحالة')}</th>
-                            <th>{t('Notes', 'الملاحظات')}</th>
+                            <th className="resp-hide">{t('Notes', 'الملاحظات')}</th>
                             <th>{t('Actions', 'الإجراءات')}</th>
                         </tr>
                     </thead>
@@ -227,11 +227,11 @@ export default function TasksPage() {
                                             ) : '—'}
                                             {task.scheduledDate && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{new Date(task.scheduledDate).toLocaleDateString()}</div>}
                                         </td>
-                                        <td>
+                                        <td className="resp-hide">
                                             <div style={{ fontSize: 13 }}>{task.city || '—'}</div>
                                             {task.address && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{task.address}</div>}
                                         </td>
-                                        <td>
+                                        <td className="resp-hide">
                                             {task.priority ? (
                                                 <span title={task.priority === 'Urgent' ? t('Urgent', 'عاجل') : t('Normal', 'عادي')}>
                                                     {task.priority === 'Urgent' ? '🔴' : '🟢'}
@@ -243,13 +243,13 @@ export default function TasksPage() {
                                                 {taskLabel(task.status)}
                                             </span>
                                         </td>
-                                        <td style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 180 }}>
+                                        <td className="resp-hide" style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 180 }}>
                                             <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                 {task.notes || '—'}
                                             </div>
                                         </td>
                                         <td>
-                                            <Link href={`/tasks/${task.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
+                                            <Link href={`/tasks/${task.id}`} className="btn btn-secondary btn-sm">👁️ <span className="btn-label">{t('View', 'عرض')}</span></Link>
                                         </td>
                                     </tr>
                                 );

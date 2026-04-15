@@ -175,6 +175,8 @@ a {
   margin-inline-start: var(--sidebar-width);
   padding: 32px;
   min-height: 100vh;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 @media (max-width: 768px) {
@@ -182,6 +184,13 @@ a {
     margin-inline-start: 0;
     padding: 16px;
     padding-top: 72px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px;
+    padding-top: 68px;
   }
 }
 
@@ -336,9 +345,10 @@ a {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   z-index: 98;
-  padding: 0 16px;
+  padding: 0 12px;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .mobile-header button {
@@ -375,6 +385,11 @@ a {
 /* ==================== PAGE HEADER ==================== */
 .page-header {
   margin-bottom: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .page-header h1 {
@@ -382,6 +397,7 @@ a {
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  word-break: break-word;
 }
 
 .page-header p {
@@ -442,7 +458,7 @@ a {
 /* Stat Cards */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -594,7 +610,8 @@ a {
 
 .btn-group {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 /* ==================== TABLE ==================== */
@@ -604,6 +621,7 @@ a {
   overflow-x: auto;
   overflow-y: visible;
   background: var(--bg-card);
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-toolbar {
@@ -676,6 +694,33 @@ tbody td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Mobile: make action column compact */
+@media (max-width: 768px) {
+  tbody td:last-child {
+    white-space: normal;
+    overflow: visible;
+  }
+
+  /* Action buttons: compact horizontal row of icon-only buttons */
+  tbody td:last-child .btn-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  tbody td:last-child .btn-group .btn {
+    padding: 4px 8px;
+    font-size: 14px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Hide button text labels on mobile, keep emoji icons */
+  .btn-label {
+    display: none;
+  }
 }
 
 tbody tr {
@@ -990,6 +1035,18 @@ tbody tr:last-child td {
   animation: slideUp var(--transition-base);
 }
 
+@media (max-width: 540px) {
+  .modal-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-height: 90vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -1026,6 +1083,35 @@ tbody tr:last-child td {
   gap: 8px;
   padding: 16px 24px;
   border-top: 1px solid var(--border);
+}
+
+/* Modal radio group — wraps on mobile */
+.modal-radio-group {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.modal-radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .modal-radio-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .modal-header h2 {
+    font-size: 16px;
+    word-break: break-word;
+  }
 }
 
 /* ==================== TIMELINE ==================== */
@@ -1529,7 +1615,13 @@ tbody tr:last-child td {
 
 /* ==================== TABLE CONTAINER OVERFLOW ==================== */
 .table-container table {
-  min-width: 500px;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .table-container table {
+    min-width: 0;
+  }
 }
 
 /* ==================== PAGINATION ==================== */
@@ -1666,6 +1758,71 @@ tbody tr:last-child td {
   gap: 8px;
 }
 
+/* ==================== DASHBOARD FILTERS ==================== */
+.dashboard-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.dashboard-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.dashboard-filter-date {
+  flex: 1 1 130px;
+}
+
+@media (max-width: 640px) {
+  .dashboard-filters {
+    gap: 8px;
+  }
+
+  .dashboard-filter-item {
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  .dashboard-filter-date {
+    flex: 1 1 calc(50% - 4px);
+  }
+}
+
+@media (max-width: 400px) {
+  .dashboard-filter-item {
+    flex: 1 1 100%;
+  }
+
+  .dashboard-filter-date {
+    flex: 1 1 100%;
+  }
+}
+
+.dashboard-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 480px) {
+  .dashboard-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  .dashboard-stat-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
 /* ==================== RESPONSIVE BREAKPOINTS ==================== */
 @media (max-width: 960px) {
   /* Stack two-panel detail layouts */
@@ -1683,6 +1840,8 @@ tbody tr:last-child td {
   /* Page header */
   .page-header {
     margin-bottom: 20px;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .page-header h1 {
@@ -1692,6 +1851,8 @@ tbody tr:last-child td {
   /* Cards */
   .card {
     padding: 16px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
   }
 
   /* Stat value */
@@ -1699,10 +1860,33 @@ tbody tr:last-child td {
     font-size: 22px;
   }
 
+  /* Stat card compact */
+  .stat-card {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
   /* Button groups wrap on mobile */
   .btn-group {
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
+  }
+
+  /* Buttons: bigger touch target */
+  .btn-sm {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
   }
 
   /* Modal footer stacks */
@@ -1717,9 +1901,9 @@ tbody tr:last-child td {
     justify-content: center;
   }
 
-  /* Stat grid 3 → 1 col */
+  /* Stat grid 3 → 2 col */
   .stat-grid-3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   /* Two-col form → 1 col */
@@ -1737,15 +1921,23 @@ tbody tr:last-child td {
     flex-direction: column;
     align-items: stretch;
     text-align: center;
+    padding: 12px 14px;
   }
 
   .pagination-buttons {
     justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .pagination-info {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 
   /* Tabs scroll */
   .tabs {
     gap: 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Shrink tabs on mobile */
@@ -1754,11 +1946,41 @@ tbody tr:last-child td {
     font-size: 13px;
   }
 
-  /* Filter bar: auto-wrap already handled by inline flex-wrap, but
-     ensure inputs don't overflow */
+  /* Filter bar: ensure inputs don't overflow */
   .form-select,
   .form-input {
     min-width: 0;
+    font-size: 14px;
+  }
+
+  /* Card header stack */
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* Table header/cells compact */
+  thead th {
+    padding: 5px 6px;
+    font-size: 10px;
+  }
+
+  tbody td {
+    padding: 6px;
+    font-size: 11px;
+  }
+
+  /* Compact badges on mobile */
+  .badge {
+    padding: 2px 8px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .badge::before {
+    width: 5px;
+    height: 5px;
   }
 }
 
@@ -1771,6 +1993,11 @@ tbody tr:last-child td {
   /* Even smaller header */
   .page-header h1 {
     font-size: 19px;
+  }
+
+  /* Stat grid 3 → 1 col on very small screens */
+  .stat-grid-3 {
+    grid-template-columns: 1fr;
   }
 
   /* Tighten card padding */
@@ -1786,7 +2013,23 @@ tbody tr:last-child td {
   }
 
   .stat-card {
-    padding: 14px 16px;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .stat-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+  }
+
+  /* Return modal radio buttons stack vertically */
+  .modal-body label {
+    font-size: 13px;
   }
 }
 

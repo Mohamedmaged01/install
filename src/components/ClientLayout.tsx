@@ -54,21 +54,21 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
         <div className="layout">
             <div className="mobile-header">
                 <button className="mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-                <span className="mobile-title">⚡ InstallFlow</span>
+                <span className="mobile-title" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>⚡ InstallFlow</span>
                 {/* Language toggle */}
                 <button
                     onClick={toggleLang}
                     title="Toggle Language / تغيير اللغة"
                     style={{
-                        marginInlineStart: 'auto',
                         background: 'var(--bg-tertiary)',
                         border: '1px solid var(--border)',
                         borderRadius: 'var(--radius-md)',
                         color: 'var(--text-primary)',
-                        padding: '4px 10px',
-                        fontSize: 13,
+                        padding: '4px 8px',
+                        fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer',
+                        flexShrink: 0,
                     }}
                 >
                     {lang === 'en' ? '🌐 AR' : '🌐 EN'}
@@ -77,14 +77,15 @@ function ProtectedLayout({ children }: { children: React.ReactNode }) {
                     onClick={toggleTheme}
                     title={lang === 'en' ? 'Toggle Theme' : 'تغيير المظهر'}
                     style={{
-                        marginInlineStart: '8px',
+                        marginInlineStart: '4px',
                         background: 'var(--bg-tertiary)',
                         border: '1px solid var(--border)',
                         borderRadius: 'var(--radius-md)',
                         color: 'var(--text-primary)',
-                        padding: '4px 10px',
-                        fontSize: 13,
+                        padding: '4px 8px',
+                        fontSize: 12,
                         cursor: 'pointer',
+                        flexShrink: 0,
                     }}
                 >
                     {theme === 'dark' ? '☀️' : '🌙'}

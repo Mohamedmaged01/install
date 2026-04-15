@@ -143,19 +143,18 @@ export default function SalesOrdersPage() {
 
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 24, padding: '16px 20px' }}>
-                    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div className="dashboard-filters">
                         <input
-                            className="form-input"
+                            className="form-input dashboard-filter-item"
                             placeholder={`🔍 ${t('Search orders...', 'ابحث عن الأوامر...')}`}
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            style={{ flex: 1, minWidth: 200 }}
+                            style={{ flex: '2 1 180px' }}
                         />
                         <select
-                            className="form-select"
+                            className="form-select dashboard-filter-item"
                             value={branchFilter}
                             onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}
-                            style={{ minWidth: 140 }}
                         >
                             <option value="">{t('All Branches', 'جميع الفروع')}</option>
                             {branches.map(b => (
@@ -163,10 +162,9 @@ export default function SalesOrdersPage() {
                             ))}
                         </select>
                         <select
-                            className="form-select"
+                            className="form-select dashboard-filter-item"
                             value={deptFilter}
                             onChange={e => setDeptFilter(e.target.value ? Number(e.target.value) : '')}
-                            style={{ minWidth: 160 }}
                         >
                             <option value="">{t('All Departments', 'جميع الأقسام')}</option>
                             {departments.map(d => (
@@ -174,44 +172,33 @@ export default function SalesOrdersPage() {
                             ))}
                         </select>
                         <select
-                            className="form-select"
+                            className="form-select dashboard-filter-item"
                             value={statusFilter}
                             onChange={e => setStatusFilter(e.target.value as OrderStatus | '')}
-                            style={{ minWidth: 180 }}
                         >
                             <option value="">{t('All Statuses', 'جميع الحالات')}</option>
                             {allStatuses.map(s => (
                                 <option key={s} value={s}>{getOrderStatusLabel(s, lang)}</option>
                             ))}
                         </select>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <div className="dashboard-filter-item dashboard-filter-date" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
-                            <input
-                                type="date"
-                                className="form-input"
-                                value={dateFrom}
-                                onChange={e => setDateFrom(e.target.value)}
-                                style={{ minWidth: 150 }}
-                            />
+                            <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <div className="dashboard-filter-item dashboard-filter-date" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
-                            <input
-                                type="date"
-                                className="form-input"
-                                value={dateTo}
-                                onChange={e => setDateTo(e.target.value)}
-                                style={{ minWidth: 150 }}
-                            />
+                            <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                         </div>
-                        <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter, dateFrom, dateTo }); setPage(1); }}>
-                            {t('Apply', 'تطبيق')}
-                        </button>
-                        {(appliedFilters.statusFilter || appliedFilters.deptFilter || appliedFilters.branchFilter || appliedFilters.dateFrom || appliedFilters.dateTo || statusFilter || deptFilter || branchFilter || dateFrom || dateTo) && (
-                            <button className="btn btn-secondary btn-sm" onClick={() => { setStatusFilter(''); setDeptFilter(''); setBranchFilter(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '' }); setPage(1); }}>
-                                {t('Clear', 'مسح')}
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter, dateFrom, dateTo }); setPage(1); }}>
+                                {t('Apply', 'تطبيق')}
                             </button>
-                        )}
+                            {(appliedFilters.statusFilter || appliedFilters.deptFilter || appliedFilters.branchFilter || appliedFilters.dateFrom || appliedFilters.dateTo || statusFilter || deptFilter || branchFilter || dateFrom || dateTo) && (
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setStatusFilter(''); setDeptFilter(''); setBranchFilter(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '' }); setPage(1); }}>
+                                    {t('Clear', 'مسح')}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -221,9 +208,9 @@ export default function SalesOrdersPage() {
                         <thead>
                             <tr>
                                 <th>{t('Customer', 'العميل')}</th>
-                                <th>{t('Department', 'القسم')}</th>
+                                <th className="resp-hide">{t('Department', 'القسم')}</th>
                                 <th>{t('Status', 'الحالة')}</th>
-                                <th>{t('Scheduled Date', 'الموعد المناسب للعميل')}</th>
+                                <th className="resp-hide">{t('Scheduled Date', 'الموعد المناسب للعميل')}</th>
                                 <th>{t('Actions', 'الإجراءات')}</th>
                             </tr>
                         </thead>
@@ -253,7 +240,7 @@ export default function SalesOrdersPage() {
                                             <div style={{ fontWeight: 500 }}>{order.customerName || '—'}</div>
                                             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city || ''}</div>
                                         </td>
-                                        <td>
+                                        <td className="resp-hide">
                                             {(order.departmentNames && order.departmentNames.length > 0)
                                                 ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                                                     {order.departmentNames.map((name, i) => (
@@ -264,27 +251,26 @@ export default function SalesOrdersPage() {
                                             }
                                         </td>
                                         <td><StatusBadge status={order.status} lang={lang} /></td>
-                                        <td style={{ fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                        <td className="resp-hide" style={{ fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                             {order.scheduledDate
                                                 ? new Date(order.scheduledDate).toLocaleDateString()
                                                 : new Date(order.createdAt).toLocaleDateString()}
                                         </td>
                                         <td>
                                             <div className="btn-group">
-                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
+                                                <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">👁️ <span className="btn-label">{t('View', 'عرض')}</span></Link>
                                                 {order.status === 'PendingSalesSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
                                                     <button
                                                         className="btn btn-success btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => handleApprove(order)}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                                     >
-                                                        {actionLoading === order.id ? '⏳' : <>✅ {t('Approve', 'اعتماد')}</>}
+                                                        {actionLoading === order.id ? '⏳' : <>✅ <span className="btn-label">{t('Approve', 'اعتماد')}</span></>}
                                                     </button>
                                                 )}
                                                 {order.status === 'PendingInstallationSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR) && (
-                                                    <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                        ✅ {t('Approve & Assign', 'اعتماد وتعيين')}
+                                                    <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm">
+                                                        ✅ <span className="btn-label">{t('Approve & Assign', 'اعتماد وتعيين')}</span>
                                                     </Link>
                                                 )}
                                                 {hasPermission(PERMS.ORDERS_RETURN) && (
@@ -292,13 +278,12 @@ export default function SalesOrdersPage() {
                                                         className="btn btn-warning btn-sm"
                                                         disabled={actionLoading === order.id}
                                                         onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }}
-                                                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                                                     >
-                                                        ↩️ {t('Return', 'إرجاع')}
+                                                        ↩️ <span className="btn-label">{t('Return', 'إرجاع')}</span>
                                                     </button>
                                                 )}
                                                 {hasPermission(PERMS.ORDERS_DELETE) && (
-                                                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
+                                                    <button className="btn btn-danger btn-sm" onClick={() => handleDeleteOrder(order.id, order.orderNumber || `#${order.id}`)}>🗑️ <span className="btn-label">{t('Delete', 'حذف')}</span></button>
                                                 )}
                                             </div>
                                         </td>
@@ -332,23 +317,23 @@ export default function SalesOrdersPage() {
                                 {t('Returning order', 'إرجاع الطلب')} <strong>{returnModal.orderNumber || `#${returnModal.id}`}</strong>
                             </p>
                             {returnModal?.status === 'PendingInstallationSupervisorApproval' ? (
-                                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                <div className="modal-radio-group">
+                                    <label>
                                         <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
                                         {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
                                     </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                    <label>
                                         <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
                                         {t('Return to Sales Supervisor', 'إرجاع إلى مشرف المبيعات')}
                                     </label>
                                 </div>
                             ) : returnModal?.status !== 'PendingSalesSupervisorApproval' ? (
-                                <div style={{ display: 'flex', gap: 16, marginBottom: 12 }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                <div className="modal-radio-group">
+                                    <label>
                                         <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
                                         {t('Return to Draft', 'إرجاع إلى مسودة')}
                                     </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                                    <label>
                                         <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
                                         {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
                                     </label>

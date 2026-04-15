@@ -175,48 +175,50 @@ export default function DashboardPage() {
 
       {/* Filters */}
       <div className="card" style={{ marginBottom: 24, padding: '14px 20px' }}>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <div className="dashboard-filters">
+          <div className="dashboard-filter-item">
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('Branch', 'الفرع')}</label>
             <MultiSelect
               options={branches}
               value={branchFilter}
               onChange={ids => { setBranchFilter(ids); setDeptFilter([]); }}
               placeholder={t('All Branches', 'جميع الفروع')}
-              style={{ minWidth: 160 }}
+              style={{ minWidth: 0, width: '100%' }}
             />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div className="dashboard-filter-item">
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('Department', 'القسم')}</label>
             <MultiSelect
               options={deptOptions}
               value={deptFilter}
               onChange={setDeptFilter}
               placeholder={t('All Departments', 'جميع الأقسام')}
-              style={{ minWidth: 180 }}
+              style={{ minWidth: 0, width: '100%' }}
             />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div className="dashboard-filter-item dashboard-filter-date">
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('From', 'من')}</label>
-            <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ minWidth: 150 }} />
+            <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div className="dashboard-filter-item dashboard-filter-date">
             <label style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>{t('To', 'إلى')}</label>
-            <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ minWidth: 150 }} />
+            <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           </div>
-          <button className="btn btn-primary btn-sm" onClick={() => setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo })}>
-            {t('Apply', 'تطبيق')}
-          </button>
-          {(appliedFilters.branchFilter.length > 0 || appliedFilters.deptFilter.length > 0 || appliedFilters.dateFrom || appliedFilters.dateTo || branchFilter.length > 0 || deptFilter.length > 0 || dateFrom || dateTo) && (
-            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' }); }}>
-              {t('Clear', 'مسح')}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo })}>
+              {t('Apply', 'تطبيق')}
             </button>
-          )}
+            {(appliedFilters.branchFilter.length > 0 || appliedFilters.deptFilter.length > 0 || appliedFilters.dateFrom || appliedFilters.dateTo || branchFilter.length > 0 || deptFilter.length > 0 || dateFrom || dateTo) && (
+              <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' }); }}>
+                {t('Clear', 'مسح')}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 24 }}>
+      <div className="dashboard-stat-grid">
         {statCards.map(card => (
           <div key={card.label} className="stat-card">
             <div className="stat-icon" style={{ background: `${card.color}20`, color: card.color }}>
@@ -232,7 +234,7 @@ export default function DashboardPage() {
 
       {/* Charts */}
       {totalOrders > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20, marginBottom: 24 }}>
+        <div className="grid-2" style={{ gap: 20, marginBottom: 24 }}>
           {/* Donut chart */}
           <div className="card" style={{ padding: '20px 16px' }}>
             <div className="card-title" style={{ marginBottom: 16 }}>{t('Order Status Breakdown', 'توزيع حالات الأوامر')}</div>
@@ -293,9 +295,9 @@ export default function DashboardPage() {
               <tr>
                 <th>{t('Order', 'الطلب')}</th>
                 <th>{t('Customer', 'العميل')}</th>
-                <th>{t('Department', 'القسم')}</th>
+                <th className="resp-hide">{t('Department', 'القسم')}</th>
                 <th>{t('Status', 'الحالة')}</th>
-                <th>{t('Date', 'التاريخ')}</th>
+                <th className="resp-hide">{t('Date', 'التاريخ')}</th>
                 <th>{t('Actions', 'الإجراءات')}</th>
               </tr>
             </thead>
@@ -321,29 +323,29 @@ export default function DashboardPage() {
                       <div style={{ fontWeight: 500 }}>{order.customerName || '—'}</div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{order.city || ''}</div>
                     </td>
-                    <td>
+                    <td className="resp-hide">
                       <span style={{ fontSize: 12 }}>{order.departmentName || `Dept #${order.departmentId}`}</span>
                     </td>
                     <td><StatusBadge status={order.status} lang={lang} /></td>
-                    <td style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
+                    <td className="resp-hide" style={{ fontSize: 13, color: 'var(--text-muted)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
                     <td>
                       <div className="btn-group">
-                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>👁️ {t('View', 'عرض')}</Link>
+                        <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">👁️ <span className="btn-label">{t('View', 'عرض')}</span></Link>
                         {order.status === 'PendingSalesSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
-                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {actionLoading === order.id ? '⏳' : '✅'} {t('Approve', 'اعتماد')}
+                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApprove(order)}>
+                            {actionLoading === order.id ? '⏳' : '✅'} <span className="btn-label">{t('Approve', 'اعتماد')}</span>
                           </button>
                         )}
                         {order.status === 'PendingInstallationSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR) && (
-                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>✅ {t('Approve & Assign', 'اعتماد وتعيين')}</Link>
+                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm">✅ <span className="btn-label">{t('Approve & Assign', 'اعتماد وتعيين')}</span></Link>
                         )}
                         {hasPermission(PERMS.ORDERS_RETURN) && (
-                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            ↩️ {t('Return', 'إرجاع')}
+                          <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }}>
+                            ↩️ <span className="btn-label">{t('Return', 'إرجاع')}</span>
                           </button>
                         )}
                         {hasPermission(PERMS.ORDERS_DELETE) && (
-                          <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => handleDeleteOrder(order)} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>🗑️ {t('Delete', 'حذف')}</button>
+                          <button className="btn btn-danger btn-sm" disabled={actionLoading === order.id} onClick={() => handleDeleteOrder(order)}>🗑️ <span className="btn-label">{t('Delete', 'حذف')}</span></button>
                         )}
                       </div>
                     </td>
@@ -368,23 +370,23 @@ export default function DashboardPage() {
                 {t('Returning order', 'إرجاع الطلب')} <strong>{returnModal.orderNumber || `#${returnModal.id}`}</strong>
               </p>
               {returnModal?.status === 'PendingInstallationSupervisorApproval' ? (
-                <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                <div className="modal-radio-group">
+                  <label>
                     <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
                     {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                  <label>
                     <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
                     {t('Return to Sales Supervisor', 'إرجاع إلى مشرف المبيعات')}
                   </label>
                 </div>
               ) : returnModal?.status !== 'PendingSalesSupervisorApproval' ? (
-                <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                <div className="modal-radio-group">
+                  <label>
                     <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
                     {t('Return to Draft', 'إرجاع إلى مسودة')}
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
+                  <label>
                     <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
                     {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
                   </label>

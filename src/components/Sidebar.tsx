@@ -84,9 +84,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const filteredQuick = useMemo(() => quickItems.filter(i => i.show), [quickItems]);
 
     return (
+        <>
+        <div className={`sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onClose} />
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-            <div className={`sidebar-overlay${isOpen ? ' open' : ''}`} onClick={onClose} />
-
             <div className="sidebar-brand">
                 <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <img src="/logo.jpeg" alt="Logo" style={{ maxWidth: '100%', maxHeight: 64, objectFit: 'contain' }} />
@@ -232,5 +232,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
             </div>
         </aside>
+        </>
     );
 }
