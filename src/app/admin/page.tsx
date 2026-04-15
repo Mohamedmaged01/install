@@ -740,10 +740,7 @@ export default function AdminPage() {
                                                         return (
                                                             <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: checked ? 'rgba(16,185,129,0.1)' : 'var(--bg-tertiary)', border: `1px solid ${checked ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, transition: 'all 150ms' }}>
                                                                 <input type="checkbox" checked={checked} onChange={() => setRolePerms(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{ accentColor: '#10b981' }} />
-                                                                <div>
-                                                                    <div style={{ fontWeight: checked ? 600 : 400 }}>{shortName}</div>
-                                                                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.name}</div>
-                                                                </div>
+                                                                <div style={{ fontWeight: checked ? 600 : 400 }}>{shortName}</div>
                                                             </label>
                                                         );
                                                     })}
@@ -1035,10 +1032,7 @@ export default function AdminPage() {
                                             return (
                                                 <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: checked ? 'rgba(99,102,241,0.1)' : 'var(--bg-tertiary)', border: `1px solid ${checked ? 'rgba(99,102,241,0.35)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, transition: 'all 150ms' }}>
                                                     <input type="checkbox" checked={checked} onChange={() => setRolePerms(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{ accentColor: '#6366f1' }} />
-                                                    <div>
-                                                        <div style={{ fontWeight: checked ? 600 : 400 }}>{shortName}</div>
-                                                        <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{p.name}</div>
-                                                    </div>
+                                                    <div style={{ fontWeight: checked ? 600 : 400 }}>{shortName}</div>
                                                 </label>
                                             );
                                         })}
