@@ -30,7 +30,7 @@ export default function SalesOrdersPage() {
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: OrderStatus | ''; deptFilter: number | ''; branchFilter: number | ''; dateFrom: string; dateTo: string }>({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '' });
+    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: OrderStatus | ''; deptFilter: number | ''; branchFilter: number | ''; dateFrom: string; dateTo: string; code: string }>({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '', code: '' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -61,6 +61,7 @@ export default function SalesOrdersPage() {
                     status: appliedFilters.statusFilter || undefined,
                     dateFrom: appliedFilters.dateFrom || undefined,
                     dateTo: appliedFilters.dateTo || undefined,
+                    code: appliedFilters.code || undefined,
                 });
                 setOrders(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -114,19 +115,6 @@ export default function SalesOrdersPage() {
             setActionLoading(null);
         }
     };
-
-    const filtered = orders.filter(o => {
-        if (!search) return true;
-        const q = search.toLowerCase();
-        return (
-            (o.orderNumber || '').toLowerCase().includes(q) ||
-            (o.customerName || '').toLowerCase().includes(q) ||
-            (o.customerId || '').toLowerCase().includes(q) ||
-            (o.city || '').toLowerCase().includes(q) ||
-            (o.invoiceId || '').toLowerCase().includes(q) ||
-            (o.quotationId || '').toLowerCase().includes(q)
-        );
-    });
 
     return (
         <PermissionGuard requiredPerms={[PERMS.ORDERS_VIEW_BRANCH, PERMS.ORDERS_VIEW_ALL, PERMS.ORDERS_CREATE]}>
@@ -190,11 +178,11 @@ export default function SalesOrdersPage() {
                             <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter, dateFrom, dateTo }); setPage(1); }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter, dateFrom, dateTo, code: search }); setPage(1); }}>
                                 {t('Apply', 'تطبيق')}
                             </button>
-                            {(appliedFilters.statusFilter || appliedFilters.deptFilter || appliedFilters.branchFilter || appliedFilters.dateFrom || appliedFilters.dateTo || statusFilter || deptFilter || branchFilter || dateFrom || dateTo) && (
-                                <button className="btn btn-secondary btn-sm" onClick={() => { setStatusFilter(''); setDeptFilter(''); setBranchFilter(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '' }); setPage(1); }}>
+                            {(appliedFilters.statusFilter || appliedFilters.deptFilter || appliedFilters.branchFilter || appliedFilters.dateFrom || appliedFilters.dateTo || appliedFilters.code || statusFilter || deptFilter || branchFilter || dateFrom || dateTo || search) && (
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setStatusFilter(''); setDeptFilter(''); setBranchFilter(''); setDateFrom(''); setDateTo(''); setSearch(''); setAppliedFilters({ statusFilter: '', deptFilter: '', branchFilter: '', dateFrom: '', dateTo: '', code: '' }); setPage(1); }}>
                                     {t('Clear', 'مسح')}
                                 </button>
                             )}
@@ -221,20 +209,20 @@ export default function SalesOrdersPage() {
                                         {t('Loading orders...', 'جارٍ تحميل الأوامر...')}
                                     </td>
                                 </tr>
-                            ) : filtered.length === 0 ? (
+                            ) : orders.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} style={{ textAlign: 'center', padding: 48 }}>
                                         <div style={{ fontSize: 40, marginBottom: 8 }}>📭</div>
                                         <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('No orders found', 'لا توجد أوامر')}</div>
                                         <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                                            {search || statusFilter || deptFilter
+                                            {appliedFilters.code || appliedFilters.statusFilter || appliedFilters.deptFilter
                                                 ? t('Try adjusting your filters', 'حاول تعديل الفلاتر')
                                                 : t('Create your first order to get started', 'أنشئ أول طلب للبدء')}
                                         </div>
                                     </td>
                                 </tr>
                             ) : (
-                                filtered.slice((page - 1) * pageSize, page * pageSize).map(order => (
+                                orders.slice((page - 1) * pageSize, page * pageSize).map(order => (
                                     <tr key={order.id}>
                                         <td>
                                             <div style={{ fontWeight: 500 }}>{order.customerName || '—'}</div>
@@ -293,10 +281,10 @@ export default function SalesOrdersPage() {
                         </tbody>
                     </table>
                 </div>
-                {filtered.length > 0 && (
+                {orders.length > 0 && (
                     <Pagination
                         currentPage={page}
-                        totalItems={filtered.length}
+                        totalItems={orders.length}
                         pageSize={pageSize}
                         onPageChange={setPage}
                         onPageSizeChange={setPageSize}

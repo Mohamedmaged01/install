@@ -154,8 +154,8 @@ export default function NewOrderPage() {
     const selectedDoc = docType === 'invoice' ? selectedInvoice : selectedOffer;
 
     useEffect(() => {
-        if (selectedDoc?.customer?.code) {
-            setCustomerId(selectedDoc.customer.code);
+        if (selectedDoc?.customer) {
+            setCustomerId(selectedDoc.customer.phone || '');
         }
     }, [selectedDoc]);
 

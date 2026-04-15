@@ -423,6 +423,7 @@ export async function getOrders(params?: {
     status?: OrderStatus;
     dateFrom?: string;
     dateTo?: string;
+    code?: string;
 }): Promise<Order[]> {
     const raw = await api<unknown>('/api/Orders', { params: params as Record<string, string | number> });
     const list: any[] = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.data) ? (raw as any).data : []);

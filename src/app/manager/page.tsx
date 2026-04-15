@@ -24,7 +24,8 @@ export default function ManagerPage() {
     const [rejectReason, setRejectReason] = useState('');
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
-    const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number | ''; deptFilter: number | '' }>({ branchFilter: '', deptFilter: '' });
+    const [codeFilter, setCodeFilter] = useState('');
+    const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number | ''; deptFilter: number | ''; code: string }>({ branchFilter: '', deptFilter: '', code: '' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
@@ -39,6 +40,7 @@ export default function ManagerPage() {
         const params: Record<string, unknown> = { status: 'PendingSalesSupervisorApproval' };
         if (appliedFilters.branchFilter) params.branchId = appliedFilters.branchFilter;
         if (appliedFilters.deptFilter) params.departmentId = appliedFilters.deptFilter;
+        if (appliedFilters.code) params.code = appliedFilters.code;
         getOrders(params as Parameters<typeof getOrders>[0])
             .then(data => setOrders(Array.isArray(data) ? data : []))
             .catch(err => console.error('Failed to load pending orders:', err))
@@ -101,6 +103,12 @@ export default function ManagerPage() {
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 20, padding: '12px 16px' }}>
                     <div className="dashboard-filters">
+                        <input
+                            className="form-input dashboard-filter-item"
+                            placeholder={`🔍 ${t('Search by code...', 'البحث بالكود...')}`}
+                            value={codeFilter}
+                            onChange={e => setCodeFilter(e.target.value)}
+                        />
                         <select className="form-select dashboard-filter-item" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}>
                             <option value="">{t('All Branches', 'جميع الفروع')}</option>
                             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -110,11 +118,11 @@ export default function ManagerPage() {
                             {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter }); setPage(1); }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter, code: codeFilter }); setPage(1); }}>
                                 {t('Apply', 'تطبيق')}
                             </button>
-                            {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
-                                <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setAppliedFilters({ branchFilter: '', deptFilter: '' }); setPage(1); }}>
+                            {(appliedFilters.branchFilter || appliedFilters.deptFilter || appliedFilters.code || branchFilter || deptFilter || codeFilter) && (
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setCodeFilter(''); setAppliedFilters({ branchFilter: '', deptFilter: '', code: '' }); setPage(1); }}>
                                     {t('Clear', 'مسح')}
                                 </button>
                             )}

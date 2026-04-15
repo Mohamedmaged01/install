@@ -29,7 +29,8 @@ export default function SupervisorPage() {
     const [statusFilter, setStatusFilter] = useState<string>('PendingInstallationSupervisorApproval');
     const [deptFilter, setDeptFilter] = useState<number | ''>('');
     const [branchFilter, setBranchFilter] = useState<number | ''>('');
-    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: string; deptFilter: number | ''; branchFilter: number | '' }>({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '' });
+    const [codeFilter, setCodeFilter] = useState('');
+    const [appliedFilters, setAppliedFilters] = useState<{ statusFilter: string; deptFilter: number | ''; branchFilter: number | ''; code: string }>({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '', code: '' });
     const [rejectModal, setRejectModal] = useState<Order | null>(null);
     const [rejectReason, setRejectReason] = useState('');
     const [page, setPage] = useState(1);
@@ -56,6 +57,7 @@ export default function SupervisorPage() {
                 if (appliedFilters.statusFilter) params.status = appliedFilters.statusFilter;
                 if (appliedFilters.deptFilter) params.departmentId = appliedFilters.deptFilter;
                 if (appliedFilters.branchFilter) params.branchId = appliedFilters.branchFilter;
+                if (appliedFilters.code) params.code = appliedFilters.code;
                 const data = await getOrders(params as Parameters<typeof getOrders>[0]);
                 setOrders(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -194,6 +196,12 @@ export default function SupervisorPage() {
                 {/* Filters */}
                 <div className="card" style={{ marginBottom: 20, padding: '12px 16px' }}>
                     <div className="dashboard-filters">
+                        <input
+                            className="form-input dashboard-filter-item"
+                            placeholder={`🔍 ${t('Search by code...', 'البحث بالكود...')}`}
+                            value={codeFilter}
+                            onChange={e => setCodeFilter(e.target.value)}
+                        />
                         <select className="form-select dashboard-filter-item" value={branchFilter} onChange={e => setBranchFilter(e.target.value ? Number(e.target.value) : '')}>
                             <option value="">{t('All Branches', 'جميع الفروع')}</option>
                             {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
@@ -211,11 +219,11 @@ export default function SupervisorPage() {
                             <option value="Canceled">{t('Canceled', 'ملغي')}</option>
                         </select>
                         <div style={{ display: 'flex', gap: 8 }}>
-                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter }); setPage(1); }}>
+                            <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ statusFilter, deptFilter, branchFilter, code: codeFilter }); setPage(1); }}>
                                 {t('Apply', 'تطبيق')}
                             </button>
-                            {(appliedFilters.branchFilter || appliedFilters.deptFilter || branchFilter || deptFilter) && (
-                                <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setStatusFilter('PendingInstallationSupervisorApproval'); setAppliedFilters({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '' }); setPage(1); }}>
+                            {(appliedFilters.branchFilter || appliedFilters.deptFilter || appliedFilters.code || branchFilter || deptFilter || codeFilter) && (
+                                <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter(''); setDeptFilter(''); setStatusFilter('PendingInstallationSupervisorApproval'); setCodeFilter(''); setAppliedFilters({ statusFilter: 'PendingInstallationSupervisorApproval', deptFilter: '', branchFilter: '', code: '' }); setPage(1); }}>
                                     {t('Clear', 'مسح')}
                                 </button>
                             )}
