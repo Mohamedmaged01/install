@@ -239,7 +239,6 @@ export default function AdminPage() {
     const openAssignUser = async (role: Role) => {
         setAssignUserRole(role);
         setAssignSearch('');
-        setAppliedAssignSearch('');
         try {
             const all = await getDepartmentUsers(undefined, undefined, { pageSize: 200 });
             setAllUsersForAssign(all);
