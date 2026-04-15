@@ -27,7 +27,12 @@ function LoginForm() {
             loginUser(authUser);
             router.push('/');
         } catch (err: unknown) {
-            toast.error(err instanceof Error ? err.message : 'Login failed. Please check your credentials.');
+            const msg = err instanceof Error ? err.message : '';
+            if (msg.startsWith('Access denied (403)')) {
+                toast.error('هذا الحساب غير نشط');
+            } else {
+                toast.error(msg || 'Login failed. Please check your credentials.');
+            }
         } finally {
             setLoading(false);
         }
