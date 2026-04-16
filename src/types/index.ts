@@ -110,6 +110,10 @@ export interface Department {
     name: string;
     branchId: number;
     branchName?: string;
+    salesSupervisiorId?: number;
+    salesSupervisiorName?: string;
+    installationSupervisiorId?: number;
+    installationSupervisiorName?: string;
 }
 
 export interface DepartmentUser {
@@ -215,7 +219,9 @@ export interface Order {
     createdById?: number;
     salesRepresentative?: string;
     salesManager?: string;
+    salesApprovalDate?: string;
     supervisor?: string;
+    installationApprovalDate?: string;
     notes?: string;
     location?: string;
     // Nested data from GET /api/Orders/{id}

@@ -160,7 +160,7 @@ export default function OrderDetailPage() {
             setUploadFiles([]);
             setUploadNote('');
             if (fileInputRef.current) fileInputRef.current.value = '';
-            toast.success( t('Evidence uploaded!', 'تم رفع الدليل!'));
+            toast.success( t('Evidence uploaded!', 'تم رفع المرفق!'));
         } catch (err) {
             toast.error( err instanceof Error ? err.message : t('Upload failed', 'فشل الرفع'));
         } finally {
@@ -176,7 +176,7 @@ export default function OrderDetailPage() {
             setEvidence(Array.isArray(ev) ? ev : []);
             setEditingEvidenceId(null);
             setEditingEvidenceImage(null);
-            toast.success(t('Evidence updated!', 'تم تحديث الدليل!'));
+            toast.success(t('Evidence updated!', 'تم تحديث المرفق!'));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('Update failed', 'فشل التحديث'));
         } finally {
@@ -185,12 +185,12 @@ export default function OrderDetailPage() {
     };
 
     const handleDeleteEvidence = async (evidenceId: number) => {
-        if (!confirm(t('Delete this evidence?', 'حذف هذا الدليل؟'))) return;
+        if (!confirm(t('Delete this evidence?', 'حذف هذا المرفق؟'))) return;
         setEvidenceActionLoading(true);
         try {
             await deleteEvidence(evidenceId);
             setEvidence(prev => prev.filter(e => e.id !== evidenceId));
-            toast.success(t('Evidence deleted!', 'تم حذف الدليل!'));
+            toast.success(t('Evidence deleted!', 'تم حذف المرفق!'));
         } catch (err) {
             toast.error(err instanceof Error ? err.message : t('Delete failed', 'فشل الحذف'));
         } finally {
@@ -348,9 +348,13 @@ export default function OrderDetailPage() {
 
     const handleReturn = async () => {
         if (!order) return;
+        if (!returnReason.trim()) {
+            toast.error(t('Return reason is required.', 'الملاحظة مطلوبة.'));
+            return;
+        }
         setReturnLoading(true);
         try {
-            await rejectOrder(order.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'), returnToRep);
+            await rejectOrder(order.id, returnReason.trim(), returnToRep);
             toast.success(t('Order returned successfully.', 'تم إرجاع الطلب بنجاح.'));
             setShowReturnModal(false);
             setReturnReason('');
@@ -480,7 +484,7 @@ export default function OrderDetailPage() {
                                 quotationId: order.quotationId || '',
                                 invoiceId: order.invoiceId || '',
                                 customerId: order.customerId || '',
-                                salesApprovalDate: (order as any).salesApprovalDate || '',
+                                salesApprovalDate: order.salesApprovalDate || '',
                                 priority: order.priority,
                                 branchIds,
                                 departmentId: order.departmentId,
@@ -655,7 +659,7 @@ export default function OrderDetailPage() {
                             {/* Upload Section */}
                             {hasPermission(PERMS.EVIDENCE_UPLOAD) && (
                             <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>⬆️ {t('Upload Evidence', 'رفع دليل')}</div>
+                                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>⬆️ {t('Upload Evidence', 'رفع مرفق')}</div>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -767,7 +771,7 @@ export default function OrderDetailPage() {
                                     })}
                                 </div>
                             ) : (
-                                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No evidence uploaded yet.', 'لم يتم رفع أي دليل بعد.')}</p>
+                                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No evidence uploaded yet.', 'لم يتم رفع أي مرفق بعد.')}</p>
                             )}
                         </div>
                     )}
@@ -881,8 +885,20 @@ export default function OrderDetailPage() {
                             ) : null}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Scheduled', ' الموعد المناسب للعميل')}:</span> {order.scheduledDate ? new Date(order.scheduledDate).toLocaleDateString() : '—'}</div>
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Created by', 'أُنشئ بواسطة')}:</span> {order.salesRepresentative || order.createdByName || '—'}</div>
-                            {order.salesManager && <div><span style={{ color: 'var(--text-muted)' }}>{t('Sales Manager', 'مدير المبيعات')}:</span> {order.salesManager}</div>}
-                            {order.supervisor && <div><span style={{ color: 'var(--text-muted)' }}>{t('Supervisor', 'المشرف')}:</span> {order.supervisor}</div>}
+                            {order.salesManager && (
+                                <div>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Sales Supervisor Approval', 'موافقة مشرف المبيعات')}:</span>{' '}
+                                    <span style={{ color: 'var(--success)', fontWeight: 500 }}>✔ {order.salesManager}</span>
+                                    {order.salesApprovalDate && <span style={{ color: 'var(--text-muted)', fontSize: 12, marginInlineStart: 6 }}>{new Date(order.salesApprovalDate).toLocaleDateString()}</span>}
+                                </div>
+                            )}
+                            {order.supervisor && (
+                                <div>
+                                    <span style={{ color: 'var(--text-muted)' }}>{t('Installation Supervisor Approval', 'موافقة مشرف التركيبات')}:</span>{' '}
+                                    <span style={{ color: 'var(--success)', fontWeight: 500 }}>✔ {order.supervisor}</span>
+                                    {order.installationApprovalDate && <span style={{ color: 'var(--text-muted)', fontSize: 12, marginInlineStart: 6 }}>{new Date(order.installationApprovalDate).toLocaleDateString()}</span>}
+                                </div>
+                            )}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Status', 'الحالة')}:</span> <StatusBadge status={order.status} lang={lang} /></div>
                             {order.notes && (
                                 <div style={{ marginTop: 4, padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
@@ -1104,29 +1120,37 @@ export default function OrderDetailPage() {
                             <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
                                 {t('Returning order', 'إرجاع الطلب')} <strong>{order?.orderNumber || `#${order?.id}`}</strong>
                             </p>
-                            {order?.status === 'PendingInstallationSupervisorApproval' ? (
-                                <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                                        <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
-                                        {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                                        <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
-                                        {t('Return to Sales Supervisor', 'إرجاع إلى مشرف المبيعات')}
-                                    </label>
+                            <div className="form-group" style={{ marginBottom: 14 }}>
+                                <label className="form-label">{t('Return to', 'إرجاع إلى')}</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 6 }}>
+                                    {order?.status === 'PendingSalesSupervisorApproval' && (
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                                            <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                                            {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                                        </label>
+                                    )}
+                                    {order?.status === 'PendingInstallationSupervisorApproval' && (<>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                                            <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
+                                            {t('Return to Sales Supervisor', 'إرجاع إلى مشرف المبيعات')}
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                                            <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                                            {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                                        </label>
+                                    </>)}
+                                    {order?.status !== 'PendingSalesSupervisorApproval' && order?.status !== 'PendingInstallationSupervisorApproval' && (<>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                                            <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
+                                            {t('Return to Previous Step', 'إرجاع إلى الخطوة السابقة')}
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                                            <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
+                                            {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
+                                        </label>
+                                    </>)}
                                 </div>
-                            ) : order?.status !== 'PendingSalesSupervisorApproval' ? (
-                                <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                                        <input type="radio" checked={!returnToRep} onChange={() => setReturnToRep(false)} />
-                                        {t('Return to Draft', 'إرجاع إلى مسودة')}
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 14 }}>
-                                        <input type="radio" checked={returnToRep} onChange={() => setReturnToRep(true)} />
-                                        {t('Return to Sales Rep', 'إرجاع إلى مندوب المبيعات')}
-                                    </label>
-                                </div>
-                            ) : null}
+                            </div>
                             <div className="form-group">
                                 <label className="form-label">{t('Return Reason', 'سبب الإرجاع')}</label>
                                 <textarea
@@ -1139,7 +1163,7 @@ export default function OrderDetailPage() {
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-secondary" onClick={() => setShowReturnModal(false)}>{t('Cancel', 'إلغاء')}</button>
-                            <button className="btn btn-warning" disabled={returnLoading} onClick={handleReturn}>
+                            <button className="btn btn-warning" disabled={returnLoading || !returnReason.trim()} onClick={handleReturn}>
                                 {returnLoading ? `⏳ ${t('Returning...', 'جارٍ الإرجاع...')}` : `↩️ ${t('Confirm Return', 'تأكيد الإرجاع')}`}
                             </button>
                         </div>

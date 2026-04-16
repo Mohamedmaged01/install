@@ -5,6 +5,7 @@ import ClientLayout from "@/components/ClientLayout";
 export const metadata: Metadata = {
   title: "InstallFlow — Installation Order Management",
   description: "Manage installation orders, approvals, assignments, and QR verification across departments.",
+  icons: { icon: '/layer3.png' },
 };
 
 export default function RootLayout({

@@ -214,6 +214,10 @@ function normalizeDepartment(d: any): Department {
         name: d.name ?? d.Name ?? '',
         branchId: d.branchId ?? d.BranchId ?? 0,
         branchName: d.branchName ?? d.BranchName,
+        salesSupervisiorId: d.salesSupervisiorId ?? d.SalesSupervisiorId ?? d.salesSupervisorId ?? d.SalesSupervisorId,
+        salesSupervisiorName: d.salesSupervisiorName ?? d.SalesSupervisiorName ?? d.salesSupervisorName ?? d.SalesSupervisorName,
+        installationSupervisiorId: d.installationSupervisiorId ?? d.InstallationSupervisiorId ?? d.installationSupervisorId ?? d.InstallationSupervisorId,
+        installationSupervisiorName: d.installationSupervisiorName ?? d.InstallationSupervisiorName ?? d.installationSupervisorName ?? d.InstallationSupervisorName,
     };
 }
 
@@ -289,9 +293,11 @@ export async function createDepartmentUser(formData: FormData): Promise<Departme
     });
 }
 
-export async function updateDepartment(id: number, dto: { name: string; branchId?: number }): Promise<Department> {
+export async function updateDepartment(id: number, dto: { name: string; branchId?: number; salesSupervisiorId?: number; installationSupervisiorId?: number }): Promise<Department> {
     const body: Record<string, string | number | undefined | null> = { Name: dto.name };
     if (dto.branchId) body.BranchId = dto.branchId;
+    if (dto.salesSupervisiorId !== undefined) body.SalesSupervisiorId = dto.salesSupervisiorId;
+    if (dto.installationSupervisiorId !== undefined) body.InstallationSupervisiorId = dto.installationSupervisiorId;
     return api<Department>(`/api/Departments/${id}`, { method: 'PUT', body });
 }
 
@@ -386,7 +392,9 @@ function normalizeOrder(o: any): Order {
         createdById: o.createdById ?? o.CreatedById,
         salesRepresentative: o.salesRepresentative ?? o.SalesRepresentative,
         salesManager: o.salesManager ?? o.SalesManager ?? o.salesManger ?? o.SalesManger,
+        salesApprovalDate: o.salesApprovalDate ?? o.SalesApprovalDate,
         supervisor: o.supervisor ?? o.Supervisor ?? o.supervisior ?? o.Supervisior,
+        installationApprovalDate: o.installationApprovalDate ?? o.InstallationApprovalDate,
         notes: o.notes ?? o.Notes,
         location: o.location ?? o.Location,
         tasks: o.tasks ?? o.Tasks,
@@ -542,23 +550,32 @@ export async function uploadEvidence(orderId: number, images: File[], note?: str
     });
 }
 
+function mapNote(n: any): OrderNote {
+    return {
+        id: n.id ?? n.Id ?? n.noteId ?? n.NoteId,
+        orderId: n.orderId ?? n.OrderId,
+        note: n.note ?? n.Note ?? '',
+        createdAt: n.createdAt ?? n.CreatedAt ?? '',
+        createdByName: n.createdByName ?? n.CreatedByName,
+    };
+}
+
 export async function getOrderNotes(orderId: number): Promise<OrderNote[]> {
     try {
         const raw = await api<unknown>(`/api/Notes/${orderId}`);
-        if (Array.isArray(raw)) return raw as OrderNote[];
-        const obj = raw as Record<string, unknown>;
-        if (obj && Array.isArray(obj.data)) return obj.data as OrderNote[];
-        return [];
+        const list: any[] = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.data) ? (raw as any).data : []);
+        return list.map(mapNote);
     } catch {
         return [];
     }
 }
 
 export async function addOrderNote(orderId: number, note: string): Promise<OrderNote> {
-    return api<OrderNote>(`/api/Notes/${orderId}`, {
+    const raw = await api<any>(`/api/Notes/${orderId}`, {
         method: 'POST',
         body: { note },
     });
+    return mapNote(raw);
 }
 
 export async function updateOrderNote(id: number, note: string): Promise<OrderNote> {

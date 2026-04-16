@@ -37,7 +37,14 @@ export default function AdminPage() {
     const [newBranch, setNewBranch] = useState({ name: '', email: '', phone: '' });
     const [newDept, setNewDept] = useState({ branchId: 0, name: '', salesSupervisiorId: 0, installationSupervisiorId: 0 });
     const [editBranch, setEditBranch] = useState<{ id: number; name: string; email: string; phone: string } | null>(null);
-    const [editDept, setEditDept] = useState<{ id: number; name: string; branchId: number } | null>(null);
+    const [editDept, setEditDept] = useState<{ id: number; name: string; branchId: number; salesSupervisiorId: number; salesSupervisiorName: string; installationSupervisiorId: number; installationSupervisiorName: string } | null>(null);
+    const [showEditDeptModal, setShowEditDeptModal] = useState(false);
+    const [editSalesSupSearch, setEditSalesSupSearch] = useState('');
+    const [editSalesSupResults, setEditSalesSupResults] = useState<DepartmentUser[]>([]);
+    const [editSalesSupLoading, setEditSalesSupLoading] = useState(false);
+    const [editInstSupSearch, setEditInstSupSearch] = useState('');
+    const [editInstSupResults, setEditInstSupResults] = useState<DepartmentUser[]>([]);
+    const [editInstSupLoading, setEditInstSupLoading] = useState(false);
     const [editUser, setEditUser] = useState<{ id: number; name: string; email: string; phone: string; branchId: number; departmentId: number; roleId: number; isActive: boolean; currentImageUrl?: string; password: string } | null>(null);
     const [editUserDepts, setEditUserDepts] = useState<Department[]>([]);
     const [editUserImage, setEditUserImage] = useState<File | null>(null);
@@ -80,6 +87,7 @@ export default function AdminPage() {
     // Pagination
     const [usersPage, setUsersPage] = useState(1);
     const [usersPageSize, setUsersPageSize] = useState(10);
+    const [branchSearch, setBranchSearch] = useState('');
     const [branchesPage, setBranchesPage] = useState(1);
     const [branchesPageSize, setBranchesPageSize] = useState(10);
     const [deptsPage, setDeptsPage] = useState(1);
@@ -196,11 +204,17 @@ export default function AdminPage() {
         if (!editDept.name.trim()) { toast.error(t('Department name is required.', 'اسم القسم مطلوب.')); return; }
         setActionLoading(true);
         try {
-            await updateDepartment(editDept.id, { name: editDept.name, branchId: editDept.branchId || undefined });
+            await updateDepartment(editDept.id, {
+                name: editDept.name,
+                branchId: editDept.branchId || undefined,
+                salesSupervisiorId: editDept.salesSupervisiorId || undefined,
+                installationSupervisiorId: editDept.installationSupervisiorId || undefined,
+            });
             const all = await getDepartments().catch(() => []);
             setDepartments(Array.isArray(all) ? all : []);
             await loadDeptsByBranch(deptBranchFilter);
             setEditDept(null);
+            setShowEditDeptModal(false);
             toast.success(t('Department updated!', 'تم تحديث القسم!'));
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to update department', 'فشل تحديث القسم')); }
         finally { setActionLoading(false); }
@@ -382,11 +396,23 @@ export default function AdminPage() {
                     {/* ══════════════ BRANCHES ══════════════ */}
                     {activeTab === 'branches' && (
                         <div className="card">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                                 <div className="card-title">{t('Branches', 'الفروع')}</div>
                                 <button className="btn btn-primary btn-sm" onClick={() => { setNewBranch({ name: '', email: '', phone: '' }); setShowAddBranchModal(true); }}>+ {t('Add Branch', 'إضافة فرع')}</button>
                             </div>
-                            {branches.slice((branchesPage - 1) * branchesPageSize, branchesPage * branchesPageSize).map(b => (
+                            <input
+                                className="form-input"
+                                placeholder={t('Search branches...', 'بحث في الفروع...')}
+                                value={branchSearch}
+                                onChange={e => { setBranchSearch(e.target.value); setBranchesPage(1); }}
+                                style={{ marginBottom: 16 }}
+                            />
+                            {(() => {
+                                const filteredBranches = branchSearch.trim()
+                                    ? branches.filter(b => b.name.toLowerCase().includes(branchSearch.toLowerCase()))
+                                    : branches;
+                                return (<>
+                            {filteredBranches.slice((branchesPage - 1) * branchesPageSize, branchesPage * branchesPageSize).map(b => (
                                 <div key={b.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
                                     {editBranch?.id === b.id ? (
                                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -412,16 +438,18 @@ export default function AdminPage() {
                                     )}
                                 </div>
                             ))}
-                            {branches.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No branches yet.', 'لا توجد فروع بعد.')}</p>}
-                            {branches.length > 0 && (
+                            {filteredBranches.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No branches found.', 'لا توجد فروع.')}</p>}
+                            {filteredBranches.length > 0 && (
                                 <Pagination
                                     currentPage={branchesPage}
-                                    totalItems={branches.length}
+                                    totalItems={filteredBranches.length}
                                     pageSize={branchesPageSize}
                                     onPageChange={setBranchesPage}
                                     onPageSizeChange={setBranchesPageSize}
                                 />
                             )}
+                                </>);
+                            })()}
                         </div>
                     )}
 
@@ -452,33 +480,44 @@ export default function AdminPage() {
                             </div>
                             {deptsList.slice((deptsPage - 1) * deptsPageSize, deptsPage * deptsPageSize).map(d => (
                                 <div key={d.id} style={{ padding: '12px 16px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', marginBottom: 8 }}>
-                                    {editDept?.id === d.id ? (
-                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                            <input className="form-input" value={editDept.name} onChange={e => setEditDept({ ...editDept, name: e.target.value })} placeholder={t('Department name', 'اسم القسم')} style={{ flex: 1, minWidth: 140 }} />
-                                            <select className="form-select" value={editDept.branchId} onChange={e => setEditDept({ ...editDept, branchId: Number(e.target.value) })} style={{ minWidth: 140 }}>
-                                                <option value={0}>— {t('Branch', 'الفرع')} —</option>
-                                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                            </select>
-                                            <button className="btn btn-primary btn-sm" disabled={actionLoading} onClick={handleUpdateDept}>💾</button>
-                                            <button className="btn btn-secondary btn-sm" onClick={() => setEditDept(null)}>✕</button>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div>
-                                                <div style={{ fontWeight: 600 }}>{d.name}</div>
-                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Branch', 'الفرع')}: {d.branchName || (d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—')}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                            <div style={{ fontWeight: 600 }}>{d.name}</div>
+                                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                                🏢 {d.branchName || (d.branchId ? (branches.find(b => b.id === d.branchId)?.name || `#${d.branchId}`) : '—')}
                                             </div>
-                                            {(isSuper || hasPermission(PERMS.DEPT_EDIT)) && (
-                                                <div className="btn-group">
-                                                    <button className="btn btn-secondary btn-sm" onClick={() => {
-                                                        const matchedBranchId = d.branchId || branches.find(b => b.name === d.branchName)?.id || 0;
-                                                        setEditDept({ id: d.id, name: d.name, branchId: matchedBranchId });
-                                                    }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>✏️ {t('Edit', 'تعديل')}</button>
-                                                    <button className="btn btn-danger btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => handleDeleteDept(d.id)}>🗑️ {t('Delete', 'حذف')}</button>
+                                            {d.salesSupervisiorName && (
+                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                                    👤 {t('Sales Sup.', 'مشرف المبيعات')}: <span style={{ color: 'var(--text-primary)' }}>{d.salesSupervisiorName}</span>
+                                                </div>
+                                            )}
+                                            {d.installationSupervisiorName && (
+                                                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                                    🔧 {t('Install Sup.', 'مشرف التركيبات')}: <span style={{ color: 'var(--text-primary)' }}>{d.installationSupervisiorName}</span>
                                                 </div>
                                             )}
                                         </div>
-                                    )}
+                                        {(isSuper || hasPermission(PERMS.DEPT_EDIT)) && (
+                                            <div className="btn-group">
+                                                <button className="btn btn-secondary btn-sm" onClick={() => {
+                                                    const matchedBranchId = d.branchId || branches.find(b => b.name === d.branchName)?.id || 0;
+                                                    setEditDept({
+                                                        id: d.id,
+                                                        name: d.name,
+                                                        branchId: matchedBranchId,
+                                                        salesSupervisiorId: d.salesSupervisiorId || 0,
+                                                        salesSupervisiorName: d.salesSupervisiorName || '',
+                                                        installationSupervisiorId: d.installationSupervisiorId || 0,
+                                                        installationSupervisiorName: d.installationSupervisiorName || '',
+                                                    });
+                                                    setEditSalesSupSearch(''); setEditSalesSupResults([]);
+                                                    setEditInstSupSearch(''); setEditInstSupResults([]);
+                                                    setShowEditDeptModal(true);
+                                                }} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>✏️ {t('Edit', 'تعديل')}</button>
+                                                <button className="btn btn-danger btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => handleDeleteDept(d.id)}>🗑️ {t('Delete', 'حذف')}</button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                             {deptsList.length === 0 && (
@@ -1219,6 +1258,100 @@ export default function AdminPage() {
                     </div>
                 </div>
             )}
+        {/* ══════════ EDIT DEPARTMENT MODAL ══════════ */}
+        {showEditDeptModal && editDept && (
+            <div className="modal-overlay" onClick={() => setShowEditDeptModal(false)}>
+                <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+                    <div className="modal-header">
+                        <h2>✏️ {t('Edit Department', 'تعديل القسم')}</h2>
+                        <button className="modal-close" onClick={() => setShowEditDeptModal(false)}>×</button>
+                    </div>
+                    <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div className="form-group">
+                            <label className="form-label">{t('Department Name', 'اسم القسم')} *</label>
+                            <input className="form-input" value={editDept.name} onChange={e => setEditDept({ ...editDept, name: e.target.value })} autoFocus />
+                        </div>
+                        <div className="form-group">
+                            <label className="form-label">{t('Branch', 'الفرع')}</label>
+                            <select className="form-select" value={editDept.branchId} onChange={e => setEditDept({ ...editDept, branchId: Number(e.target.value) })}>
+                                <option value={0}>— {t('Select branch', 'اختر الفرع')} —</option>
+                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                            </select>
+                        </div>
+                        {/* Sales Supervisor */}
+                        <div className="form-group">
+                            <label className="form-label">{t('Sales Supervisor', 'مشرف المبيعات')}</label>
+                            {editDept.salesSupervisiorName && (
+                                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, padding: '4px 8px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>✔ {editDept.salesSupervisiorName}</span>
+                                    <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => setEditDept({ ...editDept, salesSupervisiorId: 0, salesSupervisiorName: '' })}>✕ {t('Clear', 'مسح')}</button>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <input
+                                    className="form-input"
+                                    style={{ flex: 1 }}
+                                    placeholder={t('Search by name...', 'ابحث بالاسم...')}
+                                    value={editSalesSupSearch}
+                                    onChange={e => setEditSalesSupSearch(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { setEditSalesSupLoading(true); getDepartmentUsers(undefined, undefined, { username: editSalesSupSearch || undefined }).then(setEditSalesSupResults).catch(() => setEditSalesSupResults([])).finally(() => setEditSalesSupLoading(false)); } }}
+                                />
+                                <button type="button" className="btn btn-secondary btn-sm" disabled={editSalesSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setEditSalesSupLoading(true); getDepartmentUsers(undefined, undefined, { username: editSalesSupSearch || undefined }).then(setEditSalesSupResults).catch(() => setEditSalesSupResults([])).finally(() => setEditSalesSupLoading(false)); }}>
+                                    {editSalesSupLoading ? '⏳' : t('Search', 'بحث')}
+                                </button>
+                            </div>
+                            {editSalesSupResults.length > 0 && (
+                                <select className="form-select" style={{ marginTop: 6 }} value={editDept.salesSupervisiorId} onChange={e => {
+                                    const u = editSalesSupResults.find(x => x.id === Number(e.target.value));
+                                    setEditDept({ ...editDept, salesSupervisiorId: Number(e.target.value), salesSupervisiorName: u?.name || '' });
+                                }}>
+                                    <option value={0}>— {t('Select', 'اختر')} —</option>
+                                    {editSalesSupResults.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                            )}
+                        </div>
+                        {/* Installation Supervisor */}
+                        <div className="form-group">
+                            <label className="form-label">{t('Installation Supervisor', 'مشرف التركيبات')}</label>
+                            {editDept.installationSupervisiorName && (
+                                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, padding: '4px 8px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <span>✔ {editDept.installationSupervisiorName}</span>
+                                    <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '2px 6px', fontSize: 11 }} onClick={() => setEditDept({ ...editDept, installationSupervisiorId: 0, installationSupervisiorName: '' })}>✕ {t('Clear', 'مسح')}</button>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <input
+                                    className="form-input"
+                                    style={{ flex: 1 }}
+                                    placeholder={t('Search by name...', 'ابحث بالاسم...')}
+                                    value={editInstSupSearch}
+                                    onChange={e => setEditInstSupSearch(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { setEditInstSupLoading(true); getDepartmentUsers(undefined, undefined, { username: editInstSupSearch || undefined }).then(setEditInstSupResults).catch(() => setEditInstSupResults([])).finally(() => setEditInstSupLoading(false)); } }}
+                                />
+                                <button type="button" className="btn btn-secondary btn-sm" disabled={editInstSupLoading} style={{ whiteSpace: 'nowrap' }} onClick={() => { setEditInstSupLoading(true); getDepartmentUsers(undefined, undefined, { username: editInstSupSearch || undefined }).then(setEditInstSupResults).catch(() => setEditInstSupResults([])).finally(() => setEditInstSupLoading(false)); }}>
+                                    {editInstSupLoading ? '⏳' : t('Search', 'بحث')}
+                                </button>
+                            </div>
+                            {editInstSupResults.length > 0 && (
+                                <select className="form-select" style={{ marginTop: 6 }} value={editDept.installationSupervisiorId} onChange={e => {
+                                    const u = editInstSupResults.find(x => x.id === Number(e.target.value));
+                                    setEditDept({ ...editDept, installationSupervisiorId: Number(e.target.value), installationSupervisiorName: u?.name || '' });
+                                }}>
+                                    <option value={0}>— {t('Select', 'اختر')} —</option>
+                                    {editInstSupResults.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                                </select>
+                            )}
+                        </div>
+                    </div>
+                    <div className="modal-footer">
+                        <button className="btn btn-secondary" onClick={() => setShowEditDeptModal(false)}>{t('Cancel', 'إلغاء')}</button>
+                        <button className="btn btn-primary" disabled={actionLoading} onClick={handleUpdateDept}>
+                            {actionLoading ? `⏳ ${t('Saving...', 'جارٍ الحفظ...')}` : `💾 ${t('Save', 'حفظ')}`}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         </div>
         </PermissionGuard>
     );

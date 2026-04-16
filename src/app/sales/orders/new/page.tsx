@@ -447,7 +447,27 @@ export default function NewOrderPage() {
                             <h2 style={{ fontSize: 20, fontWeight: 700 }}>{t('Order Created!', 'تم إنشاء الطلب!')}</h2>
                             <p style={{ fontSize: 14, color: 'var(--text-muted)' }}>{t('Your installation order has been successfully created.', 'تم إنشاء أمر التركيب بنجاح.')}</p>
                             <div style={{ display: 'flex', gap: 10, width: '100%' }}>
-                                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => { setShowSuccessModal(false); }}>
+                                <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => {
+                                    setShowSuccessModal(false);
+                                    setDocType('invoice');
+                                    setSelectedDocId('');
+                                    setApexSearch('');
+                                    setApexApplied('');
+                                    setInvoices([]);
+                                    setOffers([]);
+                                    setApexError('');
+                                    setCustomerId('');
+                                    setCity('');
+                                    setAddress('');
+                                    setPriority('Normal');
+                                    setBranchId(branches[0]?.id ?? 0);
+                                    setDepartmentIds(departments[0] ? [{ id: departments[0].id, note: '' }] : []);
+                                    setLocationLink('');
+                                    setNotes('');
+                                    setScheduledDate('');
+                                    setEvidenceFiles([]);
+                                    setEvidenceNote('');
+                                }}>
                                     {t('New Order', 'طلب جديد')}
                                 </button>
                                 <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => router.push(`/orders/${createdOrderId}`)}>
