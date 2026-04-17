@@ -336,6 +336,34 @@ export default function OrderDetailPage() {
         }
     };
 
+    const handleSubmitForApproval = async () => {
+        if (!order) return;
+        if (!confirm(t('Submit this order for approval?', 'هل تريد إرسال هذا الطلب للموافقة؟'))) return;
+        try {
+            await updateOrder(order.id, {
+                status: 'PendingSalesSupervisorApproval',
+                city: order.city ?? null,
+                address: order.address ?? null,
+                location: order.location ?? null,
+                scheduledDate: order.scheduledDate ?? null,
+                quotationId: order.quotationId ?? null,
+                invoiceId: order.invoiceId ?? null,
+                customerId: order.customerId ?? null,
+                createdAt: order.createdAt,
+                salesApprovalDate: order.salesApprovalDate ?? null,
+                priority: order.priority,
+                branchIds: order.branches ? order.branches.map(b => ({ id: b.id })) : [],
+                departmentId: order.departmentId,
+                departmentIds: order.departmentNotes?.map(dn => ({ idd: dn.departmentId, note: dn.note })) || [],
+                notes: order.notes ?? null,
+            });
+            toast.success(t('Order submitted for approval!', 'تم إرسال الطلب للموافقة!'));
+            await loadOrder();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Failed to submit order', 'فشل إرسال الطلب'));
+        }
+    };
+
     const handleDeleteOrder = async () => {
         if (!confirm(t('Are you sure you want to delete this order? This action cannot be undone.', 'هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.'))) return;
         try {
@@ -462,6 +490,11 @@ export default function OrderDetailPage() {
                         )}
                     </div>
                     <div className="btn-group">
+                        {order.status === 'Draft' && hasPermission(PERMS.ORDERS_CREATE) && (
+                            <button className="btn btn-primary" onClick={handleSubmitForApproval} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                📤 {t('Submit for Approval', 'إرسال للموافقة')}
+                            </button>
+                        )}
                         {(order.status === 'PendingSalesSupervisorApproval' || order.status === 'ReturnedToSales') && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
                             <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 ✅ {t('Approve', 'اعتماد')}
