@@ -368,7 +368,7 @@ export default function OrderDetailPage() {
 
     const handleAccept = async () => {
         if (!order) return;
-        if (order.status === 'PendingSalesSupervisorApproval') {
+        if (order.status === 'PendingSalesSupervisorApproval' || order.status === 'ReturnedToSales') {
             if (!confirm(t('Approve this order?', 'هل تريد اعتماد هذا الطلب؟'))) return;
             try {
                 await approveSalesManager(id);
@@ -462,7 +462,7 @@ export default function OrderDetailPage() {
                         )}
                     </div>
                     <div className="btn-group">
-                        {order.status === 'PendingSalesSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
+                        {(order.status === 'PendingSalesSupervisorApproval' || order.status === 'ReturnedToSales') && hasPermission(PERMS.ORDERS_APPROVE_SALES) && (
                             <button className="btn btn-primary" onClick={handleAccept} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 ✅ {t('Approve', 'اعتماد')}
                             </button>

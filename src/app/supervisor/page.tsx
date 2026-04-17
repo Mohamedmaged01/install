@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getOrders, approveSupervisor, rejectOrder, getDepartmentUsers, assignTask, getRoles, getDepartments, getBranches, getBranchTechnicians, getOrderById } from '@/lib/endpoints';
+import { getOrders, approveSupervisor, approveSalesManager, rejectOrder, getDepartmentUsers, assignTask, getRoles, getDepartments, getBranches, getBranchTechnicians, getOrderById } from '@/lib/endpoints';
 import { Order, DepartmentUser, Department, Branch, AssignTaskDto, Role } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import PriorityBadge from '@/components/PriorityBadge';
@@ -71,6 +71,19 @@ export default function SupervisorPage() {
 
     const handleApprove = async (order: Order) => {
         openAssignModal(order, true);
+    };
+
+    const handleApproveSales = async (order: Order) => {
+        setActionLoading(order.id);
+        try {
+            await approveSalesManager(order.id);
+            setOrders(prev => prev.filter(o => o.id !== order.id));
+            toast.success(t('Order approved successfully!', 'تم اعتماد الطلب بنجاح!'));
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : t('Approval failed', 'فشل الاعتماد'));
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     const handleReject = async () => {
@@ -275,6 +288,11 @@ export default function SupervisorPage() {
                                                             ↩️ <span className="btn-label">{t('Return', 'إرجاع')}</span>
                                                         </button>
                                                     </>
+                                                )}
+                                                {order.status === 'ReturnedToSales' && (
+                                                    <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => handleApproveSales(order)}>
+                                                        {actionLoading === order.id ? '⏳' : '✅'} <span className="btn-label">{t('Approve', 'اعتماد')}</span>
+                                                    </button>
                                                 )}
                                                 <Link href={`/orders/${order.id}`} className="btn btn-secondary btn-sm">👁️ <span className="btn-label">{t('View', 'عرض')}</span></Link>
                                             </div>
