@@ -565,6 +565,7 @@ export async function getOrderNotes(orderId: number): Promise<OrderNote[]> {
     try {
         const raw = await api<unknown>(`/api/Notes/${orderId}`);
         const list: any[] = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.data) ? (raw as any).data : []);
+        if (list.length > 0) console.log('[Notes] raw note fields:', Object.keys(list[0]), list[0]);
         return list.map(mapNote);
     } catch {
         return [];
