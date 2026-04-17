@@ -277,31 +277,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // Implicit grants: having X automatically grants Y
-    const IMPLICIT_GRANTS: Record<string, string> = {
-        [PERMS.ORDERS_APPROVE_SUPERVISOR]: PERMS.ORDERS_VIEW_BRANCH,
-    };
-
-    const effectivePermissions = useCallback((base: string[]): string[] => {
-        const extra: string[] = [];
-        for (const [source, target] of Object.entries(IMPLICIT_GRANTS)) {
-            if (base.includes(source) && !base.includes(target)) extra.push(target);
-        }
-        return extra.length ? [...base, ...extra] : base;
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
     const hasPermission = useCallback((perm: string): boolean => {
         if (!user) return false;
         if (user.isSuperAdmin) return true;
-        return effectivePermissions(user.permissions).includes(perm);
-    }, [user, effectivePermissions]);
+        return user.permissions.includes(perm);
+    }, [user]);
 
     const hasAnyPermission = useCallback((...perms: string[]): boolean => {
         if (!user) return false;
         if (user.isSuperAdmin) return true;
-        const effective = effectivePermissions(user.permissions);
-        return perms.some(p => effective.includes(p));
-    }, [user, effectivePermissions]);
+        return perms.some(p => user.permissions.includes(p));
+    }, [user]);
 
     return (
         <AuthContext.Provider

@@ -133,12 +133,12 @@ export default function AdminPage() {
         finally { setUsersLoading(false); }
     };
 
-    const loadDeptsByBranch = async (branchId: number) => {
+    const loadDeptsByBranch = async (branchId: number, resetPage = false) => {
         try {
             const d = await getDepartments(branchId || undefined);
             setDeptsList(Array.isArray(d) ? d : []);
         } catch { setDeptsList([]); }
-        setDeptsPage(1);
+        if (resetPage) setDeptsPage(1);
     };
 
     // ── Branch ──
@@ -185,7 +185,7 @@ export default function AdminPage() {
             setNewDept(prev => ({ ...prev, name: '' }));
             const all = await getDepartments().catch(() => []);
             setDepartments(Array.isArray(all) ? all : []);
-            await loadDeptsByBranch(deptBranchFilter);
+            await loadDeptsByBranch(deptBranchFilter, true);
             toast.success(t('Department created!', 'تم إنشاء القسم!'));
         } catch (err) { toast.error(err instanceof Error ? err.message : t('Failed to create department', 'فشل إنشاء القسم')); }
         finally { setActionLoading(false); }
@@ -372,6 +372,38 @@ export default function AdminPage() {
         p.name.toLowerCase().includes(permSearch.toLowerCase())
     );
 
+    // Gate: dependent order perms are disabled unless a view perm is selected
+    const ORDER_VIEW_GATE_NAMES = new Set(['عرض كل الطلبات', 'عرض طلبات الفرع']);
+    const ORDER_DEPENDENT_NAMES = new Set([
+        'انشاء طلب', 'تعديل طلب', 'حذف طلب',
+        'موافقة مشرف المبيعات', 'موافقة مشرف التركيب',
+        'ارجاع الطلب', 'عرض سجل الطلب',
+        'تركيب عناصر الطلب',
+        'عرض كل المهام', 'عرض مهام الفرع', 'عرض مهامي', 'تحديث حالة المهمة',
+        'رفع المرفقات', 'عرض المرفقات', 'رفع الأدلة', 'عرض الأدلة',
+    ]);
+    const orderGateIds = permissions
+        .filter(p => ORDER_VIEW_GATE_NAMES.has(p.name.split('.').pop() || p.name))
+        .map(p => p.id);
+    const isOrderGateActive = orderGateIds.some(id => rolePerms.includes(id));
+
+    // Auto-grant: checking موافقة مشرف التركيب also adds عرض طلبات الفرع
+    const autoGrantMap: Record<string, string> = {
+        'موافقة مشرف التركيب': 'عرض طلبات الفرع',
+    };
+    const togglePerm = (p: { id: number; name: string }, checked: boolean, shortName: string) => {
+        setRolePerms(prev => {
+            if (checked) return prev.filter(id => id !== p.id);
+            const next = [...prev, p.id];
+            const autoGrantName = autoGrantMap[shortName];
+            if (autoGrantName) {
+                const grantPerm = permissions.find(x => (x.name.split('.').pop() || x.name) === autoGrantName);
+                if (grantPerm && !next.includes(grantPerm.id)) next.push(grantPerm.id);
+            }
+            return next;
+        });
+    };
+
     const selectedRole = roles.find(r => r.id === selectedRoleId);
 
     return (
@@ -478,9 +510,9 @@ export default function AdminPage() {
                                     <option value={0}>{t('All Branches', 'جميع الفروع')}</option>
                                     {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                 </select>
-                                <button className="btn btn-primary btn-sm" onClick={() => { setDeptBranchFilter(deptBranchFilterPending); loadDeptsByBranch(deptBranchFilterPending); }}>{t('Apply', 'تطبيق')}</button>
+                                <button className="btn btn-primary btn-sm" onClick={() => { setDeptBranchFilter(deptBranchFilterPending); loadDeptsByBranch(deptBranchFilterPending, true); }}>{t('Apply', 'تطبيق')}</button>
                                 {(deptBranchFilter !== 0 || deptBranchFilterPending !== 0) && (
-                                    <button className="btn btn-secondary btn-sm" onClick={() => { setDeptBranchFilterPending(0); setDeptBranchFilter(0); loadDeptsByBranch(0); }}>✕ {t('Clear', 'مسح')}</button>
+                                    <button className="btn btn-secondary btn-sm" onClick={() => { setDeptBranchFilterPending(0); setDeptBranchFilter(0); loadDeptsByBranch(0, true); }}>✕ {t('Clear', 'مسح')}</button>
                                 )}
                                 <span style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 'auto' }}>
                                     {deptsList.length} {t('departments', 'قسم')}
@@ -784,9 +816,10 @@ export default function AdminPage() {
                                                     {perms.map(p => {
                                                         const checked = rolePerms.includes(p.id);
                                                         const shortName = p.name.split('.').pop() || p.name;
+                                                        const isDisabled = ORDER_DEPENDENT_NAMES.has(shortName) && !isOrderGateActive;
                                                         return (
-                                                            <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: checked ? 'rgba(16,185,129,0.1)' : 'var(--bg-tertiary)', border: `1px solid ${checked ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, transition: 'all 150ms' }}>
-                                                                <input type="checkbox" checked={checked} onChange={() => setRolePerms(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{ accentColor: '#10b981' }} />
+                                                            <label key={p.id} title={isDisabled ? t('Requires an orders view permission first', 'يتطلب صلاحية عرض الطلبات أولاً') : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: checked ? 'rgba(16,185,129,0.1)' : 'var(--bg-tertiary)', border: `1px solid ${checked ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: isDisabled ? 'not-allowed' : 'pointer', fontSize: 13, transition: 'all 150ms', opacity: isDisabled ? 0.4 : 1 }}>
+                                                                <input type="checkbox" checked={checked} disabled={isDisabled} onChange={() => { if (!isDisabled) togglePerm(p, checked, shortName); }} style={{ accentColor: '#10b981' }} />
                                                                 <div style={{ fontWeight: checked ? 600 : 400 }}>{shortName}</div>
                                                             </label>
                                                         );
@@ -1076,9 +1109,10 @@ export default function AdminPage() {
                                         {perms.map(p => {
                                             const checked = rolePerms.includes(p.id);
                                             const shortName = p.name.split('.').pop() || p.name;
+                                            const isDisabled = ORDER_DEPENDENT_NAMES.has(shortName) && !isOrderGateActive;
                                             return (
-                                                <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: checked ? 'rgba(99,102,241,0.1)' : 'var(--bg-tertiary)', border: `1px solid ${checked ? 'rgba(99,102,241,0.35)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', fontSize: 13, transition: 'all 150ms' }}>
-                                                    <input type="checkbox" checked={checked} onChange={() => setRolePerms(prev => checked ? prev.filter(id => id !== p.id) : [...prev, p.id])} style={{ accentColor: '#6366f1' }} />
+                                                <label key={p.id} title={isDisabled ? t('Requires an orders view permission first', 'يتطلب صلاحية عرض الطلبات أولاً') : undefined} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: checked ? 'rgba(99,102,241,0.1)' : 'var(--bg-tertiary)', border: `1px solid ${checked ? 'rgba(99,102,241,0.35)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: isDisabled ? 'not-allowed' : 'pointer', fontSize: 13, transition: 'all 150ms', opacity: isDisabled ? 0.4 : 1 }}>
+                                                    <input type="checkbox" checked={checked} disabled={isDisabled} onChange={() => { if (!isDisabled) togglePerm(p, checked, shortName); }} style={{ accentColor: '#6366f1' }} />
                                                     <div style={{ fontWeight: checked ? 600 : 400 }}>{shortName}</div>
                                                 </label>
                                             );
