@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createOrder, updateOrder, getBranches, getDepartments, getAllApexInvoices, getAllApexOffers, uploadEvidence } from '@/lib/endpoints';
@@ -40,6 +40,7 @@ export default function NewOrderPage() {
     const [scheduledDate, setScheduledDate] = useState('');
     const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
     const [evidenceNote, setEvidenceNote] = useState('');
+    const evidenceInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         async function load() {
@@ -283,6 +284,7 @@ export default function NewOrderPage() {
                             <div className="form-group">
                                 <label className="form-label">{t('Attach Images', 'إرفاق صور')}</label>
                                 <input
+                                    ref={evidenceInputRef}
                                     className="form-input"
                                     type="file"
                                     accept="image/*"
@@ -467,6 +469,7 @@ export default function NewOrderPage() {
                                     setScheduledDate('');
                                     setEvidenceFiles([]);
                                     setEvidenceNote('');
+                                    if (evidenceInputRef.current) evidenceInputRef.current.value = '';
                                 }}>
                                     {t('New Order', 'طلب جديد')}
                                 </button>

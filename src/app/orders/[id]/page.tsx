@@ -160,7 +160,7 @@ export default function OrderDetailPage() {
             setUploadFiles([]);
             setUploadNote('');
             if (fileInputRef.current) fileInputRef.current.value = '';
-            toast.success( t('Evidence uploaded!', 'تم رفع المرفق!'));
+            toast.success( t('Attachment uploaded!', 'تم رفع المرفق!'));
         } catch (err) {
             toast.error( err instanceof Error ? err.message : t('Upload failed', 'فشل الرفع'));
         } finally {
@@ -659,7 +659,7 @@ export default function OrderDetailPage() {
                             {/* Upload Section */}
                             {hasPermission(PERMS.EVIDENCE_UPLOAD) && (
                             <div style={{ marginBottom: 24, padding: 16, background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>⬆️ {t('Upload Evidence', 'رفع مرفق')}</div>
+                                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>⬆️ {t('Upload Attachment', 'رفع مرفق')}</div>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -771,7 +771,7 @@ export default function OrderDetailPage() {
                                     })}
                                 </div>
                             ) : (
-                                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No evidence uploaded yet.', 'لم يتم رفع أي مرفق بعد.')}</p>
+                                <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('No attachments uploaded yet.', 'لم يتم رفع أي مرفق بعد.')}</p>
                             )}
                         </div>
                     )}
@@ -857,7 +857,7 @@ export default function OrderDetailPage() {
                     <div className="card">
                         <div className="card-title" style={{ marginBottom: 16 }}>👤 {t('Customer', 'العميل')}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14 }}>
-                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Name', 'الاسم')}:</span> <span style={{ fontWeight: 500 }}>{apexCustomer ? (lang === 'ar' ? apexCustomer.arabicName : apexCustomer.latinName || apexCustomer.arabicName) : (order.customerName || '—')}</span></div>
+                            <div><span style={{ color: 'var(--text-muted)' }}>{t('Name', 'الاسم')}:</span> <span style={{ fontWeight: 500 }}>{apexCustomer ? (lang === 'ar' ? (apexCustomer.arabicName || apexCustomer.latinName || apexCustomer.name) : (apexCustomer.latinName || apexCustomer.arabicName || apexCustomer.name)) : (order.customerName || '—')}</span></div>
                             {(apexCustomer?.email || order.customerEmail) && <div><span style={{ color: 'var(--text-muted)' }}>{t('Email', 'البريد')}:</span> {apexCustomer?.email || order.customerEmail}</div>}
                             {(apexCustomer?.phone || order.customerPhone) && <div><span style={{ color: 'var(--text-muted)' }}>{t('Phone', 'الهاتف')}:</span> {apexCustomer?.phone || order.customerPhone}</div>}
                             <div><span style={{ color: 'var(--text-muted)' }}>{t('Address', 'العنوان')}:</span> {order.address || '—'}</div>

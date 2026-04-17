@@ -77,6 +77,7 @@ export default function AdminPage() {
     const [instSupResults, setInstSupResults] = useState<DepartmentUser[]>([]);
     const [instSupLoading, setInstSupLoading] = useState(false);
     const [deptBranchFilter, setDeptBranchFilter] = useState(0);
+    const [deptBranchFilterPending, setDeptBranchFilterPending] = useState(0);
     const [userBranchFilter, setUserBranchFilter] = useState(0);
     const [userDeptFilter, setUserDeptFilter] = useState(0);
     const [appliedBranchFilter, setAppliedBranchFilter] = useState(0);
@@ -88,6 +89,7 @@ export default function AdminPage() {
     const [usersPage, setUsersPage] = useState(1);
     const [usersPageSize, setUsersPageSize] = useState(10);
     const [branchSearch, setBranchSearch] = useState('');
+    const [branchSearchInput, setBranchSearchInput] = useState('');
     const [branchesPage, setBranchesPage] = useState(1);
     const [branchesPageSize, setBranchesPageSize] = useState(10);
     const [deptsPage, setDeptsPage] = useState(1);
@@ -400,13 +402,18 @@ export default function AdminPage() {
                                 <div className="card-title">{t('Branches', 'الفروع')}</div>
                                 <button className="btn btn-primary btn-sm" onClick={() => { setNewBranch({ name: '', email: '', phone: '' }); setShowAddBranchModal(true); }}>+ {t('Add Branch', 'إضافة فرع')}</button>
                             </div>
-                            <input
-                                className="form-input"
-                                placeholder={t('Search branches...', 'بحث في الفروع...')}
-                                value={branchSearch}
-                                onChange={e => { setBranchSearch(e.target.value); setBranchesPage(1); }}
-                                style={{ marginBottom: 16 }}
-                            />
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                                <input
+                                    className="form-input"
+                                    placeholder={t('Search branches...', 'بحث في الفروع...')}
+                                    value={branchSearchInput}
+                                    onChange={e => setBranchSearchInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { setBranchSearch(branchSearchInput); setBranchesPage(1); } }}
+                                    style={{ flex: 1 }}
+                                />
+                                <button className="btn btn-primary btn-sm" onClick={() => { setBranchSearch(branchSearchInput); setBranchesPage(1); }}>{t('Apply', 'تطبيق')}</button>
+                                {(branchSearch || branchSearchInput) && <button className="btn btn-secondary btn-sm" onClick={() => { setBranchSearchInput(''); setBranchSearch(''); setBranchesPage(1); }}>{t('Clear', 'مسح')}</button>}
+                            </div>
                             {(() => {
                                 const filteredBranches = branchSearch.trim()
                                     ? branches.filter(b => b.name.toLowerCase().includes(branchSearch.toLowerCase()))
@@ -467,12 +474,13 @@ export default function AdminPage() {
                             </div>
                             {/* Filter by branch */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                                <select className="form-select" value={deptBranchFilter} onChange={e => { const v = Number(e.target.value); setDeptBranchFilter(v); loadDeptsByBranch(v); }} style={{ maxWidth: 220 }}>
+                                <select className="form-select" value={deptBranchFilterPending} onChange={e => setDeptBranchFilterPending(Number(e.target.value))} style={{ maxWidth: 220 }}>
                                     <option value={0}>{t('All Branches', 'جميع الفروع')}</option>
                                     {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                                 </select>
-                                {deptBranchFilter !== 0 && (
-                                    <button className="btn btn-secondary btn-sm" onClick={() => { setDeptBranchFilter(0); loadDeptsByBranch(0); }}>✕ {t('Clear', 'مسح')}</button>
+                                <button className="btn btn-primary btn-sm" onClick={() => { setDeptBranchFilter(deptBranchFilterPending); loadDeptsByBranch(deptBranchFilterPending); }}>{t('Apply', 'تطبيق')}</button>
+                                {(deptBranchFilter !== 0 || deptBranchFilterPending !== 0) && (
+                                    <button className="btn btn-secondary btn-sm" onClick={() => { setDeptBranchFilterPending(0); setDeptBranchFilter(0); loadDeptsByBranch(0); }}>✕ {t('Clear', 'مسح')}</button>
                                 )}
                                 <span style={{ fontSize: 13, color: 'var(--text-muted)', marginLeft: 'auto' }}>
                                     {deptsList.length} {t('departments', 'قسم')}

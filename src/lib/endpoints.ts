@@ -351,10 +351,10 @@ function normalizeOrder(o: any): Order {
         scheduledDate: o.scheduledDate ?? o.ScheduledDate,
         quotationId: o.quotationId ?? o.QuotationId,
         invoiceId: o.invoiceId ?? o.InvoiceId,
-        customerId: o.customerId ?? o.CustomerId,
-        customerName: o.customerName ?? o.CustomerName,
-        customerPhone: o.customerPhone ?? o.CustomerPhone,
-        customerEmail: o.customerEmail ?? o.CustomerEmail,
+        customerId: o.customerId ?? o.CustomerId ?? o.customer?.id ?? o.Customer?.id,
+        customerName: o.customerName ?? o.CustomerName ?? o.clientName ?? o.ClientName ?? o.customer?.name ?? o.Customer?.name ?? o.customer?.fullName ?? o.Customer?.fullName ?? o.customer?.arabicName ?? o.Customer?.arabicName,
+        customerPhone: o.customerPhone ?? o.CustomerPhone ?? o.customer?.phone ?? o.Customer?.phone,
+        customerEmail: o.customerEmail ?? o.CustomerEmail ?? o.customer?.email ?? o.Customer?.email,
         createdAt: o.createdAt ?? o.CreatedAt,
         updatedAt: o.updatedAt ?? o.UpdatedAt,
         priority: o.priority ?? o.Priority,
@@ -462,6 +462,7 @@ export async function createOrder(dto: AddOrderDto): Promise<Order> {
     fd.append('CreatedAt', dto.createdAt);
     fd.append('Priority', dto.priority);
     fd.append('BranchId', String(dto.branchId));
+    if (dto.notes) fd.append('Notes', dto.notes);
     dto.departmentIds.forEach((d, i) => {
         fd.append(`DepartmentIds[${i}][Idd]`, String(d.idd));
         fd.append(`DepartmentIds[${i}][Note]`, d.note ?? '');
