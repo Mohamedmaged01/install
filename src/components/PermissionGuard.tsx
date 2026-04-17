@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/RoleContext';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLang } from '@/context/LanguageContext';
 
 interface PermissionGuardProps {
@@ -12,38 +12,25 @@ interface PermissionGuardProps {
 }
 
 export default function PermissionGuard({ children, requiredPerms, requireAll = false }: PermissionGuardProps) {
-    const { isAuthenticated, isLoading, hasPermission, hasAnyPermission, user } = useAuth();
+    const { isAuthenticated, isLoading, hasPermission, hasAnyPermission } = useAuth();
     const router = useRouter();
     const { t } = useLang();
-    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+    // Compute authorization synchronously — avoids putting requiredPerms (new array each render)
+    // into a useEffect dependency, which would cause an infinite redirect loop.
+    const isAuthorized = useMemo<boolean | null>(() => {
+        if (isLoading) return null;
+        if (!isAuthenticated) return null;
+        if (requireAll) return requiredPerms.every(p => hasPermission(p));
+        return hasAnyPermission(...requiredPerms);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isLoading, isAuthenticated, hasPermission, hasAnyPermission, requireAll, JSON.stringify(requiredPerms)]);
 
     useEffect(() => {
         if (isLoading) return;
-
-        if (!isAuthenticated) {
-            router.push('/login');
-            return;
-        }
-
-        let authCheck = false;
-
-        if (requireAll) {
-            // Must have every single permission
-            authCheck = requiredPerms.every(p => hasPermission(p));
-        } else {
-            // Must have at least one of the permissions
-            authCheck = hasAnyPermission(...requiredPerms);
-        }
-
-        // SuperAdmins bypass implicitly in RoleContext functions, 
-        // but we double check logic is respected properly via the hooks.
-        setIsAuthorized(authCheck);
-
-        if (!authCheck) {
-            router.replace('/'); // Redirect to dashboard if unauthorized
-        }
-
-    }, [isLoading, isAuthenticated, hasPermission, hasAnyPermission, requiredPerms, requireAll, router]);
+        if (!isAuthenticated) { router.push('/login'); return; }
+        if (isAuthorized === false) router.replace('/');
+    }, [isLoading, isAuthenticated, isAuthorized, router]);
 
     if (isLoading || isAuthorized === null) {
         return (
