@@ -382,7 +382,7 @@ export default function OrderDetailPage() {
         }
         setReturnLoading(true);
         try {
-            await rejectOrder(order.id, returnReason.trim(), returnToRep);
+            await rejectOrder(order.id, returnReason.trim() || null, returnToRep);
             toast.success(t('Order returned successfully.', 'تم إرجاع الطلب بنجاح.'));
             setShowReturnModal(false);
             setReturnReason('');
@@ -565,19 +565,35 @@ export default function OrderDetailPage() {
                             <div className="card-title" style={{ marginBottom: 24 }}>{t('Order Timeline', 'الجدول الزمني للطلب')}</div>
                             {(
                                 <div className="timeline">
-                                    {history.map((event, index) => {
-                                        const dotColor = event.toStatus?.includes('Complet') || event.toStatus?.includes('Close') ? '#10b981' : event.toStatus?.includes('Return') || event.toStatus?.includes('Cancel') || event.toStatus?.includes('Reject') ? '#ef4444' : '#6366f1';
+                                    {(() => {
+                                        const STATUS_NUM_MAP: Record<string, OrderStatus> = {
+                                            '0': 'Draft',
+                                            '1': 'PendingSalesSupervisorApproval',
+                                            '2': 'PendingInstallationSupervisorApproval',
+                                            '3': 'ReadyForInstallation',
+                                            '4': 'ReturnedToDraft',
+                                            '5': 'ReturnedToSales',
+                                            '6': 'Completed',
+                                            '7': 'Canceled',
+                                        };
+                                        const resolveStatus = (s: string | null) => {
+                                            if (!s) return null;
+                                            const mapped = STATUS_NUM_MAP[s];
+                                            return mapped ? getOrderStatusLabel(mapped, lang) : getOrderStatusLabel(s as OrderStatus, lang);
+                                        };
+                                        return history.map((event, index) => {
+                                        const resolvedTo = resolveStatus(event.toStatus) ?? event.toStatus;
+                                        const resolvedFrom = resolveStatus(event.fromStatus);
+                                        const dotColor = event.toStatus?.includes('Complet') || event.toStatus === '6' ? '#10b981' : event.toStatus?.includes('Return') || event.toStatus?.includes('Cancel') || ['4','5','7'].includes(event.toStatus ?? '') ? '#ef4444' : '#6366f1';
                                         return (
                                             <div key={index} className="timeline-item">
                                                 <div className="timeline-dot" style={{ background: dotColor }} />
                                                 <div className="timeline-content">
-                                                    <h4>
-                                                        {event.fromStatus ? (
-                                                            <span><span style={{ color: '#94a3b8' }}>{event.fromStatus}</span>{' → '}<strong>{event.toStatus}</strong></span>
-                                                        ) : (
-                                                            <span>{t('Created', 'تم الإنشاء')} → <strong>{event.toStatus}</strong></span>
-                                                        )}
-                                                    </h4>
+                                                    <p style={{ margin: '0 0 4px', fontSize: 13, color: '#64748b' }}>
+                                                        {resolvedFrom
+                                                            ? `تم تحويل حالة الطلب من ${resolvedFrom} الى ${resolvedTo}`
+                                                            : `تم تحويل حالة الطلب الى ${resolvedTo}`}
+                                                    </p>
                                                     {event.note && <p style={{ marginTop: 4, fontSize: 13 }}>{event.note}</p>}
                                                     <div className="timeline-meta">
                                                         <span>👤 {event.actionByUserName || '—'}</span>
@@ -586,7 +602,8 @@ export default function OrderDetailPage() {
                                                 </div>
                                             </div>
                                         );
-                                    })}
+                                    });
+                                    })()}
                                     <div key="created" className="timeline-item">
                                         <div className="timeline-dot info" />
                                         <div className="timeline-content">

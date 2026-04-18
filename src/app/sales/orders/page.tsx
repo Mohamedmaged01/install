@@ -101,9 +101,13 @@ export default function SalesOrdersPage() {
 
     const handleConfirmReturn = async () => {
         if (!returnModal) return;
+        if (!returnReason.trim()) {
+            toast.error(t('Please enter a return reason.', 'يرجى إدخال سبب الإرجاع.'));
+            return;
+        }
         setActionLoading(returnModal.id);
         try {
-            await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'), returnToRep);
+            await rejectOrder(returnModal.id, returnReason || null, returnToRep);
             setOrders(prev => prev.filter(o => o.id !== returnModal.id));
             setReturnModal(null);
             setReturnReason('');

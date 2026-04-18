@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getStatistics, getBranches, getDepartments, approveSalesManager, rejectOrder, deleteOrder } from '@/lib/endpoints';
-import { Statistics, Order, Branch, Department } from '@/types';
+import { getStatistics, getBranches, getDepartments, approveSalesManager, rejectOrder, deleteOrder, approveSupervisor, getBranchTechnicians, getDepartmentUsers, assignTask, getRoles, getOrderById } from '@/lib/endpoints';
+import { Statistics, Order, Branch, Department, DepartmentUser, AssignTaskDto, Role } from '@/types';
 import StatusBadge from '@/components/StatusBadge';
 import MultiSelect from '@/components/MultiSelect';
 import { useLang } from '@/context/LanguageContext';
@@ -25,6 +25,11 @@ export default function DashboardPage() {
   const [returnModal, setReturnModal] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState('');
   const [returnToRep, setReturnToRep] = useState(false);
+  const [assignModal, setAssignModal] = useState<Order | null>(null);
+  const [assignTechs, setAssignTechs] = useState<DepartmentUser[]>([]);
+  const [selectedTechs, setSelectedTechs] = useState<Set<number>>(new Set());
+  const [assignNotes, setAssignNotes] = useState('');
+  const [rolesMap, setRolesMap] = useState<Record<number, string>>({});
   const [branches, setBranches] = useState<Branch[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [branchFilter, setBranchFilter] = useState<number[]>([]);
@@ -110,11 +115,48 @@ export default function DashboardPage() {
     if (!returnModal) return;
     setActionLoading(returnModal.id);
     try {
-      await rejectOrder(returnModal.id, returnReason || t('No reason provided', 'لم يتم تقديم سبب'), returnToRep);
+      await rejectOrder(returnModal.id, returnReason || null, returnToRep);
       setRecentOrders(prev => prev.filter(o => o.id !== returnModal.id));
       setReturnModal(null);
       setReturnReason('');
       setReturnToRep(false);
+    } catch { /* silent */ } finally { setActionLoading(null); }
+  };
+
+  const openAssignModal = async (order: Order) => {
+    setAssignModal(order);
+    setAssignNotes('');
+    setSelectedTechs(new Set());
+    try {
+      let branchIds = order.branches?.map(b => b.id) || [];
+      let dId = order.departmentId;
+      if (branchIds.length === 0) {
+        const full = await getOrderById(order.id);
+        branchIds = full.branches?.map(b => b.id) || [];
+        dId = full.departmentId;
+      }
+      const [users, allRoles] = await Promise.all([
+        branchIds.length > 0
+          ? Promise.all(branchIds.map(id => getBranchTechnicians(id))).then(r => r.flat())
+          : getDepartmentUsers(undefined, dId),
+        getRoles().catch(() => []),
+      ]);
+      setAssignTechs(Array.isArray(users) ? users : []);
+      const rMap: Record<number, string> = {};
+      if (Array.isArray(allRoles)) allRoles.forEach((r: Role) => { rMap[r.id] = r.name; });
+      setRolesMap(rMap);
+    } catch { setAssignTechs([]); }
+  };
+
+  const handleAssign = async () => {
+    if (!assignModal || selectedTechs.size === 0) return;
+    setActionLoading(assignModal.id);
+    try {
+      const techIds = Array.from(selectedTechs);
+      const whatsappUrl = await approveSupervisor(assignModal.id, techIds, assignNotes || null);
+      if (whatsappUrl) window.open(whatsappUrl, '_blank');
+      setAssignModal(null);
+      setRecentOrders(prev => prev.filter(o => o.id !== assignModal.id));
     } catch { /* silent */ } finally { setActionLoading(null); }
   };
 
@@ -341,7 +383,9 @@ export default function DashboardPage() {
                           </button>
                         )}
                         {order.status === 'PendingInstallationSupervisorApproval' && hasPermission(PERMS.ORDERS_APPROVE_SUPERVISOR) && (
-                          <Link href={`/orders/${order.id}`} className="btn btn-success btn-sm">✅ <span className="btn-label">{t('Approve & Assign', 'اعتماد وتعيين')}</span></Link>
+                          <button className="btn btn-success btn-sm" disabled={actionLoading === order.id} onClick={() => openAssignModal(order)}>
+                            {actionLoading === order.id ? '⏳' : '✅'} <span className="btn-label">{t('Approve & Assign', 'اعتماد وتعيين')}</span>
+                          </button>
                         )}
                         {hasPermission(PERMS.ORDERS_RETURN) && (
                           <button className="btn btn-warning btn-sm" disabled={actionLoading === order.id} onClick={() => { setReturnModal(order); setReturnReason(''); setReturnToRep(order.status === 'PendingSalesSupervisorApproval'); }}>
@@ -410,6 +454,69 @@ export default function DashboardPage() {
               <button className="btn btn-secondary" onClick={() => setReturnModal(null)}>{t('Cancel', 'إلغاء')}</button>
               <button className="btn btn-warning" disabled={actionLoading !== null} onClick={handleConfirmReturn}>
                 {actionLoading ? `⏳ ${t('Returning...', 'جارٍ الإرجاع...')}` : `↩️ ${t('Confirm Return', 'تأكيد الإرجاع')}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve & Assign Modal */}
+      {assignModal && (
+        <div className="modal-overlay" onClick={() => setAssignModal(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="modal-header">
+              <h2>✅ {t('Approve & Assign Technicians', 'اعتماد وتعيين فنيين')}</h2>
+              <button className="modal-close" onClick={() => setAssignModal(null)}>×</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                {t('Order', 'الطلب')} <strong>{assignModal.orderNumber || `#${assignModal.id}`}</strong>
+              </p>
+              <div className="form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <label className="form-label" style={{ margin: 0 }}>
+                    {t('Technicians', 'الفنيون')} ({selectedTechs.size} {t('selected', 'محدد')})
+                  </label>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setSelectedTechs(new Set(assignTechs.map(t => t.id)))}>{t('All', 'الكل')}</button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setSelectedTechs(new Set())}>{t('None', 'لا شيء')}</button>
+                  </div>
+                </div>
+                {assignTechs.length === 0 ? (
+                  <p style={{ fontSize: 13, color: 'var(--text-muted)', padding: '12px 0' }}>{t('No technicians found.', 'لا يوجد فنيون.')}</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                    {assignTechs.map((tech, idx) => {
+                      const checked = selectedTechs.has(tech.id);
+                      return (
+                        <label key={`${tech.id}-${idx}`} style={{
+                          display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                          background: checked ? 'rgba(99,102,241,0.08)' : 'var(--bg-tertiary)',
+                          border: `1px solid ${checked ? 'rgba(99,102,241,0.3)' : 'var(--border)'}`,
+                          borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'all 150ms',
+                        }}>
+                          <input type="checkbox" checked={checked} style={{ accentColor: '#6366f1', width: 16, height: 16 }}
+                            onChange={() => setSelectedTechs(prev => { const n = new Set(prev); checked ? n.delete(tech.id) : n.add(tech.id); return n; })} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: checked ? 600 : 400, fontSize: 14 }}>{tech.name}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{rolesMap[tech.roleId] || tech.roleName || 'Technician'}</div>
+                          </div>
+                          {checked && <span style={{ fontSize: 16 }}>✅</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="form-group">
+                <label className="form-label">{t('Notes', 'ملاحظات')}</label>
+                <textarea className="form-textarea" placeholder={t('Optional notes...', 'ملاحظات اختيارية...')} value={assignNotes} onChange={e => setAssignNotes(e.target.value)} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setAssignModal(null)}>{t('Cancel', 'إلغاء')}</button>
+              <button className="btn btn-primary" disabled={selectedTechs.size === 0 || actionLoading !== null} onClick={handleAssign}>
+                {actionLoading ? `⏳ ${t('Assigning...', 'جارٍ التعيين...')}` : `✅ ${t('Approve & Assign', 'اعتماد وتعيين')} (${selectedTechs.size})`}
               </button>
             </div>
           </div>

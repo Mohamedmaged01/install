@@ -90,7 +90,7 @@ export default function SupervisorPage() {
         if (!rejectModal) return;
         setActionLoading(rejectModal.id);
         try {
-            await rejectOrder(rejectModal.id, rejectReason || t('No reason provided', 'لم يتم تقديم سبب'));
+            await rejectOrder(rejectModal.id, rejectReason || null);
             setOrders(prev => prev.filter(o => o.id !== rejectModal.id));
             setRejectModal(null);
             setRejectReason('');
