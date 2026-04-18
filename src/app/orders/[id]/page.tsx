@@ -490,7 +490,7 @@ export default function OrderDetailPage() {
                         )}
                     </div>
                     <div className="btn-group">
-                        {order.status === 'Draft' && hasPermission(PERMS.ORDERS_CREATE) && (
+                        {(order.status === 'Draft' || order.status === 'ReturnedToDraft') && hasPermission(PERMS.ORDERS_CREATE) && (
                             <button className="btn btn-primary" onClick={handleSubmitForApproval} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 📤 {t('Submit for Approval', 'إرسال للموافقة')}
                             </button>
