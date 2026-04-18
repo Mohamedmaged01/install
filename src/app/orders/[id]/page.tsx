@@ -338,7 +338,6 @@ export default function OrderDetailPage() {
 
     const handleSubmitForApproval = async () => {
         if (!order) return;
-        if (!confirm(t('Submit this order for approval?', 'هل تريد إرسال هذا الطلب للموافقة؟'))) return;
         try {
             await updateOrder(order.id, {
                 status: 'PendingSalesSupervisorApproval',
