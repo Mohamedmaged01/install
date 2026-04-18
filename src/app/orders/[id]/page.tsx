@@ -359,6 +359,7 @@ export default function OrderDetailPage() {
             toast.success(t('Order submitted for approval!', 'تم إرسال الطلب للموافقة!'));
             await loadOrder();
         } catch (err) {
+            console.error('[submitForApproval] error:', err);
             toast.error(err instanceof Error ? err.message : t('Failed to submit order', 'فشل إرسال الطلب'));
         }
     };
