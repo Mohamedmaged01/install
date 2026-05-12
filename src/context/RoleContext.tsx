@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { AuthUser } from '@/types';
 import { getToken, removeToken, setToken } from '@/lib/api';
+import { logout as logoutApi } from '@/lib/endpoints';
 
 // ─── Permission helpers ───────────────────────────────────────────────
 export const PERMS = {
@@ -206,6 +207,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const token = getToken();
         if (token && token !== 'undefined' && token !== 'null') {
+            // Check 12-hour session expiry
+            const loginTime = Number(localStorage.getItem('auth_login_time') || '0');
+            if (loginTime && Date.now() - loginTime > 12 * 60 * 60 * 1000) {
+                removeToken();
+                localStorage.removeItem('auth_user');
+                localStorage.removeItem('auth_login_time');
+                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                    window.location.href = '/login?reason=expired';
+                }
+                setIsLoading(false);
+                return;
+            }
+
             try {
                 // Always try to re-decode from token to get fresh permissions
                 if (token.split('.').length === 3) {
@@ -265,15 +279,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // isActive is only enforced on subsequent page loads (useEffect below).
 
         localStorage.setItem('auth_user', JSON.stringify(authUser));
+        localStorage.setItem('auth_login_time', String(Date.now()));
         setUser(authUser);
     };
 
     const logoutUser = () => {
+        // Notify the backend while the token is still set, then clean up
+        logoutApi().catch(() => {});
         removeToken();
         localStorage.removeItem('auth_user');
+        localStorage.removeItem('auth_login_time');
         setUser(null);
         if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+            window.location.href = '/login?reason=logout';
         }
     };
 

@@ -35,7 +35,7 @@ export async function login(dto: LoginDto): Promise<AuthUser> {
 }
 
 export async function logout(): Promise<void> {
-    return api<void>('/api/Auth', { method: 'DELETE' });
+    return api<void>('/api/Auth/logout', { method: 'POST' });
 }
 
 // ==================== APEX (via local Next.js secure proxy) ====================

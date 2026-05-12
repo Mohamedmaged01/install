@@ -1,4 +1,4 @@
-export const API_BASE = 'https://apiorders.runasp.net';
+export const API_BASE = 'https://crmback.erp-apex.com';
 
 // ==================== TOKEN MANAGEMENT ====================
 
@@ -74,10 +74,11 @@ export async function api<T = unknown>(
         removeToken();
         if (typeof window !== 'undefined') {
             localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_login_time');
         }
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
         if (typeof window !== 'undefined' && currentPath !== '/login') {
-            window.location.href = '/login';
+            window.location.href = '/login?reason=session_expired';
         }
         throw new Error('Unauthorized');
     }

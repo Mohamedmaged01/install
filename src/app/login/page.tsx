@@ -10,7 +10,10 @@ import { login } from '@/lib/endpoints';
 function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const isInactiveRedirect = searchParams.get('reason') === 'inactive';
+    const reason = searchParams.get('reason');
+    const isInactiveRedirect = reason === 'inactive';
+    const isExpiredRedirect = reason === 'expired' || reason === 'session_expired';
+    const isLogoutRedirect = reason === 'logout';
     const { loginUser } = useAuth();
     const toast = useToast();
     const { lang, toggleLang } = useLang();
@@ -127,6 +130,18 @@ function LoginForm() {
                 {isInactiveRedirect && (
                     <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 'var(--radius-md)', padding: '10px 16px', marginBottom: 16, color: '#dc2626', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
                         {lang === 'ar' ? 'حسابك غير نشط. تواصل مع المسؤول.' : 'Your account is inactive. Contact your administrator.'}
+                    </div>
+                )}
+                {/* Session expired notice */}
+                {isExpiredRedirect && (
+                    <div style={{ background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 'var(--radius-md)', padding: '10px 16px', marginBottom: 16, color: '#d97706', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+                        {lang === 'ar' ? 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.' : 'Your session has expired. Please sign in again.'}
+                    </div>
+                )}
+                {/* Logout success notice */}
+                {isLogoutRedirect && (
+                    <div style={{ background: 'rgba(22,163,74,0.12)', border: '1px solid rgba(22,163,74,0.4)', borderRadius: 'var(--radius-md)', padding: '10px 16px', marginBottom: 16, color: '#16a34a', fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+                        {lang === 'ar' ? 'تم تسجيل الخروج بنجاح.' : 'You have been logged out successfully.'}
                     </div>
                 )}
 
