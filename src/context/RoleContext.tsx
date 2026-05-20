@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { AuthUser } from '@/types';
-import { getToken, removeToken, setToken } from '@/lib/api';
+import { getToken, removeToken, setToken, API_BASE } from '@/lib/api';
 import { logout as logoutApi } from '@/lib/endpoints';
 
 // ─── Permission helpers ───────────────────────────────────────────────
@@ -203,6 +203,21 @@ function normaliseUser(raw: any): AuthUser {
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const handlePageHide = () => {
+            const token = getToken();
+            if (!token || token === 'undefined' || token === 'null') return;
+            // keepalive ensures the request completes even as the page closes
+            fetch(`${API_BASE}/api/Auth/logout`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                keepalive: true,
+            }).catch(() => {});
+        };
+        window.addEventListener('pagehide', handlePageHide);
+        return () => window.removeEventListener('pagehide', handlePageHide);
+    }, []);
 
     useEffect(() => {
         const token = getToken();
