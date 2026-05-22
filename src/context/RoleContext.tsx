@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { AuthUser } from '@/types';
-import { getToken, removeToken, setToken, API_BASE } from '@/lib/api';
+import { getToken, removeToken, setToken } from '@/lib/api';
 import { logout as logoutApi } from '@/lib/endpoints';
 
 // ─── Permission helpers ───────────────────────────────────────────────
@@ -208,15 +208,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const handlePageHide = () => {
             const token = getToken();
             if (!token || token === 'undefined' || token === 'null') return;
-            // keepalive ensures the request completes even as the page closes
-            fetch(`${API_BASE}/api/Auth/logout`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                keepalive: true,
-            }).catch(() => {});
+            // sendBeacon is guaranteed to complete on tab/browser close (unlike fetch)
+            // Route through local Next.js API to avoid cross-origin header restrictions
+            const blob = new Blob([JSON.stringify({ token })], { type: 'application/json' });
+            navigator.sendBeacon('/api/auth/signout', blob);
         };
         window.addEventListener('pagehide', handlePageHide);
-        return () => window.removeEventListener('pagehide', handlePageHide);
+        window.addEventListener('beforeunload', handlePageHide);
+        return () => {
+            window.removeEventListener('pagehide', handlePageHide);
+            window.removeEventListener('beforeunload', handlePageHide);
+        };
     }, []);
 
     useEffect(() => {
