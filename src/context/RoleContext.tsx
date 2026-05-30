@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from 'react';
 import { AuthUser } from '@/types';
 import { getToken, removeToken, setToken } from '@/lib/api';
 import { logout as logoutApi } from '@/lib/endpoints';
@@ -203,22 +203,22 @@ function normaliseUser(raw: any): AuthUser {
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const sessionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => {
-        const handlePageHide = () => {
-            const token = getToken();
-            if (!token || token === 'undefined' || token === 'null') return;
-            // sendBeacon is guaranteed to complete on tab/browser close (unlike fetch)
-            // Route through local Next.js API to avoid cross-origin header restrictions
-            const blob = new Blob([JSON.stringify({ token })], { type: 'application/json' });
-            navigator.sendBeacon('/api/auth/signout', blob);
-        };
-        window.addEventListener('pagehide', handlePageHide);
-        window.addEventListener('beforeunload', handlePageHide);
-        return () => {
-            window.removeEventListener('pagehide', handlePageHide);
-            window.removeEventListener('beforeunload', handlePageHide);
-        };
+    const scheduleSessionExpiry = useCallback((loginTime: number) => {
+        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
+        const remaining = loginTime + 12 * 60 * 60 * 1000 - Date.now();
+        if (remaining <= 0) return;
+        sessionTimerRef.current = setTimeout(async () => {
+            await logoutApi().catch(() => {});
+            removeToken();
+            localStorage.removeItem('auth_user');
+            localStorage.removeItem('auth_login_time');
+            setUser(null);
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login?reason=expired';
+            }
+        }, remaining);
     }, []);
 
     useEffect(() => {
@@ -262,8 +262,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         return;
                     }
                     setUser(freshUser);
-                    // Update localStorage with fresh data
                     localStorage.setItem('auth_user', JSON.stringify(freshUser));
+                    scheduleSessionExpiry(loginTime);
                 } else {
                     // Fallback to localStorage if token is not a standard JWT
                     const stored = localStorage.getItem('auth_user');
@@ -278,7 +278,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
         }
         setIsLoading(false);
-    }, []);
+        return () => { if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current); };
+    }, [scheduleSessionExpiry]);
 
     const loginUser = (raw: any) => {
         let authUser: AuthUser;
@@ -295,13 +296,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Server already validated the credentials and issued a token — trust it.
         // isActive is only enforced on subsequent page loads (useEffect below).
 
+        const now = Date.now();
         localStorage.setItem('auth_user', JSON.stringify(authUser));
-        localStorage.setItem('auth_login_time', String(Date.now()));
+        localStorage.setItem('auth_login_time', String(now));
         setUser(authUser);
+        scheduleSessionExpiry(now);
     };
 
     const logoutUser = () => {
-        // Notify the backend while the token is still set, then clean up
+        if (sessionTimerRef.current) clearTimeout(sessionTimerRef.current);
         logoutApi().catch(() => {});
         removeToken();
         localStorage.removeItem('auth_user');
