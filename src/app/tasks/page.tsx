@@ -50,6 +50,13 @@ export default function TasksPage() {
         getBranches().then(setBranches).catch(() => {});
     }, []);
 
+    // Refetch when the user navigates back to this tab/page
+    useEffect(() => {
+        const onFocus = () => setAppliedFilters(f => ({ ...f }));
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, []);
+
     useEffect(() => {
         getDepartments(branchFilter.length ? branchFilter : undefined)
             .then(setDepartments)

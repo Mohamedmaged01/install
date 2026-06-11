@@ -167,7 +167,7 @@ function toImageUrl(path?: string | null): string | undefined {
     if (!path) return undefined;
     const normalized = path.replace(/\\/g, '/');
     if (normalized.startsWith('http')) return normalized;
-    return `https://apiorders.runasp.net/${normalized.replace(/^\//, '')}`;
+    return `https://crmback.erp-apex.com/${normalized.replace(/^\//, '')}`;
 }
 
 function normaliseUser(raw: any): AuthUser {

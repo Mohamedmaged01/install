@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createOrder, updateOrder, getBranches, getDepartments, getAllApexInvoices, getAllApexOffers, uploadEvidence } from '@/lib/endpoints';
+import { createOrder, updateOrder, getBranches, getDepartments, getApexInvoices, getApexOffers, uploadEvidence } from '@/lib/endpoints';
 import { Branch, Department, AddOrderDto, ApexInvoice, ApexOffer } from '@/types';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS } from '@/context/RoleContext';
@@ -21,6 +21,9 @@ export default function NewOrderPage() {
     const [apexError, setApexError] = useState('');
     const [apexLoading, setApexLoading] = useState(false);
     const [apexApplied, setApexApplied] = useState('');
+    const [apexPage, setApexPage] = useState(1);
+    const [apexHasMore, setApexHasMore] = useState(false);
+    const APEX_PAGE_SIZE = 10;
     const [loading, setLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [createdOrderId, setCreatedOrderId] = useState(0);
@@ -57,23 +60,30 @@ export default function NewOrderPage() {
         load();
     }, []);
 
-    const handleApexSearch = async () => {
-        setApexApplied(apexSearch);
-        if (!apexSearch.trim()) { setInvoices([]); setOffers([]); return; }
+    const loadApexPage = async (page: number) => {
         setApexLoading(true);
         setApexError('');
         try {
             const [inv, off] = await Promise.all([
-                getAllApexInvoices().catch((e) => { setApexError(String(e?.message || e)); return [] as ApexInvoice[]; }),
-                getAllApexOffers().catch(() => [] as ApexOffer[]),
+                getApexInvoices({ page, pageSize: APEX_PAGE_SIZE }).catch((e) => { setApexError(String(e?.message || e)); return [] as ApexInvoice[]; }),
+                getApexOffers({ page, size: APEX_PAGE_SIZE }).catch(() => [] as ApexOffer[]),
             ]);
             setInvoices(inv);
             setOffers(off);
+            setApexPage(page);
+            setApexHasMore(inv.length >= APEX_PAGE_SIZE || off.length >= APEX_PAGE_SIZE);
         } catch {
             // APEX is optional
         } finally {
             setApexLoading(false);
         }
+    };
+
+    const handleApexSearch = async () => {
+        setApexApplied(apexSearch);
+        setInvoices([]);
+        setOffers([]);
+        await loadApexPage(1);
     };
 
     // Reload departments when branch changes
@@ -204,7 +214,7 @@ export default function NewOrderPage() {
                                         {apexLoading ? '⏳' : t('Apply', 'تطبيق')}
                                     </button>
                                     {(invoices.length > 0 || offers.length > 0) && (
-                                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setApexSearch(''); setApexApplied(''); setInvoices([]); setOffers([]); setSelectedDocId(''); }}>{t('Clear', 'مسح')}</button>
+                                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setApexSearch(''); setApexApplied(''); setInvoices([]); setOffers([]); setSelectedDocId(''); setApexPage(1); setApexHasMore(false); }}>{t('Clear', 'مسح')}</button>
                                     )}
                                 </div>
                             </div>
@@ -243,10 +253,20 @@ export default function NewOrderPage() {
                                                 </optgroup>
                                             )}
                                         </select>
+                                        {/* Pagination controls */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadApexPage(apexPage - 1)} disabled={apexPage <= 1 || apexLoading}>
+                                                ← {t('Prev', 'السابق')}
+                                            </button>
+                                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Page', 'صفحة')} {apexPage}</span>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadApexPage(apexPage + 1)} disabled={!apexHasMore || apexLoading}>
+                                                {t('Next', 'التالي')} →
+                                            </button>
+                                        </div>
                                     </div>
                                 );
                             })()}
-                            {!apexApplied && <span className="form-hint">{t('Type a code or customer name and press Apply to search APEX', 'اكتب رمزاً أو اسم عميل ثم اضغط تطبيق للبحث في APEX')}</span>}
+                            {!apexApplied && <span className="form-hint">{t('Press Apply to browse APEX documents (10 at a time)', 'اضغط تطبيق لتصفح مستندات APEX (10 في كل مرة)')}</span>}
 
                             {/* Selected doc preview */}
                             {selectedDoc && (

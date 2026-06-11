@@ -9,7 +9,7 @@ import { useLang } from '@/context/LanguageContext';
 import PermissionGuard from '@/components/PermissionGuard';
 import { PERMS, useAuth } from '@/context/RoleContext';
 
-const API_BASE = 'https://apiorders.runasp.net';
+const API_BASE = 'https://crmback.erp-apex.com';
 
 const TASK_LABELS: Record<TaskStatus, { en: string; ar: string }> = {
     Assigned: { en: 'Assigned', ar: 'مُعيَّن' },

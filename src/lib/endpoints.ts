@@ -171,7 +171,7 @@ export async function deleteBranch(id: number): Promise<void> {
     return api<void>(`/api/Branches/${id}`, { method: 'DELETE' });
 }
 
-const API_BASE = 'https://apiorders.runasp.net';
+const API_BASE = 'https://crmback.erp-apex.com';
 
 function toImageUrl(path?: string | null): string | undefined {
     if (!path) return undefined;
