@@ -271,6 +271,9 @@ export interface Task {
     address?: string;
     priority?: Priority;
     departmentName?: string;
+    departmentId?: number;
+    branchId?: number;
+    branchName?: string;
     scheduledDate?: string;
 }
 

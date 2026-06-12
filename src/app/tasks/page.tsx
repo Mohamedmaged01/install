@@ -41,19 +41,12 @@ export default function TasksPage() {
     const [search, setSearch] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
-    const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number[]; deptFilter: number[]; dateFrom: string; dateTo: string }>({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' });
+    const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number[]; deptFilter: number[]; dateFrom: string; dateTo: string } | null>(null);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
         getBranches().then(setBranches).catch(() => {});
-    }, []);
-
-    // Refetch when the user navigates back to this tab/page
-    useEffect(() => {
-        const onFocus = () => setAppliedFilters(f => ({ ...f }));
-        window.addEventListener('focus', onFocus);
-        return () => window.removeEventListener('focus', onFocus);
     }, []);
 
     useEffect(() => {
@@ -66,6 +59,7 @@ export default function TasksPage() {
     const deptOptions = departments;
 
     useEffect(() => {
+        if (!appliedFilters) return;
         setLoading(true);
         getMyTasks({
             branchIds: appliedFilters.branchFilter.length ? appliedFilters.branchFilter : undefined,
@@ -99,6 +93,16 @@ export default function TasksPage() {
     const filtered = tasks.filter(task => {
         const status = normalizeStatus(task.status as string);
         if (statusFilter && status !== statusFilter) return false;
+        // Client-side branch filter (fallback if API doesn't filter for this role)
+        if (appliedFilters?.branchFilter.length) {
+            const taskBranch = (task as any).branchId ?? (task as any).BranchId;
+            if (taskBranch != null && !appliedFilters.branchFilter.includes(Number(taskBranch))) return false;
+        }
+        // Client-side department filter
+        if (appliedFilters?.deptFilter.length) {
+            const taskDept = task.departmentId ?? (task as any).DepartmentId;
+            if (taskDept != null && !appliedFilters.deptFilter.includes(Number(taskDept))) return false;
+        }
         if (search) {
             const q = search.toLowerCase();
             const orderId = String(task.installationOrderId || task.orderId || '');
@@ -198,8 +202,8 @@ export default function TasksPage() {
                         <button className="btn btn-primary btn-sm" onClick={() => { setAppliedFilters({ branchFilter, deptFilter, dateFrom, dateTo }); setPage(1); }}>
                             {t('Apply', 'تطبيق')}
                         </button>
-                        {(appliedFilters.branchFilter.length > 0 || appliedFilters.deptFilter.length > 0 || appliedFilters.dateFrom || appliedFilters.dateTo || branchFilter.length > 0 || deptFilter.length > 0 || statusFilter || search || dateFrom || dateTo) && (
-                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setStatusFilter(''); setSearch(''); setDateFrom(''); setDateTo(''); setAppliedFilters({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' }); setPage(1); }}>
+                        {(appliedFilters || branchFilter.length > 0 || deptFilter.length > 0 || statusFilter || search || dateFrom || dateTo) && (
+                            <button className="btn btn-secondary btn-sm" onClick={() => { setBranchFilter([]); setDeptFilter([]); setStatusFilter(''); setSearch(''); setDateFrom(''); setDateTo(''); setAppliedFilters(null); setTasks([]); setPage(1); }}>
                                 {t('Clear', 'مسح')}
                             </button>
                         )}
@@ -221,7 +225,14 @@ export default function TasksPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? (
+                        {!appliedFilters ? (
+                            <tr>
+                                <td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>
+                                    <div style={{ fontSize: 36, marginBottom: 8 }}>🔍</div>
+                                    <div style={{ fontWeight: 600 }}>{t('Select filters and click Apply', 'حدد الفلاتر واضغط تطبيق')}</div>
+                                </td>
+                            </tr>
+                        ) : loading ? (
                             <tr><td colSpan={6} style={{ textAlign: 'center', padding: 48, color: 'var(--text-muted)' }}>{t('Loading tasks...', 'جارٍ تحميل المهام...')}</td></tr>
                         ) : filtered.length === 0 ? (
                             <tr>
@@ -276,7 +287,7 @@ export default function TasksPage() {
                     </tbody>
                 </table>
             </div>
-            {filtered.length > 0 && (
+            {appliedFilters && filtered.length > 0 && (
                 <Pagination
                     currentPage={page}
                     totalItems={filtered.length}
