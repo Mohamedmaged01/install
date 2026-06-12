@@ -11,10 +11,12 @@ export async function GET(req: NextRequest) {
     const PageSize = searchParams.get('PageSize') ?? '20';
     const DateFrom = searchParams.get('DateFrom') ?? '';
     const DateTo = searchParams.get('DateTo') ?? '';
+    const Code = searchParams.get('Code') ?? '';
 
     const params = new URLSearchParams({ PassKey: PASS_KEY, PageNumber, PageSize });
     if (DateFrom) params.set('DateFrom', DateFrom);
     if (DateTo) params.set('DateTo', DateTo);
+    if (Code) params.set('Code', Code);
 
     try {
         const res = await fetch(`${APEX_BASE}/OfferPricesController/getOfferPrice?${params}`, {

@@ -60,13 +60,13 @@ export default function NewOrderPage() {
         load();
     }, []);
 
-    const loadApexPage = async (page: number) => {
+    const loadApexPage = async (page: number, code?: string) => {
         setApexLoading(true);
         setApexError('');
         try {
             const [inv, off] = await Promise.all([
-                getApexInvoices({ page, pageSize: APEX_PAGE_SIZE }).catch((e) => { setApexError(String(e?.message || e)); return [] as ApexInvoice[]; }),
-                getApexOffers({ page, size: APEX_PAGE_SIZE }).catch(() => [] as ApexOffer[]),
+                getApexInvoices({ page, pageSize: APEX_PAGE_SIZE, code: code || undefined }).catch((e) => { setApexError(String(e?.message || e)); return [] as ApexInvoice[]; }),
+                getApexOffers({ page, size: APEX_PAGE_SIZE, code: code || undefined }).catch(() => [] as ApexOffer[]),
             ]);
             setInvoices(inv);
             setOffers(off);
@@ -83,7 +83,7 @@ export default function NewOrderPage() {
         setApexApplied(apexSearch);
         setInvoices([]);
         setOffers([]);
-        await loadApexPage(1);
+        await loadApexPage(1, apexSearch.trim() || undefined);
     };
 
     // Reload departments when branch changes
@@ -255,11 +255,11 @@ export default function NewOrderPage() {
                                         </select>
                                         {/* Pagination controls */}
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
-                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadApexPage(apexPage - 1)} disabled={apexPage <= 1 || apexLoading}>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadApexPage(apexPage - 1, apexApplied.trim() || undefined)} disabled={apexPage <= 1 || apexLoading}>
                                                 ← {t('Prev', 'السابق')}
                                             </button>
                                             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('Page', 'صفحة')} {apexPage}</span>
-                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadApexPage(apexPage + 1)} disabled={!apexHasMore || apexLoading}>
+                                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => loadApexPage(apexPage + 1, apexApplied.trim() || undefined)} disabled={!apexHasMore || apexLoading}>
                                                 {t('Next', 'التالي')} →
                                             </button>
                                         </div>

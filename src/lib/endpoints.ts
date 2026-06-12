@@ -51,12 +51,14 @@ export async function getApexInvoices(params?: {
     dateTo?: string;
     page?: number;
     pageSize?: number;
+    code?: string;
 }): Promise<ApexInvoice[]> {
     const qs = new URLSearchParams();
     if (params?.dateFrom) qs.set('DateFrom', params.dateFrom);
     if (params?.dateTo) qs.set('DateTo', params.dateTo);
     if (params?.page) qs.set('PageNumber', String(params.page));
     if (params?.pageSize) qs.set('PageSize', String(params.pageSize));
+    if (params?.code) qs.set('Code', params.code);
     const url = `/api/apex/invoices${qs.toString() ? '?' + qs : ''}`;
     const res: ApexResponse<ApexInvoice> = await fetch(url).then(r => r.json());
     if (!res.isSuccess) throw new Error(res.message || 'APEX invoices failed');
@@ -68,12 +70,14 @@ export async function getApexOffers(params?: {
     to?: string;
     page?: number;
     size?: number;
+    code?: string;
 }): Promise<ApexOffer[]> {
     const qs = new URLSearchParams();
     if (params?.from) qs.set('DateFrom', params.from);
     if (params?.to) qs.set('DateTo', params.to);
     if (params?.page) qs.set('PageNumber', String(params.page));
     if (params?.size) qs.set('PageSize', String(params.size));
+    if (params?.code) qs.set('Code', params.code);
     const url = `/api/apex/offers${qs.toString() ? '?' + qs : ''}`;
     const res: ApexResponse<ApexOffer> = await fetch(url).then(r => r.json());
     if (!res.isSuccess) throw new Error(res.message || 'APEX offers failed');
