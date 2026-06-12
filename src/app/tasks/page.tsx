@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { getMyTasks, getBranches, getDepartments, getTaskStatistics } from '@/lib/endpoints';
+import { getMyTasks, getBranches, getDepartments } from '@/lib/endpoints';
 import { Task, TaskStatus, Branch, Department } from '@/types';
 import MultiSelect from '@/components/MultiSelect';
 import { useLang } from '@/context/LanguageContext';
@@ -42,7 +42,6 @@ export default function TasksPage() {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const [appliedFilters, setAppliedFilters] = useState<{ branchFilter: number[]; deptFilter: number[]; dateFrom: string; dateTo: string }>({ branchFilter: [], deptFilter: [], dateFrom: '', dateTo: '' });
-    const [stats, setStats] = useState<import('@/types').TaskStatistics | null>(null);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
 
@@ -76,19 +75,30 @@ export default function TasksPage() {
         }).catch(() => setTasks([])).finally(() => setLoading(false));
     }, [appliedFilters]);
 
-    useEffect(() => {
-        getTaskStatistics({
-            branchIds: appliedFilters.branchFilter.length ? appliedFilters.branchFilter : undefined,
-            departmentIds: appliedFilters.deptFilter.length ? appliedFilters.deptFilter : undefined,
-            from: appliedFilters.dateFrom || undefined,
-            to: appliedFilters.dateTo || undefined,
-        }).then(s => setStats(s)).catch(() => {});
-    }, [appliedFilters]);
+    const taskLabel = (s: TaskStatus) => TASK_LABELS[s] ? (lang === 'ar' ? TASK_LABELS[s].ar : TASK_LABELS[s].en) : s;
 
-    const taskLabel = (s: TaskStatus) => lang === 'ar' ? TASK_LABELS[s].ar : TASK_LABELS[s].en;
+    // Normalize status values from API (handle spacing/casing differences)
+    const STATUS_NORMALIZE: Record<string, TaskStatus> = {
+        'in_progress': 'InProgress', 'In Progress': 'InProgress', 'inprogress': 'InProgress',
+        'on_hold': 'OnHold', 'On Hold': 'OnHold', 'onhold': 'OnHold',
+        'en_route': 'Enroute', 'En Route': 'Enroute', 'enroute': 'Enroute',
+        'on_site': 'Onsite', 'On Site': 'Onsite', 'onsite': 'Onsite',
+    };
+    const normalizeStatus = (s: string): TaskStatus =>
+        STATUS_NORMALIZE[s] ?? (s as TaskStatus);
+
+    const counts = useMemo(() => {
+        const c: Record<string, number> = {};
+        tasks.forEach(t => {
+            const s = normalizeStatus(t.status as string);
+            c[s] = (c[s] || 0) + 1;
+        });
+        return c;
+    }, [tasks]);
 
     const filtered = tasks.filter(task => {
-        if (statusFilter && task.status !== statusFilter) return false;
+        const status = normalizeStatus(task.status as string);
+        if (statusFilter && status !== statusFilter) return false;
         if (search) {
             const q = search.toLowerCase();
             const orderId = String(task.installationOrderId || task.orderId || '');
@@ -111,31 +121,31 @@ export default function TasksPage() {
             <div className="dashboard-stat-grid">
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#3b82f620', color: '#3b82f6' }}>📋</div>
-                    <div><div className="stat-value">{stats?.totalTasks ?? tasks.length}</div><div className="stat-label">{t('Total', 'المجموع')}</div></div>
+                    <div><div className="stat-value">{tasks.length}</div><div className="stat-label">{t('Total', 'المجموع')}</div></div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#f59e0b20', color: '#f59e0b' }}>📌</div>
-                    <div><div className="stat-value">{stats?.assigned ?? 0}</div><div className="stat-label">{t('Assigned', 'مُعيَّن')}</div></div>
+                    <div><div className="stat-value">{counts['Assigned'] ?? 0}</div><div className="stat-label">{t('Assigned', 'مُعيَّن')}</div></div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#8b5cf620', color: '#8b5cf6' }}>🚗</div>
-                    <div><div className="stat-value">{stats?.enroute ?? 0}</div><div className="stat-label">{t('En Route', 'في الطريق')}</div></div>
+                    <div><div className="stat-value">{counts['Enroute'] ?? 0}</div><div className="stat-label">{t('En Route', 'في الطريق')}</div></div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#06b6d420', color: '#06b6d4' }}>📍</div>
-                    <div><div className="stat-value">{stats?.onsite ?? 0}</div><div className="stat-label">{t('On Site', 'في الموقع')}</div></div>
+                    <div><div className="stat-value">{counts['Onsite'] ?? 0}</div><div className="stat-label">{t('On Site', 'في الموقع')}</div></div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#3b82f620', color: '#3b82f6' }}>⚡</div>
-                    <div><div className="stat-value">{stats?.inProgress ?? 0}</div><div className="stat-label">{t('In Progress', 'قيد التنفيذ')}</div></div>
+                    <div><div className="stat-value">{counts['InProgress'] ?? 0}</div><div className="stat-label">{t('In Progress', 'قيد التنفيذ')}</div></div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#10b98120', color: '#10b981' }}>✅</div>
-                    <div><div className="stat-value">{stats?.completed ?? 0}</div><div className="stat-label">{t('Completed', 'مكتملة')}</div></div>
+                    <div><div className="stat-value">{counts['Completed'] ?? 0}</div><div className="stat-label">{t('Completed', 'مكتملة')}</div></div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon" style={{ background: '#64748b20', color: '#64748b' }}>⏸️</div>
-                    <div><div className="stat-value">{stats?.hold ?? 0}</div><div className="stat-label">{t('On Hold', 'معلق')}</div></div>
+                    <div><div className="stat-value">{counts['OnHold'] ?? 0}</div><div className="stat-label">{t('On Hold', 'معلق')}</div></div>
                 </div>
             </div>
 
@@ -223,7 +233,8 @@ export default function TasksPage() {
                         ) : (
                             filtered.slice((page - 1) * pageSize, page * pageSize).map(task => {
                                 const orderId = task.installationOrderId || task.orderId;
-                                const statusColor = STATUS_COLORS[task.status] || '#94a3b8';
+                                const normalStatus = normalizeStatus(task.status as string);
+                                const statusColor = STATUS_COLORS[normalStatus] || '#94a3b8';
                                 return (
                                     <tr key={task.id}>
                                         <td>
@@ -247,7 +258,7 @@ export default function TasksPage() {
                                         </td>
                                         <td>
                                             <span style={{ padding: '4px 10px', borderRadius: 'var(--radius-full)', fontSize: 12, fontWeight: 600, color: statusColor, background: `${statusColor}15`, border: `1px solid ${statusColor}30` }}>
-                                                {taskLabel(task.status)}
+                                                {taskLabel(normalStatus)}
                                             </span>
                                         </td>
                                         <td className="resp-hide" style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 180 }}>
